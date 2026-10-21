@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lidia</title>
+<meta name="description" content="Tu hora diaria de francés con Lidia">
+<meta name="theme-color" content="#FAF6EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lidia">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root {
+  --fondo: #FAF6EF;
+  --tarjeta: #FFFFFF;
+  --tinta: #2B2A28;
+  --tinta-suave: #6E6A63;
+  --borde: #ECE5D8;
+  --sombra: 0 1px 2px rgba(43, 42, 40, .06), 0 4px 14px rgba(43, 42, 40, .05);
+  --violeta: #7A5AC8;
+  --relleno: #7A5AC8;
+  --oral: #5867D4;
+  --ambar: #C98A1E;
+  --teal: #23917F;
+  --azul: #3573C9;
+  --dorado: #A8892A;
+  --verde: #3E8F52;
+  --rojo: #C2453D;
+  --tinte: 12%;
+  --radio: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fondo: #1C1C1E;
+    --tarjeta: #2A2A2D;
+    --tinta: #EDEBE7;
+    --tinta-suave: #A6A29B;
+    --borde: #3A3A3E;
+    --sombra: 0 1px 2px rgba(0, 0, 0, .3);
+    --violeta: #A68BEA;
+    --relleno: #6B4FBF;
+    --oral: #8C98EE;
+    --ambar: #E3AE4F;
+    --teal: #4FC0AD;
+    --azul: #6FA3EA;
+    --dorado: #D2B45A;
+    --verde: #6CBF7F;
+    --rojo: #E2766F;
+    --tinte: 18%;
+  }
+}
+:root[data-theme="dark"] {
+  --fondo: #1C1C1E;
+  --tarjeta: #2A2A2D;
+  --tinta: #EDEBE7;
+  --tinta-suave: #A6A29B;
+  --borde: #3A3A3E;
+  --sombra: 0 1px 2px rgba(0, 0, 0, .3);
+  --violeta: #A68BEA;
+  --relleno: #6B4FBF;
+  --oral: #8C98EE;
+  --ambar: #E3AE4F;
+  --teal: #4FC0AD;
+  --azul: #6FA3EA;
+  --dorado: #D2B45A;
+  --verde: #6CBF7F;
+  --rojo: #E2766F;
+  --tinte: 18%;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--fondo);
+  color: var(--tinta);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom));
+}
+.barra { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 8px; }
+.barra h1 { flex: 1; margin: 0; font-size: 20px; letter-spacing: -.01em; }
+.icono-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--borde);
+  background: var(--tarjeta); display: grid; place-items: center; font-size: 18px; flex: none;
+}
+.tarjeta {
+  background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio);
+  box-shadow: var(--sombra); padding: 16px;
+}
+.seccion { margin: 24px 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-suave); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: 14px; border: 0;
+  background: var(--relleno); color: #fff; font-weight: 600;
+}
+.btn.sec { background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
+.btn:disabled { opacity: .5; }
+
+/* Inicio */
+.tutora { display: flex; gap: 14px; align-items: center; }
+.avatar {
+  width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--violeta), var(--oral)); color: #fff; font-size: 28px; font-weight: 700;
+}
+.tutora h2 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }
+.chip { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
+.tutora .fase { font-size: 13px; color: var(--tinta-suave); }
+.tutora .saludo { margin-top: 4px; font-style: italic; }
+.cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.cifra { text-align: center; padding: 14px 6px; }
+.cifra b { display: block; font-size: 22px; letter-spacing: -.02em; }
+.cifra span { font-size: 12px; color: var(--tinta-suave); }
+.hoy { margin-top: 12px; padding: 20px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); border-color: transparent; }
+.hoy h3 { margin: 0 0 4px; font-size: 22px; }
+.hoy p { margin: 0 0 14px; color: var(--tinta-suave); }
+.hoy .btn { width: 100%; }
+.herramientas { display: grid; gap: 10px; }
+.herr {
+  --c: var(--violeta);
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 14px 16px; border-radius: var(--radio); border: 1px solid transparent;
+  background: color-mix(in srgb, var(--c) var(--tinte), var(--tarjeta));
+}
+.herr .punto { width: 36px; height: 36px; border-radius: 11px; background: var(--c); color: #fff; display: grid; place-items: center; font-size: 17px; flex: none; }
+.herr b { display: block; }
+.herr small { color: var(--tinta-suave); }
+.herr .flecha { margin-left: auto; color: var(--c); font-size: 20px; }
+.herr:disabled { cursor: default; opacity: .62; }
+.herr:disabled .flecha { font-size: 11px; font-weight: 600; }
+.plan p { margin: 0 0 8px; }
+.plan p:last-child { margin: 0; }
+
+/* Sesión */
+.reloj { display: flex; align-items: center; gap: 12px; }
+.reloj .tiempo { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.reloj .fase-act { flex: 1; min-width: 0; }
+.reloj .fase-act b { display: block; }
+.reloj .fase-act small { color: var(--tinta-suave); }
+.fases { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 12px; }
+.fases i { height: 6px; border-radius: 3px; background: var(--borde); }
+.fases i.hecha { background: color-mix(in srgb, var(--violeta) 45%, var(--borde)); }
+.fases i.actual { background: var(--violeta); }
+.controles { display: flex; gap: 8px; margin-top: 12px; }
+.controles .btn { flex: 1; padding: 0 10px; }
+.chat { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.msg { max-width: 88%; padding: 10px 14px; border-radius: 18px; overflow-wrap: anywhere; }
+.msg p { margin: 0 0 8px; }
+.msg p:last-child, .msg ul:last-child { margin-bottom: 0; }
+.msg ul { margin: 0 0 8px; padding-left: 20px; }
+.msg.lidia { align-self: flex-start; background: var(--tarjeta); border: 1px solid var(--borde); border-bottom-left-radius: 6px; }
+.msg.laura { align-self: flex-end; background: var(--relleno); color: #fff; border-bottom-right-radius: 6px; }
+.msg.aviso { align-self: center; background: none; color: var(--tinta-suave); font-size: 13px; padding: 2px 8px; }
+.msg img { display: block; max-width: 100%; border-radius: 12px; margin-bottom: 6px; }
+.msg .escuchar { margin-top: 8px; border: 0; background: none; color: var(--violeta); font-weight: 600; padding: 0; font-size: 14px; }
+.escribiendo { color: var(--tinta-suave); font-style: italic; }
+.entrada {
+  position: sticky; bottom: 0; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fondo) 75%, transparent);
+}
+.entrada .caja { display: flex; gap: 8px; align-items: flex-end; }
+.entrada textarea {
+  flex: 1; min-width: 0; min-height: 44px; max-height: 160px; resize: none; padding: 10px 14px;
+  border-radius: 16px; border: 1px solid var(--borde); background: var(--tarjeta); line-height: 1.4;
+}
+.icono-btn.activo { background: var(--rojo); color: #fff; border-color: transparent; }
+.terminada { text-align: center; color: var(--tinta-suave); padding: 16px 0; }
+
+/* Librería */
+.buscar { width: 100%; min-height: 44px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--borde); background: var(--tarjeta); }
+.filtros { display: flex; gap: 8px; margin: 10px 0 14px; overflow-x: auto; scrollbar-width: none; }
+.filtros button {
+  flex: none; min-height: 36px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--borde); background: var(--tarjeta);
+}
+.filtros button[aria-pressed="true"] { background: var(--azul); border-color: transparent; color: #fff; }
+.items { display: grid; gap: 8px; }
+.item { padding: 12px 14px; }
+.item .orig { color: var(--rojo); text-decoration: line-through; text-decoration-thickness: 1px; }
+.item .corr { font-weight: 600; }
+.item .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--tinta-suave); }
+.item .meta span { padding: 1px 8px; border-radius: 99px; background: color-mix(in srgb, var(--azul) var(--tinte), var(--tarjeta)); }
+.item .meta span.dominado { background: color-mix(in srgb, var(--verde) var(--tinte), var(--tarjeta)); color: var(--verde); }
+.item .nota { margin-top: 4px; font-size: 14px; color: var(--tinta-suave); }
+.vacio { text-align: center; color: var(--tinta-suave); padding: 24px 0; }
+
+/* Login y avisos */
+.login { margin-top: 18vh; text-align: center; }
+.login .avatar { margin: 0 auto 12px; }
+.login h1 { margin: 0 0 4px; }
+.login p { color: var(--tinta-suave); margin: 0 0 18px; }
+.login form { display: grid; gap: 10px; text-align: left; }
+.toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); max-width: 528px; margin: 0 auto;
+  padding: 12px 16px; border-radius: 14px; background: var(--tinta); color: var(--fondo); z-index: 10; box-shadow: var(--sombra);
+}
+</style>
+</head>
+<body>
+<main class="app">
+
+  <!-- Login -->
+  <section id="v-login" hidden>
+    <div class="login">
+      <div class="avatar">L</div>
+      <h1>Lidia</h1>
+      <p>Tu hora diaria de francés</p>
+      <form id="f-login" class="tarjeta">
+        <label for="correo">Tu correo</label>
+        <input id="correo" class="buscar" type="email" autocomplete="email" required>
+        <button class="btn" type="submit">Enviarme el enlace</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Inicio -->
+  <section id="v-inicio" hidden>
+    <div class="barra">
+      <h1>Lidia</h1>
+      <button class="icono-btn" id="b-tema" aria-label="Cambiar tema" type="button"></button>
+    </div>
+    <div class="tarjeta tutora">
+      <div class="avatar">L</div>
+      <div>
+        <h2>Lidia <span class="chip">IA</span></h2>
+        <div class="fase" id="i-fase">Fase 1 de 5</div>
+        <div class="saludo" id="i-saludo"></div>
+      </div>
+    </div>
+    <div class="cifras">
+      <div class="tarjeta cifra"><b id="i-horas">–</b><span>horas acumuladas</span></div>
+      <div class="tarjeta cifra"><b id="i-errores">–</b><span>errores vivos</span></div>
+      <div class="tarjeta cifra"><b id="i-simulacro">–</b><span>último simulacro</span></div>
+    </div>
+    <div class="tarjeta hoy">
+      <h3>Sesión de hoy</h3>
+      <p id="i-hoy">Cargando…</p>
+      <button class="btn" id="b-sesion" type="button">Empezar</button>
+    </div>
+    <div class="seccion">Herramientas</div>
+    <div class="herramientas">
+      <button class="herr" style="--c: var(--violeta)" data-ir="sesion" type="button">
+        <span class="punto">✦</span><span><b>Sesión de hoy</b><small>La hora con Lidia en 6 fases</small></span><span class="flecha">→</span>
+      </button>
+      <button class="herr" style="--c: var(--azul)" data-ir="libreria" type="button">
+        <span class="punto">▤</span><span><b>Mi librería</b><small>Errores, expresiones y palabras</small></span><span class="flecha">→</span>
+      </button>
+      <button class="herr" style="--c: var(--oral)" disabled type="button">
+        <span class="punto">◉</span><span><b>Práctica oral</b><small>Oral · conducción · escritura</small></span><span class="flecha">Pronto</span>
+      </button>
+      <button class="herr" style="--c: var(--ambar)" disabled type="button">
+        <span class="punto">◆</span><span><b>Vocabulario visual</b><small>Palabras con imagen</small></span><span class="flecha">Pronto</span>
+      </button>
+      <button class="herr" style="--c: var(--teal)" disabled type="button">
+        <span class="punto">▶</span><span><b>Estudia con videos</b><small>Escucha con contexto</small></span><span class="flecha">Pronto</span>
+      </button>
+      <button class="herr" style="--c: var(--dorado)" disabled type="button">
+        <span class="punto">❡</span><span><b>Lectura del día</b><small>Un texto corto del tema</small></span><span class="flecha">Pronto</span>
+      </button>
+      <button class="herr" style="--c: var(--verde)" disabled type="button">
+        <span class="punto">↗</span><span><b>Mi progreso</b><small>Resumen, temario e historial</small></span><span class="flecha">Pronto</span>
+      </button>
+    </div>
+    <div class="seccion">Sobre tu plan</div>
+    <div class="tarjeta plan">
+      <p><b>Meta:</b> francés C1 en todo y el TECFÉE aprobado con margen (70 % mínimo en código lingüístico y redacción).</p>
+      <p><b>Después:</b> aplicar en otoño de 2027 al Bac en éducation préscolaire et enseignement primaire. Fecha límite: 1 de marzo de 2028.</p>
+      <p><b>Cada día:</b> una hora con Lidia. Recuperar de memoria, practicar y repasar lo que toca fija más que releer.</p>
+    </div>
+  </section>
+
+  <!-- Sesión de hoy -->
+  <section id="v-sesion" hidden>
+    <div class="barra">
+      <button class="icono-btn" data-ir="inicio" aria-label="Volver" type="button">←</button>
+      <h1>Sesión de hoy</h1>
+    </div>
+    <div class="tarjeta">
+      <div class="reloj">
+        <div class="tiempo" id="s-tiempo">00:00</div>
+        <div class="fase-act"><b id="s-fase">Recuperar</b><small id="s-fase-desc"></small></div>
+      </div>
+      <div class="fases" id="s-fases"></div>
+      <div class="controles" id="s-controles">
+        <button class="btn sec" id="b-pausa" type="button">Pausar</button>
+        <button class="btn sec" id="b-siguiente" type="button">Siguiente fase →</button>
+      </div>
+    </div>
+    <div class="chat" id="s-chat"></div>
+    <div class="entrada" id="s-entrada">
+      <div class="caja">
+        <button class="icono-btn" id="b-foto" aria-label="Subir foto" type="button">📷</button>
+        <button class="icono-btn" id="b-voz" aria-label="Hablar" type="button">🎙</button>
+        <textarea id="s-texto" rows="1" placeholder="Écris ou parle…" lang="fr"></textarea>
+        <button class="icono-btn" id="b-enviar" aria-label="Enviar" type="button">↑</button>
+      </div>
+      <input id="s-archivo" type="file" accept="image/*" hidden>
+    </div>
+    <div class="terminada" id="s-terminada" hidden>Sesión terminada. Lo nuevo ya está en tu librería.</div>
+  </section>
+
+  <!-- Mi librería -->
+  <section id="v-libreria" hidden>
+    <div class="barra">
+      <button class="icono-btn" data-ir="inicio" aria-label="Volver" type="button">←</button>
+      <h1>Mi librería</h1>
+    </div>
+    <input class="buscar" id="l-buscar" type="search" placeholder="Buscar…" lang="fr">
+    <div class="filtros" id="l-filtros">
+      <button type="button" data-tipo="" aria-pressed="true">Todo</button>
+      <button type="button" data-tipo="error" aria-pressed="false">Errores</button>
+      <button type="button" data-tipo="expresion" aria-pressed="false">Expresiones</button>
+      <button type="button" data-tipo="palabra" aria-pressed="false">Palabras</button>
+      <button type="button" data-tipo="hoy" aria-pressed="false">Toca hoy</button>
+    </div>
+    <div class="items" id="l-items"></div>
+  </section>
+
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://rhevcaxruqqmjvajcatn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hBWS7ZShEGv_zC51x_4n2g_jG9551G3";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const FASES = [
+  { id: "recuperar", nombre: "Recuperar", ini: 0, desc: "Escribe o di de memoria lo de ayer" },
+  { id: "plan", nombre: "Plan", ini: 5, desc: "Meta del día y tu predicción (0–100)" },
+  { id: "escuchar_leer", nombre: "Escuchar o leer", ini: 8, desc: "Preguntas previas y texto del tema" },
+  { id: "producir", nombre: "Producir", ini: 25, desc: "Escribe a mano y sube foto, o habla" },
+  { id: "codigo", nombre: "Código lingüístico", ini: 45, desc: "Ejercicios del banco que tocan hoy" },
+  { id: "cierre", nombre: "Cierre", ini: 55, desc: "Predicción vs resultado" },
+];
+const SALUDOS = [
+  "Bon dimanche ! On prend le temps aujourd'hui.",
+  "Bonne semaine ! On commence en douceur.",
+  "Salut Laura ! Prête pour ton heure de français ?",
+  "Allô ! On continue sur notre lancée.",
+  "Bonjour ! Aujourd'hui, on apprend en jasant.",
+  "Bon vendredi ! Une heure, et la fin de semaine t'attend.",
+  "Bon samedi ! Un petit café, pis on y va ?",
+];
+const PATRONES = { como_suena: "como suena", espanol: "el español se cuela", verbo_bloque: "verbos en bloque", genero_numero: "género y número", otro: "otro" };
+const TEMAS = ["auto", "light", "dark"];
+const ICONOS_TEMA = { auto: "◐", light: "☀︎", dark: "☾" };
+
+const $ = (id) => document.getElementById(id);
+const estado = { usuaria: null, perfil: null, sesion: null, resumen: null, segundos: 0, corriendo: false, faseIdx: 0, enviando: false, filtro: "", banco: [] };
+let reloj = null;
+let ultimoGuardado = 0;
+
+// ── Utilidades ──
+function hoy() { return new Date().toLocaleDateString("en-CA"); }
+function aviso(texto) {
+  const t = $("toast");
+  t.textContent = texto;
+  t.hidden = false;
+  clearTimeout(aviso.t);
+  aviso.t = setTimeout(() => (t.hidden = true), 4000);
+}
+function escapar(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+// Markdown simple: párrafos, listas, negrita, cursiva.
+function markdown(texto) {
+  const lineas = escapar(texto).split("\n");
+  let html = "", lista = false, parrafo = [];
+  const cerrarParrafo = () => { if (parrafo.length) { html += `<p>${parrafo.join("<br>")}</p>`; parrafo = []; } };
+  for (const l of lineas) {
+    const item = l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if (item) {
+      cerrarParrafo();
+      if (!lista) { html += "<ul>"; lista = true; }
+      html += `<li>${item[1]}</li>`;
+    } else {
+      if (lista) { html += "</ul>"; lista = false; }
+      if (l.trim()) parrafo.push(l); else cerrarParrafo();
+    }
+  }
+  cerrarParrafo();
+  if (lista) html += "</ul>";
+  return html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<i>$2</i>");
+}
+function mmss(s) { return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+
+// ── Tema ──
+function leerTema() { try { return localStorage.getItem("lidia-tema") || "auto"; } catch { return "auto"; } }
+function aplicarTema(t) {
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  $("b-tema").textContent = ICONOS_TEMA[t];
+  $("b-tema").setAttribute("aria-label", `Tema: ${{ auto: "automático", light: "claro", dark: "oscuro" }[t]}`);
+}
+$("b-tema").onclick = () => {
+  const t = TEMAS[(TEMAS.indexOf(leerTema()) + 1) % TEMAS.length];
+  try { localStorage.setItem("lidia-tema", t); } catch {}
+  aplicarTema(t);
+};
+aplicarTema(leerTema());
+
+// ── Navegación ──
+function mostrar(vista) {
+  for (const v of ["login", "inicio", "sesion", "libreria"]) $(`v-${v}`).hidden = v !== vista;
+  window.scrollTo(0, 0);
+}
+function ir(vista) { location.hash = vista; }
+async function enrutar() {
+  if (!estado.usuaria) return mostrar("login");
+  const vista = location.hash.slice(1) || "inicio";
+  if (vista !== "sesion") pausar();
+  if (vista === "sesion") { mostrar("sesion"); await abrirSesion(); }
+  else if (vista === "libreria") { mostrar("libreria"); await cargarBanco(); }
+  else { mostrar("inicio"); await cargarInicio(); }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ir]");
+  if (b) ir(b.dataset.ir);
+});
+window.addEventListener("hashchange", enrutar);
+
+// ── Login ──
+$("f-login").onsubmit = async (e) => {
+  e.preventDefault();
+  const { error } = await sb.auth.signInWithOtp({
+    email: $("correo").value.trim(),
+    options: { emailRedirectTo: location.origin + location.pathname },
+  });
+  aviso(error ? `No se pudo enviar: ${error.message}` : "Listo: revisa tu correo y abre el enlace.");
+};
+
+// ── Inicio ──
+async function cargarInicio() {
+  $("i-saludo").textContent = SALUDOS[new Date().getDay()];
+  const [perfil, sesiones, errores, simulacro] = await Promise.all([
+    sb.from("perfil").select("*").maybeSingle(),
+    sb.from("sesiones").select("id, fecha, segundos, fase_actual"),
+    sb.from("banco").select("id", { count: "exact", head: true }).eq("tipo", "error").eq("dominado", false),
+    sb.from("textos").select("puntaje").not("puntaje", "is", null).order("fecha", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  estado.perfil = perfil.data;
+  $("i-fase").textContent = `Fase ${perfil.data?.fase_plan ?? 1} de 5 · ${perfil.data?.tema_semana ?? "Ma vie au Québec"}`;
+  const total = (sesiones.data ?? []).reduce((a, s) => a + (s.segundos || 0), 0);
+  $("i-horas").textContent = (total / 3600).toLocaleString("es", { maximumFractionDigits: 1 });
+  $("i-errores").textContent = errores.count ?? 0;
+  $("i-simulacro").textContent = simulacro.data ? `${simulacro.data.puntaje} %` : "—";
+
+  const deHoy = (sesiones.data ?? []).find((s) => s.fecha === hoy());
+  if (!deHoy) {
+    $("i-hoy").textContent = `Tema de la semana: ${perfil.data?.tema_semana ?? "Ma vie au Québec"}. Una hora, seis fases.`;
+    $("b-sesion").textContent = "Empezar";
+  } else if (deHoy.fase_actual === "terminada") {
+    $("i-hoy").textContent = `Terminada · ${Math.round(deHoy.segundos / 60)} min. Mañana seguimos.`;
+    $("b-sesion").textContent = "Ver la conversación";
+  } else {
+    const f = FASES.find((x) => x.id === deHoy.fase_actual) ?? FASES[0];
+    $("i-hoy").textContent = `En pausa en ${f.nombre} · ${mmss(deHoy.segundos)}`;
+    $("b-sesion").textContent = "Continuar";
+  }
+}
+$("b-sesion").onclick = () => ir("sesion");
+
+// ── Sesión ──
+async function abrirSesion() {
+  $("s-chat").innerHTML = "";
+  let { data: s } = await sb.from("sesiones").select("*").eq("fecha", hoy()).order("creado", { ascending: false }).limit(1).maybeSingle();
+  if (!s) {
+    const nueva = await sb.from("sesiones").insert({
+      fecha: hoy(), fase_plan: estado.perfil?.fase_plan ?? 1, tema: estado.perfil?.tema_semana ?? "Ma vie au Québec",
+    }).select().single();
+    if (nueva.error) return aviso(`No pude crear la sesión: ${nueva.error.message}`);
+    s = nueva.data;
+  }
+  estado.sesion = s;
+  estado.resumen = s.resumen;
+  estado.segundos = s.segundos || 0;
+  estado.faseIdx = Math.max(0, FASES.findIndex((f) => f.id === s.fase_actual));
+  const terminada = s.fase_actual === "terminada";
+  $("s-entrada").hidden = terminada;
+  $("s-controles").hidden = terminada;
+  $("s-terminada").hidden = !terminada;
+  pintarReloj();
+
+  const { data: msgs } = await sb.from("mensajes").select("*").eq("sesion_id", s.id).order("creado");
+  for (const m of msgs ?? []) await pintarMensaje(m.rol, m.contenido, null, m.imagen_url);
+  if (terminada) return;
+  if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
+  continuar();
+}
+
+function pintarReloj() {
+  $("s-tiempo").textContent = mmss(estado.segundos);
+  const f = FASES[estado.faseIdx];
+  $("s-fase").textContent = f.nombre;
+  $("s-fase-desc").textContent = f.desc;
+  $("s-fases").innerHTML = FASES.map((_, i) => `<i class="${i < estado.faseIdx ? "hecha" : i === estado.faseIdx ? "actual" : ""}"></i>`).join("");
+  $("b-pausa").textContent = estado.corriendo ? "Pausar" : "Continuar";
+  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminar sesión" : "Siguiente fase →";
+}
+
+function continuar() {
+  if (estado.corriendo || !estado.sesion || estado.sesion.fase_actual === "terminada") return;
+  estado.corriendo = true;
+  reloj = setInterval(tic, 1000);
+  pintarReloj();
+}
+function pausar() {
+  if (!estado.corriendo) return;
+  estado.corriendo = false;
+  clearInterval(reloj);
+  guardarTiempo();
+  pintarReloj();
+}
+function tic() {
+  estado.segundos++;
+  // El cronómetro avanza de fase solo; también se puede avanzar a mano.
+  const porTiempo = FASES.reduce((idx, f, i) => (estado.segundos >= f.ini * 60 ? i : idx), 0);
+  if (porTiempo > estado.faseIdx) cambiarFase(porTiempo);
+  if (estado.segundos - ultimoGuardado >= 15) guardarTiempo();
+  pintarReloj();
+}
+function guardarTiempo() {
+  if (!estado.sesion) return;
+  ultimoGuardado = estado.segundos;
+  sb.from("sesiones").update({ segundos: estado.segundos }).eq("id", estado.sesion.id).then();
+}
+function arranqueFase(f) { return `(Nouvelle phase : ${f.nombre})`; }
+async function cambiarFase(idx) {
+  estado.faseIdx = idx;
+  const f = FASES[idx];
+  estado.sesion.fase_actual = f.id;
+  await sb.from("sesiones").update({ fase_actual: f.id, segundos: estado.segundos }).eq("id", estado.sesion.id);
+  pintarReloj();
+  await enviar(arranqueFase(f));
+}
+$("b-pausa").onclick = () => (estado.corriendo ? pausar() : continuar());
+$("b-siguiente").onclick = async () => {
+  if (estado.enviando) return aviso("Espera a que Lidia termine.");
+  if (estado.faseIdx < FASES.length - 1) return cambiarFase(estado.faseIdx + 1);
+  pausar();
+  await sb.from("sesiones").update({ fase_actual: "terminada", segundos: estado.segundos }).eq("id", estado.sesion.id);
+  estado.sesion.fase_actual = "terminada";
+  $("s-entrada").hidden = true;
+  $("s-controles").hidden = true;
+  $("s-terminada").hidden = false;
+};
+document.addEventListener("visibilitychange", () => { if (document.hidden) guardarTiempo(); });
+
+async function pintarMensaje(rol, texto, voz, imagenPath) {
+  const div = document.createElement("div");
+  const esArranque = rol === "laura" && /^\(Nouvelle phase : .*\)$/.test(texto || "");
+  div.className = `msg ${esArranque ? "aviso" : rol}`;
+  let html = "";
+  if (imagenPath) {
+    const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
+    if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Foto del texto">`;
+  }
+  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? markdown(texto) : escapar(texto).replace(/\n/g, "<br>");
+  div.innerHTML = html;
+  if (rol === "lidia") {
+    const b = document.createElement("button");
+    b.className = "escuchar";
+    b.type = "button";
+    b.textContent = "🔊 Escuchar";
+    b.onclick = () => hablar(voz || texto);
+    div.appendChild(b);
+  }
+  $("s-chat").appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+async function itemsHoy() {
+  const { data } = await sb.from("banco").select("id, tipo, original, correcto, patron")
+    .lte("proxima", hoy()).eq("dominado", false).order("proxima").limit(12);
+  return data ?? [];
+}
+
+// Los envíos van en cola: un cambio de fase mientras Lidia responde no se pierde.
+let cola = Promise.resolve();
+function enviar(texto, fotoPath = null) {
+  cola = cola.then(() => enviarYa(texto, fotoPath));
+  return cola;
+}
+async function enviarYa(texto, fotoPath) {
+  if (!estado.sesion) return;
+  estado.enviando = true;
+  $("b-enviar").disabled = true;
+  const fase = FASES[estado.faseIdx].id;
+  await pintarMensaje("laura", texto, null, fotoPath);
+  if (fase === "plan") {
+    const n = texto.match(/\b(100|\d{1,2})\b/);
+    if (n) sb.from("sesiones").update({ prediccion: Number(n[1]) }).eq("id", estado.sesion.id).then();
+  }
+  const pensando = document.createElement("div");
+  pensando.className = "msg lidia escribiendo";
+  pensando.textContent = fotoPath ? "Lidia está leyendo tu texto…" : "Lidia escribe…";
+  $("s-chat").appendChild(pensando);
+  pensando.scrollIntoView({ behavior: "smooth", block: "end" });
+  try {
+    const { data, error } = await sb.functions.invoke("lidia", {
+      body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy() },
+    });
+    pensando.remove();
+    if (error) {
+      let detalle = error.message;
+      try { detalle = (await error.context.json()).error || detalle; } catch {}
+      throw new Error(detalle);
+    }
+    estado.resumen = data.resumen_sesion;
+    await pintarMensaje("lidia", data.mensaje, data.voz);
+    if (data.nuevos_items?.length) aviso(`${data.nuevos_items.length} nuevo(s) en tu librería`);
+  } catch (e) {
+    pensando.remove();
+    aviso(`Lidia no respondió: ${e.message}`);
+  } finally {
+    estado.enviando = false;
+    $("b-enviar").disabled = false;
+  }
+}
+
+$("b-enviar").onclick = () => {
+  const t = $("s-texto").value.trim();
+  if (!t) return;
+  $("s-texto").value = "";
+  ajustarAlto();
+  enviar(t);
+};
+$("s-texto").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); $("b-enviar").click(); }
+});
+function ajustarAlto() { const t = $("s-texto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 160) + "px"; }
+$("s-texto").addEventListener("input", ajustarAlto);
+
+// ── Foto: se reduce a 1600 px y se sube a textos/<usuaria>/<sesión>/ ──
+$("b-foto").onclick = () => $("s-archivo").click();
+$("s-archivo").onchange = async () => {
+  const archivo = $("s-archivo").files[0];
+  $("s-archivo").value = "";
+  if (!archivo || estado.enviando) return;
+  try {
+    const img = await createImageBitmap(archivo);
+    const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(img.width * escala);
+    lienzo.height = Math.round(img.height * escala);
+    lienzo.getContext("2d").drawImage(img, 0, 0, lienzo.width, lienzo.height);
+    const blob = await new Promise((r) => lienzo.toBlob(r, "image/jpeg", 0.85));
+    const ruta = `${estado.usuaria.id}/${estado.sesion.id}/${Date.now()}.jpg`;
+    const { error } = await sb.storage.from("textos").upload(ruta, blob, { contentType: "image/jpeg" });
+    if (error) throw error;
+    const nota = $("s-texto").value.trim();
+    $("s-texto").value = "";
+    await enviar(nota || "Voici mon texte écrit à la main.", ruta);
+  } catch (e) {
+    aviso(`No se pudo subir la foto: ${e.message}`);
+  }
+};
+
+// ── Voz del navegador en fr-CA ──
+function vozFr() {
+  const voces = speechSynthesis.getVoices();
+  return voces.find((v) => v.lang === "fr-CA") || voces.find((v) => v.lang.startsWith("fr"));
+}
+function hablar(texto) {
+  if (!("speechSynthesis" in window)) return aviso("Este navegador no puede leer en voz alta.");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(texto.replace(/[*_#>`]/g, ""));
+  u.lang = "fr-CA";
+  const v = vozFr();
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+let escucha = null;
+$("b-voz").onclick = () => {
+  if (!Reconocimiento) return aviso("Este navegador no reconoce la voz. Prueba en Safari o Chrome.");
+  if (escucha) return escucha.stop();
+  escucha = new Reconocimiento();
+  escucha.lang = "fr-CA";
+  escucha.interimResults = true;
+  escucha.continuous = true;
+  const base = $("s-texto").value ? $("s-texto").value + " " : "";
+  escucha.onresult = (e) => {
+    $("s-texto").value = base + Array.from(e.results).map((r) => r[0].transcript).join(" ");
+    ajustarAlto();
+  };
+  escucha.onerror = (e) => { if (e.error !== "aborted") aviso(`Micrófono: ${e.error}`); };
+  escucha.onend = () => { escucha = null; $("b-voz").classList.remove("activo"); };
+  $("b-voz").classList.add("activo");
+  escucha.start();
+};
+
+// ── Mi librería ──
+async function cargarBanco() {
+  const { data, error } = await sb.from("banco").select("*").order("creado", { ascending: false });
+  if (error) return aviso(error.message);
+  estado.banco = data ?? [];
+  pintarBanco();
+}
+function pintarBanco() {
+  const q = $("l-buscar").value.trim().toLowerCase();
+  const lista = estado.banco.filter((it) => {
+    if (estado.filtro === "hoy" ? !(it.proxima <= hoy() && !it.dominado) : estado.filtro && it.tipo !== estado.filtro) return false;
+    return !q || [it.original, it.correcto, it.nota].some((t) => (t || "").toLowerCase().includes(q));
+  });
+  $("l-items").innerHTML = lista.length ? lista.map((it) => `
+    <div class="tarjeta item">
+      ${it.original ? `<div class="orig" lang="fr">${escapar(it.original)}</div>` : ""}
+      <div class="corr" lang="fr">${it.original ? "→ " : ""}${escapar(it.correcto)}</div>
+      ${it.nota ? `<div class="nota">${escapar(it.nota)}</div>` : ""}
+      <div class="meta">
+        <span>${{ error: "error", expresion: "expresión", palabra: "palabra" }[it.tipo] || it.tipo}</span>
+        ${it.patron ? `<span>${escapar(PATRONES[it.patron] || it.patron)}</span>` : ""}
+        ${it.dominado ? `<span class="dominado">dominado</span>` : `<span>repaso ${it.proxima <= hoy() ? "hoy" : it.proxima}</span>`}
+      </div>
+    </div>`).join("") : `<div class="vacio">${estado.banco.length ? "Nada coincide con tu búsqueda." : "Tu librería está vacía por ahora."}</div>`;
+}
+$("l-buscar").addEventListener("input", pintarBanco);
+$("l-filtros").onclick = (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  estado.filtro = b.dataset.tipo;
+  for (const x of $("l-filtros").children) x.setAttribute("aria-pressed", x === b);
+  pintarBanco();
+};
+
+// ── Arranque ──
+sb.auth.onAuthStateChange((evento, sesion) => {
+  const antes = estado.usuaria?.id;
+  estado.usuaria = sesion?.user ?? null;
+  if (evento === "INITIAL_SESSION" || antes !== estado.usuaria?.id) setTimeout(enrutar, 0);
+});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
