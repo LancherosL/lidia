@@ -1,10 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Lidia">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7A5AC8"/>
+    <linearGradient id="lidia-fondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A6AD6"/>
       <stop offset="1" stop-color="#5867D4"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="url(#g)"/>
-  <text x="256" y="338" text-anchor="middle" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="280" font-weight="700" fill="#FAF6EF">L</text>
+  <rect width="120" height="120" fill="url(#lidia-fondo)"/>
+  <!-- flor de lis -->
+  <g transform="translate(82 19) scale(.8)" fill="#FAF6EF" opacity=".42">
+    <path d="M12 2C15 5 15.5 9 12 14C8.5 9 9 5 12 2Z"/>
+    <path d="M11 13C7 14 3 12 3.5 8C4 5.5 7.5 6 7.5 8.5C7.5 10 9 11 11 11.5Z"/>
+    <path d="M13 13C17 14 21 12 20.5 8C20 5.5 16.5 6 16.5 8.5C16.5 10 15 11 13 11.5Z"/>
+    <rect x="7.5" y="13" width="9" height="2.2" rx="1.1"/>
+    <path d="M11 15.2C9 17 7 18 6 21C8.5 20 10.5 19 11.6 17Z"/>
+    <path d="M13 15.2C15 17 17 18 18 21C15.5 20 13.5 19 12.4 17Z"/>
+    <path d="M11.2 15H12.8L12.5 20.5H11.5Z"/>
+  </g>
+  <!-- cabello (atrás) -->
+  <g fill="#4A3428">
+    <ellipse cx="41" cy="55" rx="8" ry="11"/>
+    <ellipse cx="79" cy="55" rx="8" ry="11"/>
+  </g>
+  <!-- cuerpo y cuello -->
+  <path d="M22 120C22 97 39 87 60 87S98 97 98 120Z" fill="#F4EBDD"/>
+  <rect x="53" y="68" width="14" height="16" rx="5" fill="#D9A07D"/>
+  <!-- cara -->
+  <ellipse cx="60" cy="53" rx="19" ry="22" fill="#EDBB98"/>
+  <!-- cabello (flequillo ondulado) -->
+  <g fill="#4A3428">
+    <circle cx="47" cy="36" r="9.5"/>
+    <circle cx="57" cy="31" r="10"/>
+    <circle cx="68" cy="32" r="9.5"/>
+    <circle cx="76.5" cy="40" r="7.5"/>
+    <circle cx="42.5" cy="44" r="6.5"/>
+    <circle cx="79.5" cy="48" r="5"/>
+  </g>
+  <!-- mejillas -->
+  <circle cx="46.5" cy="62" r="3.6" fill="#E2725B" opacity=".35"/>
+  <circle cx="73.5" cy="62" r="3.6" fill="#E2725B" opacity=".35"/>
+  <!-- gafas redondas -->
+  <g fill="#FFFFFF" fill-opacity=".18" stroke="#2B2A28" stroke-width="2.4">
+    <circle cx="51.5" cy="54" r="6.5"/>
+    <circle cx="68.5" cy="54" r="6.5"/>
+  </g>
+  <path d="M58 53.2Q60 51.8 62 53.2" fill="none" stroke="#2B2A28" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- ojos y sonrisa -->
+  <circle cx="51.5" cy="54.5" r="1.9" fill="#2B2A28"/>
+  <circle cx="68.5" cy="54.5" r="1.9" fill="#2B2A28"/>
+  <path d="M53.5 64.5Q60 70.5 66.5 64.5" fill="none" stroke="#8C4A3C" stroke-width="2.3" stroke-linecap="round"/>
+  <!-- bufanda -->
+  <path d="M40 82Q60 94 80 82L82 91Q60 103 38 91Z" fill="#E2725B"/>
+  <path d="M61 93L71 92L74 116L62 115Z" fill="#CC5A45"/>
+  <path d="M62.5 100H72.3M63 107H73.2" stroke="#F4EBDD" stroke-width="1.6" opacity=".7"/>
 </svg>
