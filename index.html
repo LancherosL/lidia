@@ -203,6 +203,9 @@ button { cursor: pointer; }
 .login h1 { margin: 0 0 4px; }
 .login p { color: var(--tinta-suave); margin: 0 0 18px; }
 .login form { display: grid; gap: 10px; text-align: left; }
+.login #l-codigo { display: grid; gap: 6px; }
+.login #l-codigo[hidden] { display: none; }
+.login .ayuda { color: var(--tinta-suave); font-size: 13px; line-height: 1.4; }
 .toast {
   position: fixed; left: 16px; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); max-width: 528px; margin: 0 auto;
   padding: 12px 16px; border-radius: 14px; background: var(--tinta); color: var(--fondo); z-index: 10; box-shadow: var(--sombra);
@@ -222,8 +225,9 @@ button { cursor: pointer; }
         <label for="correo">Tu correo</label>
         <input id="correo" class="buscar" type="email" autocomplete="email" required>
         <div id="l-codigo" hidden>
-          <label for="codigo">Código del correo</label>
-          <input id="codigo" class="buscar" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
+          <label for="codigo">Código o enlace del correo</label>
+          <input id="codigo" class="buscar" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false">
+          <small class="ayuda">No abras el enlace: mantenlo presionado, toca «Copiar enlace» y pégalo aquí.</small>
         </div>
         <button class="btn" type="submit" id="b-login">Enviarme el código</button>
       </form>
@@ -496,14 +500,25 @@ window.addEventListener("hashchange", enrutar);
 $("f-login").onsubmit = async (e) => {
   e.preventDefault();
   const email = $("correo").value.trim();
-  const codigo = $("codigo").value.replace(/\D/g, "");
+  const pegado = $("codigo").value.trim();
+  const codigo = pegado.replace(/\D/g, "");
+  // El enlace del correo trae la misma llave que el código (token): se usa sin abrirlo.
+  if (/^https?:\/\//.test(pegado)) {
+    let token = null;
+    try { token = new URL(pegado).searchParams.get("token") || new URL(pegado).searchParams.get("token_hash"); } catch {}
+    if (!token) return aviso("Ese enlace no trae la llave. Pide un correo nuevo.");
+    let { error } = await sb.auth.verifyOtp({ token_hash: token, type: "email" });
+    if (error) ({ error } = await sb.auth.verifyOtp({ token_hash: token, type: "magiclink" }));
+    if (error) aviso(`El enlace no sirvió: ${error.message}. Pide uno nuevo y no lo abras antes.`);
+    return;
+  }
   if ($("l-codigo").hidden || !codigo) {
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
     if (error) return aviso(`No se pudo enviar: ${error.message}`);
     $("l-codigo").hidden = false;
     $("b-login").textContent = "Entrar";
     $("codigo").focus();
-    return aviso("Te llegó un correo: escribe aquí el código.");
+    return aviso("Te llegó un correo: pega aquí el código o el enlace.");
   }
   const { error } = await sb.auth.verifyOtp({ email, token: codigo, type: "email" });
   if (error) aviso(`Código no válido: ${error.message}`);
