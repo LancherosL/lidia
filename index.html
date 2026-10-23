@@ -219,7 +219,11 @@ button { cursor: pointer; }
       <form id="f-login" class="tarjeta">
         <label for="correo">Tu correo</label>
         <input id="correo" class="buscar" type="email" autocomplete="email" required>
-        <button class="btn" type="submit">Enviarme el enlace</button>
+        <div id="l-codigo" hidden>
+          <label for="codigo">Código del correo</label>
+          <input id="codigo" class="buscar" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
+        </div>
+        <button class="btn" type="submit" id="b-login">Enviarme el código</button>
       </form>
     </div>
   </section>
@@ -432,13 +436,21 @@ document.addEventListener("click", (e) => {
 window.addEventListener("hashchange", enrutar);
 
 // ── Login ──
+// Con código: la app instalada en el iPhone no comparte sesión con Safari, así que el enlace no sirve ahí.
 $("f-login").onsubmit = async (e) => {
   e.preventDefault();
-  const { error } = await sb.auth.signInWithOtp({
-    email: $("correo").value.trim(),
-    options: { emailRedirectTo: location.origin + location.pathname },
-  });
-  aviso(error ? `No se pudo enviar: ${error.message}` : "Listo: revisa tu correo y abre el enlace.");
+  const email = $("correo").value.trim();
+  const codigo = $("codigo").value.replace(/\D/g, "");
+  if ($("l-codigo").hidden || !codigo) {
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) return aviso(`No se pudo enviar: ${error.message}`);
+    $("l-codigo").hidden = false;
+    $("b-login").textContent = "Entrar";
+    $("codigo").focus();
+    return aviso("Te llegó un correo: escribe aquí el código.");
+  }
+  const { error } = await sb.auth.verifyOtp({ email, token: codigo, type: "email" });
+  if (error) aviso(`Código no válido: ${error.message}`);
 };
 
 // ── Inicio ──
@@ -669,18 +681,45 @@ $("s-archivo").onchange = async () => {
 };
 
 // ── Voz del navegador en fr-CA ──
-function vozFr() {
-  const voces = speechSynthesis.getVoices();
-  return voces.find((v) => v.lang === "fr-CA") || voces.find((v) => v.lang.startsWith("fr"));
+// Elige la voz más natural instalada: fr-CA primero, y las versiones Premium/Mejorada/Natural antes que las básicas.
+const VOCES_DE_JUGUETE = /eddy|flo|grandma|grandpa|grand-mère|grand-père|reed|rocko|sandy|shelley|jacques|albert|bad news|bells|boing|bubbles|cellos|wobble|zarvox|whisper|trinoids|organ|superstar|ralph|kathy|junior|fred/i;
+function puntajeVoz(v) {
+  const nombre = `${v.name} ${v.voiceURI}`.toLowerCase();
+  let p = v.lang.replace("_", "-") === "fr-CA" ? 10 : v.lang.startsWith("fr") ? 2 : -100;
+  if (/premium/.test(nombre)) p += 8;
+  if (/enhanced|mejorada|améliorée/.test(nombre)) p += 6;
+  if (/natural|neural|online/.test(nombre)) p += 7;
+  if (/google/.test(nombre)) p += 2;
+  if (VOCES_DE_JUGUETE.test(v.name)) p -= 20;
+  return p;
+}
+let vozElegida = null;
+function elegirVoz() {
+  const voces = speechSynthesis.getVoices().filter((v) => v.lang.startsWith("fr"));
+  vozElegida = voces.sort((a, b) => puntajeVoz(b) - puntajeVoz(a))[0] || null;
+}
+if ("speechSynthesis" in window) {
+  elegirVoz();
+  speechSynthesis.addEventListener("voiceschanged", elegirVoz);
 }
 function hablar(texto) {
   if (!("speechSynthesis" in window)) return aviso("Este navegador no puede leer en voz alta.");
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(texto.replace(/[*_#>`]/g, ""));
-  u.lang = "fr-CA";
-  const v = vozFr();
-  if (v) u.voice = v;
-  speechSynthesis.speak(u);
+  if (!vozElegida) elegirVoz();
+  const limpio = texto
+    .replace(/[*_#>`]/g, "")
+    .replace(/\p{Extended_Pictographic}|️/gu, "")
+    .replace(/\s*→\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Frase por frase: las pausas entre frases suenan más humanas que un bloque largo.
+  for (const frase of limpio.match(/[^.!?…]+[.!?…]*/g) || [limpio]) {
+    const u = new SpeechSynthesisUtterance(frase.trim());
+    u.lang = "fr-CA";
+    if (vozElegida) u.voice = vozElegida;
+    u.rate = 0.92;
+    speechSynthesis.speak(u);
+  }
 }
 const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
 let escucha = null;
