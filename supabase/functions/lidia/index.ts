@@ -55,6 +55,12 @@ const ESQUEMA_RESPUESTA = {
 };
 
 type Item = { id: string; intervalo: number; aciertos_seguidos: number };
+type ItemBanco = Item & { tipo: string; original: string | null; correcto: string };
+
+// Mismo ítem = mismo tipo y mismo texto original (o correcto si no hay original), sin mayúsculas ni espacios extra.
+function claveItem(it: { tipo: string; original?: string | null; correcto?: string | null }): string {
+  return `${it.tipo}|${(it.original || it.correcto || "").trim().replace(/\s+/g, " ").toLowerCase()}`;
+}
 
 function hoyMas(dias: number): string {
   const hoy = new Date().toLocaleDateString("en-CA", { timeZone: ZONA }); // YYYY-MM-DD
@@ -211,10 +217,24 @@ Deno.serve(async (req) => {
     { sesion_id, rol: "lidia", fase, contenido: lidia.mensaje },
   ]);
 
+  // Un error que ya está en el banco no se duplica: cuenta como fallo de ese ítem.
   if (lidia.nuevos_items.length) {
-    await db.from("banco").insert(
-      lidia.nuevos_items.map((it: Record<string, unknown>) => ({ ...it, fuente: "lidia", intervalo: 1, proxima: hoyMas(1) })),
-    );
+    const { data: banco } = await db.from("banco").select("id, tipo, original, correcto, intervalo, aciertos_seguidos");
+    const existentes = new Map((banco ?? []).map((b: ItemBanco) => [claveItem(b), b]));
+    const yaRepasados = new Set(lidia.resultados_items.map((r: { id: string }) => r.id));
+    const vistos = new Set<string>();
+    const nuevos: Record<string, unknown>[] = [];
+    const fallos: ItemBanco[] = [];
+    for (const it of lidia.nuevos_items) {
+      const k = claveItem(it);
+      if (vistos.has(k)) continue;
+      vistos.add(k);
+      const previo = existentes.get(k);
+      if (!previo) nuevos.push({ ...it, fuente: "lidia", intervalo: 1, proxima: hoyMas(1) });
+      else if (!yaRepasados.has(previo.id)) fallos.push(previo);
+    }
+    if (nuevos.length) await db.from("banco").insert(nuevos);
+    await Promise.all(fallos.map((item) => db.from("banco").update(repasar(item, false)).eq("id", item.id)));
   }
 
   if (lidia.resultados_items.length) {
