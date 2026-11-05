@@ -69,6 +69,14 @@ function hoyMas(dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Días seguidos con sesión, contando hoy hacia atrás (la racha que menciona el prompt, con el dato real).
+function diasSeguidos(fechas: string[]): number {
+  const dias = new Set(fechas);
+  let n = 0;
+  while (dias.has(hoyMas(-n))) n++;
+  return n;
+}
+
 // Repaso espaciado: acierto → siguiente intervalo; fallo → vuelve a 1 día.
 function repasar(item: Item, acierto: boolean) {
   if (!acierto) return { intervalo: 1, aciertos_seguidos: 0, dominado: false, proxima: hoyMas(1) };
@@ -138,13 +146,14 @@ Deno.serve(async (req) => {
     return json({ error: "Faltan sesion_id, fase o mensaje" }, 400);
   }
 
-  const [perfilR, sesionR, ayerR, historialR] = await Promise.all([
+  const [perfilR, sesionR, ayerR, historialR, fechasR] = await Promise.all([
     db.from("perfil").select("fase_plan, tema_semana").maybeSingle(),
     db.from("sesiones").select("id, fecha").eq("id", sesion_id).maybeSingle(),
     db.from("sesiones").select("resumen").neq("id", sesion_id).not("resumen", "is", null)
       .order("creado", { ascending: false }).limit(1).maybeSingle(),
     db.from("mensajes").select("rol, contenido").eq("sesion_id", sesion_id)
       .order("creado", { ascending: false }).limit(TURNOS_HISTORIAL),
+    db.from("sesiones").select("fecha").order("fecha", { ascending: false }).limit(400),
   ]);
   if (!sesionR.data) return json({ error: "Sesión no encontrada" }, 404);
 
@@ -168,6 +177,7 @@ Deno.serve(async (req) => {
     items_hoy,
     resumen_ayer: ayerR.data?.resumen ?? null,
     resumen_sesion: resumen_sesion ?? null,
+    dias_seguidos: diasSeguidos((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n${mensaje}`;
   const historial = armarHistorial((historialR.data ?? []).reverse());
