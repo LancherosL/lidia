@@ -203,9 +203,12 @@ button { cursor: pointer; }
 .login h1 { margin: 0 0 4px; }
 .login p { color: var(--tinta-suave); margin: 0 0 18px; }
 .login form { display: grid; gap: 10px; text-align: left; }
-.login #l-codigo { display: grid; gap: 6px; }
-.login #l-codigo[hidden] { display: none; }
-.login .ayuda { color: var(--tinta-suave); font-size: 13px; line-height: 1.4; }
+.login form[hidden] { display: none; }
+.ayuda { color: var(--tinta-suave); font-size: 13px; line-height: 1.4; }
+.buscar.codigo { font-size: 24px; letter-spacing: .3em; text-align: center; }
+.vinculo { display: grid; gap: 10px; }
+.vinculo p { margin: 0; }
+.vinculo .numero { font-size: 32px; font-weight: 700; letter-spacing: .2em; text-align: center; font-variant-numeric: tabular-nums; }
 .toast {
   position: fixed; left: 16px; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); max-width: 528px; margin: 0 auto;
   padding: 12px 16px; border-radius: 14px; background: var(--tinta); color: var(--fondo); z-index: 10; box-shadow: var(--sombra);
@@ -221,15 +224,19 @@ button { cursor: pointer; }
       <div class="avatar">L</div>
       <h1>Lidia</h1>
       <p>Tu hora diaria de francés</p>
-      <form id="f-login" class="tarjeta">
+      <!-- En Safari: enlace por correo -->
+      <form id="f-login" class="tarjeta" hidden>
         <label for="correo">Tu correo</label>
         <input id="correo" class="buscar" type="email" autocomplete="email" required>
-        <div id="l-codigo" hidden>
-          <label for="codigo">Código o enlace del correo</label>
-          <input id="codigo" class="buscar" type="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false">
-          <small class="ayuda">No abras el enlace: mantenlo presionado, toca «Copiar enlace» y pégalo aquí.</small>
-        </div>
-        <button class="btn" type="submit" id="b-login">Enviarme el código</button>
+        <button class="btn" type="submit">Enviarme el enlace</button>
+        <small class="ayuda">En el correo, toca «Iniciar sesión» una vez: se abre aquí en Safari y entras.</small>
+      </form>
+      <!-- En el ícono de inicio: código de 6 dígitos que da Lidia en Safari -->
+      <form id="f-icono" class="tarjeta" hidden>
+        <label for="codigo">Código de 6 dígitos</label>
+        <input id="codigo" class="buscar codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000">
+        <button class="btn" type="submit">Entrar</button>
+        <small class="ayuda">Pídelo en Safari: abre lancherosl.github.io/lidia, entra y toca «Conectar el ícono» al final de Inicio. Vale 10 minutos y se usa una sola vez.</small>
       </form>
     </div>
   </section>
@@ -338,9 +345,18 @@ button { cursor: pointer; }
     </div>
     <div class="seccion">Sobre tu plan</div>
     <div class="tarjeta plan">
-      <p><b>Meta:</b> francés C1 en todo y el TECFÉE aprobado con margen (70 % mínimo en código lingüístico y redacción).</p>
-      <p><b>Después:</b> aplicar en otoño de 2027 al Bac en éducation préscolaire et enseignement primaire. Fecha límite: 1 de marzo de 2028.</p>
-      <p><b>Cada día:</b> una hora con Lidia. Recuperar de memoria, practicar y repasar lo que toca fija más que releer.</p>
+      <p><b>Meta:</b> francés C2 en un año, hacia noviembre de 2027.</p>
+      <p><b>TECFÉE:</b> aprobado con margen, 70 % mínimo en código lingüístico y en redacción.</p>
+      <p><b>Cada día:</b> dos horas con Lidia. Recuperar de memoria, practicar y repasar lo que toca fija más que releer.</p>
+    </div>
+    <div id="i-vinculo" hidden>
+      <div class="seccion">Ícono de inicio</div>
+      <div class="tarjeta vinculo">
+        <p>Para usar Lidia desde el ícono de tu pantalla de inicio, pide un código y escríbelo en el ícono. Se hace una sola vez por ícono.</p>
+        <div class="numero" id="i-codigo" hidden></div>
+        <small class="ayuda" id="i-codigo-ayuda" hidden></small>
+        <button class="btn sec" id="b-vincular" type="button">Conectar el ícono</button>
+      </div>
     </div>
   </section>
 
@@ -496,36 +512,51 @@ document.addEventListener("click", (e) => {
 window.addEventListener("hashchange", enrutar);
 
 // ── Login ──
-// Con código: la app instalada en el iPhone no comparte sesión con Safari, así que el enlace no sirve ahí.
+// El ícono de inicio del iPhone no comparte sesión con Safari: en Safari se entra con el enlace del correo,
+// y el ícono se conecta con un código de 6 dígitos que da Lidia en Safari (función "vincular").
+const EN_ICONO = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+$("f-login").hidden = EN_ICONO;
+$("f-icono").hidden = !EN_ICONO;
+
 $("f-login").onsubmit = async (e) => {
   e.preventDefault();
-  const email = $("correo").value.trim();
-  const pegado = $("codigo").value.trim();
-  const codigo = pegado.replace(/\D/g, "");
-  // El enlace del correo trae la misma llave que el código (token): se usa sin abrirlo.
-  if (/^https?:\/\//.test(pegado)) {
-    let token = null;
-    try { token = new URL(pegado).searchParams.get("token") || new URL(pegado).searchParams.get("token_hash"); } catch {}
-    if (!token) return aviso("Ese enlace no trae la llave. Pide un correo nuevo.");
-    let { error } = await sb.auth.verifyOtp({ token_hash: token, type: "email" });
-    if (error) ({ error } = await sb.auth.verifyOtp({ token_hash: token, type: "magiclink" }));
-    if (error) aviso(`El enlace no sirvió: ${error.message}. Pide uno nuevo y no lo abras antes.`);
-    return;
+  const { error } = await sb.auth.signInWithOtp({
+    email: $("correo").value.trim(),
+    options: { emailRedirectTo: location.origin + location.pathname },
+  });
+  aviso(error ? `No se pudo enviar: ${error.message}` : "Listo: abre el correo y toca «Iniciar sesión».");
+};
+
+$("f-icono").onsubmit = async (e) => {
+  e.preventDefault();
+  const codigo = $("codigo").value.replace(/\D/g, "");
+  if (codigo.length !== 6) return aviso("El código tiene 6 dígitos.");
+  const { data, error } = await sb.functions.invoke("vincular", { body: { accion: "canjear", codigo } });
+  if (error || !data?.token_hash) {
+    let detalle = "Código incorrecto o vencido.";
+    try { detalle = (await error.context.json()).error || detalle; } catch {}
+    return aviso(detalle);
   }
-  if ($("l-codigo").hidden || !codigo) {
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-    if (error) return aviso(`No se pudo enviar: ${error.message}`);
-    $("l-codigo").hidden = false;
-    $("b-login").textContent = "Entrar";
-    $("codigo").focus();
-    return aviso("Te llegó un correo: pega aquí el código o el enlace.");
-  }
-  const { error } = await sb.auth.verifyOtp({ email, token: codigo, type: "email" });
-  if (error) aviso(`Código no válido: ${error.message}`);
+  let { error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+  if (e2) ({ error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: "magiclink" }));
+  if (e2) aviso(`No pude abrir la sesión: ${e2.message}`);
+};
+
+$("b-vincular").onclick = async () => {
+  $("b-vincular").disabled = true;
+  const { data, error } = await sb.functions.invoke("vincular", { body: { accion: "crear" } });
+  $("b-vincular").disabled = false;
+  if (error || !data?.codigo) return aviso("No pude crear el código. Intenta otra vez.");
+  $("i-codigo").textContent = data.codigo;
+  $("i-codigo").hidden = false;
+  $("i-codigo-ayuda").textContent = `Abre Lidia desde el ícono y escribe este código. Vale ${data.minutos} minutos y sirve una sola vez.`;
+  $("i-codigo-ayuda").hidden = false;
+  $("b-vincular").textContent = "Pedir otro código";
 };
 
 // ── Inicio ──
 async function cargarInicio() {
+  $("i-vinculo").hidden = EN_ICONO;
   $("i-saludo").textContent = SALUDOS[new Date().getDay()];
   const [perfil, sesiones, errores, simulacro] = await Promise.all([
     sb.from("perfil").select("*").maybeSingle(),
