@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="fr-CA">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lidia</title>
-<meta name="description" content="Tu hora diaria de francés con Lidia">
+<meta name="description" content="Tes deux heures de français par jour avec Lidia">
 <meta name="theme-color" content="#FAF6EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -77,7 +77,7 @@ html, body { margin: 0; }
 body {
   background: var(--fondo);
   color: var(--tinta);
-  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
 }
@@ -103,61 +103,73 @@ button { cursor: pointer; }
 .seccion { margin: 24px 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-suave); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 44px; padding: 0 18px; border-radius: 14px; border: 0;
+  min-height: 50px; padding: 0 18px; border-radius: 14px; border: 0;
   background: var(--relleno); color: #fff; font-weight: 600;
 }
 .btn.sec { background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
 .btn:disabled { opacity: .5; }
 
-/* Inicio */
-.tutora { display: flex; gap: 14px; align-items: center; }
+/* Accueil */
 .avatar {
   width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center;
   background: linear-gradient(135deg, var(--violeta), var(--oral)); color: #fff; font-size: 28px; font-weight: 700;
 }
-.avatar-lidia { width: 72px; height: 72px; background: none; overflow: hidden; }
+.avatar-lidia { width: 104px; height: 104px; margin: 0 auto; background: none; overflow: hidden; box-shadow: 0 0 0 4px var(--tarjeta), 0 0 0 5px var(--borde); }
 .avatar-lidia svg { display: block; width: 100%; height: 100%; }
-.tutora h2 { margin: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }
-.chip { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
-.tutora .fase { font-size: 13px; color: var(--tinta-suave); }
-.tutora .saludo { margin-top: 4px; font-style: italic; }
-.cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-.cifra { text-align: center; padding: 14px 6px; }
-.cifra b { display: block; font-size: 22px; letter-spacing: -.02em; }
-.cifra span { font-size: 12px; color: var(--tinta-suave); }
-.hoy { margin-top: 12px; padding: 20px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); border-color: transparent; }
-.hoy h3 { margin: 0 0 4px; font-size: 22px; }
-.hoy p { margin: 0 0 14px; color: var(--tinta-suave); }
-.hoy .btn { width: 100%; }
-.herramientas { display: grid; gap: 10px; }
-.herr {
-  --c: var(--violeta);
-  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
-  padding: 14px 16px; border-radius: var(--radio); border: 1px solid transparent;
-  background: color-mix(in srgb, var(--c) var(--tinte), var(--tarjeta));
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; padding: 5px 11px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
+.hola { text-align: center; }
+.hola h2 { margin: 12px 0 2px; font-size: 30px; letter-spacing: -.02em; }
+.hola small { color: var(--tinta-suave); }
+.hola .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.btn.empezar {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 72px; margin-top: 24px; padding: 10px 12px;
+  border-radius: 22px; font-size: 18px; letter-spacing: -.01em; box-shadow: 0 8px 20px color-mix(in srgb, var(--relleno) 30%, transparent);
 }
-.herr .punto { width: 36px; height: 36px; border-radius: 11px; background: var(--c); color: #fff; display: grid; place-items: center; font-size: 17px; flex: none; }
-.herr b { display: block; }
-.herr small { color: var(--tinta-suave); }
-.herr .flecha { margin-left: auto; color: var(--c); font-size: 20px; }
-.herr:disabled { cursor: default; opacity: .62; }
-.herr:disabled .flecha { font-size: 11px; font-weight: 600; }
-.plan p { margin: 0 0 8px; }
-.plan p:last-child { margin: 0; }
+.btn.empezar small { color: rgba(255, 255, 255, .82); font-weight: 500; font-size: 14px; }
+.cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.cifra { text-align: center; padding: 14px 6px; }
+.cifra b { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; color: var(--violeta); }
+.cifra span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.25; color: var(--tinta-suave); }
+.apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.otra-app { display: flex; align-items: center; gap: 10px; padding: 12px; color: inherit; text-decoration: none; }
+.otra-app img, .otra-app .ic { width: 40px; height: 40px; border-radius: 11px; flex: none; }
+.otra-app .ic { display: grid; place-items: center; font-size: 20px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); }
+.otra-app b { display: block; font-size: 16px; line-height: 1.2; }
+.otra-app small { display: block; font-size: 12.5px; line-height: 1.25; color: var(--tinta-suave); }
 
-/* Sesión */
-.reloj { display: flex; align-items: center; gap: 12px; }
-.reloj .tiempo { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.reloj .fase-act { flex: 1; min-width: 0; }
-.reloj .fase-act b { display: block; }
-.reloj .fase-act small { color: var(--tinta-suave); }
-.fases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
-.fases i { height: 6px; border-radius: 3px; background: var(--borde); }
-.fases i.hecha { background: color-mix(in srgb, var(--violeta) 45%, var(--borde)); }
-.fases i.actual { background: var(--violeta); }
-.controles { display: flex; gap: 8px; margin-top: 12px; }
-.controles .btn { flex: 1; padding: 0 10px; }
-.chat { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+/* Pestañas de abajo */
+.pestanas {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); background: var(--tarjeta); border-top: 1px solid var(--borde);
+}
+.pestanas button { flex: 1; min-height: 50px; border: 0; background: none; font-size: 12px; font-weight: 600; color: var(--tinta-suave); }
+.pestanas button i { display: block; font-style: normal; font-size: 22px; line-height: 28px; }
+.pestanas button[aria-current="page"] { color: var(--violeta); }
+body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+/* Session */
+.reloj { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.reloj .tiempo { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.bloques { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+.bloques div { min-width: 0; font-size: 11px; font-weight: 600; letter-spacing: -.01em; text-align: center; color: var(--tinta-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bloques div.actual { color: var(--violeta); }
+.bloques i { display: block; height: 8px; margin-bottom: 6px; border-radius: 99px; background: var(--borde); overflow: hidden; }
+.bloques i u { display: block; height: 100%; background: var(--violeta); }
+.fase-desc { display: block; margin-top: 10px; color: var(--tinta-suave); }
+.pregunta { margin-top: 14px; }
+.pregunta .quien { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pregunta .quien img { width: 36px; height: 36px; border-radius: 50%; }
+.pregunta .texto { font-size: 19px; line-height: 1.45; overflow-wrap: anywhere; }
+.pregunta .texto p { margin: 0 0 10px; }
+.pregunta .texto ul { margin: 0 0 10px; padding-left: 22px; }
+.pregunta .texto > :last-child { margin-bottom: 0; }
+.voz { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.voz .btn { min-height: 64px; flex-direction: column; gap: 2px; font-size: 16px; border-radius: 18px; }
+.voz .btn span { font-size: 26px; line-height: 1; }
+.btn.siguiente { width: 100%; margin-top: 4px; }
+.historial { margin-top: 18px; }
+.historial summary { padding: 10px 0; color: var(--violeta); font-weight: 600; cursor: pointer; }
+.chat { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 14px; }
 .msg { max-width: 88%; padding: 10px 14px; border-radius: 18px; overflow-wrap: anywhere; }
 .msg p { margin: 0 0 8px; }
 .msg p:last-child, .msg ul:last-child { margin-bottom: 0; }
@@ -166,18 +178,15 @@ button { cursor: pointer; }
 .msg.laura { align-self: flex-end; background: var(--relleno); color: #fff; border-bottom-right-radius: 6px; }
 .msg.aviso { align-self: center; background: none; color: var(--tinta-suave); font-size: 13px; padding: 2px 8px; }
 .msg img { display: block; max-width: 100%; border-radius: 12px; margin-bottom: 6px; }
-.msg .escuchar { margin-top: 8px; border: 0; background: none; color: var(--violeta); font-weight: 600; padding: 0; font-size: 14px; }
+.msg .escuchar { margin-top: 8px; min-height: 36px; border: 0; background: none; color: var(--violeta); font-weight: 600; padding: 0; font-size: 15px; }
 .escribiendo { color: var(--tinta-suave); font-style: italic; }
-.entrada {
-  position: sticky; bottom: 0; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--fondo) 75%, transparent);
-}
+.entrada { padding: 12px 0; }
 .entrada .caja { display: flex; gap: 8px; align-items: flex-end; }
 .entrada textarea {
-  flex: 1; min-width: 0; min-height: 44px; max-height: 160px; resize: none; padding: 10px 14px;
+  flex: 1; min-width: 0; min-height: 48px; max-height: 160px; resize: none; padding: 10px 14px;
   border-radius: 16px; border: 1px solid var(--borde); background: var(--tarjeta); line-height: 1.4;
 }
-.icono-btn.activo { background: var(--rojo); color: #fff; border-color: transparent; }
+.icono-btn.activo, .btn.activo { background: var(--rojo); color: #fff; border-color: transparent; }
 .terminada { text-align: center; color: var(--tinta-suave); padding: 16px 0; }
 
 /* Librería */
@@ -186,20 +195,21 @@ button { cursor: pointer; }
 .filtros button {
   flex: none; min-height: 36px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--borde); background: var(--tarjeta);
 }
-.filtros button[aria-pressed="true"] { background: var(--azul); border-color: transparent; color: #fff; }
+.filtros button[aria-pressed="true"] { background: var(--relleno); border-color: transparent; color: #fff; }
 .items { display: grid; gap: 8px; }
 .item { padding: 12px 14px; }
 .item .orig { color: var(--rojo); text-decoration: line-through; text-decoration-thickness: 1px; }
 .item .corr { font-weight: 600; }
 .item .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--tinta-suave); }
-.item .meta span { padding: 1px 8px; border-radius: 99px; background: color-mix(in srgb, var(--azul) var(--tinte), var(--tarjeta)); }
-.item .meta span.dominado { background: color-mix(in srgb, var(--verde) var(--tinte), var(--tarjeta)); color: var(--verde); }
+.item .meta span { padding: 1px 8px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); }
+.item .meta span.dominado { color: var(--violeta); font-weight: 600; }
 .item .nota { margin-top: 4px; font-size: 14px; color: var(--tinta-suave); }
 .vacio { text-align: center; color: var(--tinta-suave); padding: 24px 0; }
 
 /* Login y avisos */
 .login { margin-top: 18vh; text-align: center; }
 .login .avatar { margin: 0 auto 12px; }
+.login .avatar-lidia { width: 88px; height: 88px; }
 .login h1 { margin: 0 0 4px; }
 .login p { color: var(--tinta-suave); margin: 0 0 18px; }
 .login form { display: grid; gap: 10px; text-align: left; }
@@ -223,31 +233,31 @@ button { cursor: pointer; }
     <div class="login">
       <div class="avatar">L</div>
       <h1>Lidia</h1>
-      <p>Tu hora diaria de francés</p>
+      <p>Tes deux heures de français par jour</p>
       <!-- En Safari: enlace por correo -->
       <form id="f-login" class="tarjeta" hidden>
-        <label for="correo">Tu correo</label>
+        <label for="correo">Ton courriel</label>
         <input id="correo" class="buscar" type="email" autocomplete="email" required>
-        <button class="btn" type="submit">Enviarme el enlace</button>
-        <small class="ayuda">En el correo, toca «Iniciar sesión» una vez: se abre aquí en Safari y entras.</small>
+        <button class="btn" type="submit">M'envoyer le lien</button>
+        <small class="ayuda">Dans le courriel, touche le lien une seule fois : il s'ouvre ici, dans Safari, et tu entres.</small>
       </form>
       <!-- En el ícono de inicio: código de 6 dígitos que da Lidia en Safari -->
       <form id="f-icono" class="tarjeta" hidden>
-        <label for="codigo">Código de 6 dígitos</label>
+        <label for="codigo">Code à 6 chiffres</label>
         <input id="codigo" class="buscar codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000">
-        <button class="btn" type="submit">Entrar</button>
-        <small class="ayuda">Pídelo en Safari: abre lancherosl.github.io/lidia, entra y toca «Conectar el ícono» al final de Inicio. Vale 10 minutos y se usa una sola vez.</small>
+        <button class="btn" type="submit">Entrer</button>
+        <small class="ayuda">Demande-le dans Safari : ouvre lancherosl.github.io/lidia, connecte-toi et touche « Connecter l'icône » en bas de l'accueil. Il est valide 10 minutes, une seule fois.</small>
       </form>
     </div>
   </section>
 
-  <!-- Inicio -->
+  <!-- Accueil -->
   <section id="v-inicio" hidden>
     <div class="barra">
-      <h1>Lidia</h1>
-      <button class="icono-btn" id="b-tema" aria-label="Cambiar tema" type="button"></button>
+      <h1></h1>
+      <button class="icono-btn" id="b-tema" aria-label="Thème" type="button"></button>
     </div>
-    <div class="tarjeta tutora">
+    <div class="hola">
       <div class="avatar avatar-lidia"><svg viewBox="0 0 120 120" role="img" aria-label="Lidia">
         <defs>
           <linearGradient id="lidia-fondo" x1="0" y1="0" x2="1" y2="1">
@@ -303,111 +313,99 @@ button { cursor: pointer; }
         <path d="M61 93L71 92L74 116L62 115Z" fill="#CC5A45"/>
         <path d="M62.5 100H72.3M63 107H73.2" stroke="#F4EBDD" stroke-width="1.6" opacity=".7"/>
       </svg></div>
-      <div>
-        <h2>Lidia <span class="chip">IA</span></h2>
-        <div class="fase" id="i-fase">Fase 1 de 5</div>
-        <div class="saludo" id="i-saludo"></div>
+      <h2>Bonjour Laura!</h2>
+      <small id="i-fecha"></small>
+      <div class="chips">
+        <span class="chip" id="i-racha">–</span>
+        <span class="chip" id="i-fase">Phase 1 sur 5</span>
       </div>
     </div>
+    <button class="btn empezar" id="b-sesion" type="button">
+      <span id="b-sesion-t">Commencer ma session de 2 heures</span>
+      <small id="i-hoy">Conversation · Oral · Grammaire · Écriture</small>
+    </button>
     <div class="cifras">
-      <div class="tarjeta cifra"><b id="i-horas">–</b><span>horas acumuladas</span></div>
-      <div class="tarjeta cifra"><b id="i-errores">–</b><span>errores vivos</span></div>
-      <div class="tarjeta cifra"><b id="i-simulacro">–</b><span>último simulacro</span></div>
+      <div class="tarjeta cifra"><b id="i-horas">–</b><span>heures cumulées</span></div>
+      <div class="tarjeta cifra"><b id="i-errores">–</b><span>erreurs à travailler</span></div>
+      <div class="tarjeta cifra"><b id="i-repaso">–</b><span id="i-repaso-t">prochaine révision</span></div>
     </div>
-    <div class="tarjeta hoy">
-      <h3>Sesión de hoy</h3>
-      <p id="i-hoy">Cargando…</p>
-      <button class="btn" id="b-sesion" type="button">Empezar</button>
-    </div>
-    <div class="seccion">Herramientas</div>
-    <div class="herramientas">
-      <button class="herr" style="--c: var(--violeta)" data-ir="sesion" type="button">
-        <span class="punto">✦</span><span><b>Sesión de hoy</b><small>La hora con Lidia en 6 fases</small></span><span class="flecha">→</span>
-      </button>
-      <button class="herr" style="--c: var(--azul)" data-ir="libreria" type="button">
-        <span class="punto">▤</span><span><b>Mi librería</b><small>Errores, expresiones y palabras</small></span><span class="flecha">→</span>
-      </button>
-      <button class="herr" style="--c: var(--oral)" disabled type="button">
-        <span class="punto">◉</span><span><b>Práctica oral</b><small>Oral · conducción · escritura</small></span><span class="flecha">Pronto</span>
-      </button>
-      <button class="herr" style="--c: var(--ambar)" disabled type="button">
-        <span class="punto">◆</span><span><b>Vocabulario visual</b><small>Palabras con imagen</small></span><span class="flecha">Pronto</span>
-      </button>
-      <button class="herr" style="--c: var(--teal)" disabled type="button">
-        <span class="punto">▶</span><span><b>Estudia con videos</b><small>Escucha con contexto</small></span><span class="flecha">Pronto</span>
-      </button>
-      <button class="herr" style="--c: var(--dorado)" disabled type="button">
-        <span class="punto">❡</span><span><b>Lectura del día</b><small>Un texto corto del tema</small></span><span class="flecha">Pronto</span>
-      </button>
-      <button class="herr" style="--c: var(--verde)" disabled type="button">
-        <span class="punto">↗</span><span><b>Mi progreso</b><small>Resumen, temario e historial</small></span><span class="flecha">Pronto</span>
-      </button>
-    </div>
-    <div class="seccion">Sobre tu plan</div>
-    <div class="tarjeta plan">
-      <p><b>Meta:</b> francés C2 en un año, hacia noviembre de 2027.</p>
-      <p><b>TECFÉE:</b> aprobado con margen, 70 % mínimo en código lingüístico y en redacción.</p>
-      <p><b>Cada día:</b> dos horas con Lidia. Recuperar de memoria, practicar y repasar lo que toca fija más que releer.</p>
+    <div class="seccion">Mes autres apps</div>
+    <div class="apps">
+      <a class="tarjeta otra-app" href="defile/" target="_blank" rel="noopener"><img src="defile/icon-180.png" alt=""><span><b>Défilé</b><small>Fil de capsules</small></span></a>
+      <a class="tarjeta otra-app" href="https://lancherosl.github.io/chispa/" target="_blank" rel="noopener"><span class="ic">✦</span><span><b>Chispa</b><small>Traducteur culturel</small></span></a>
     </div>
     <div id="i-vinculo" hidden>
-      <div class="seccion">Ícono de inicio</div>
+      <div class="seccion">Icône d'accueil</div>
       <div class="tarjeta vinculo">
-        <p>Para usar Lidia desde el ícono de tu pantalla de inicio, pide un código y escríbelo en el ícono. Se hace una sola vez por ícono.</p>
+        <p>Pour ouvrir Lidia depuis l'icône de ton écran d'accueil, demande un code et écris-le dans l'icône. Une seule fois par icône.</p>
         <div class="numero" id="i-codigo" hidden></div>
         <small class="ayuda" id="i-codigo-ayuda" hidden></small>
-        <button class="btn sec" id="b-vincular" type="button">Conectar el ícono</button>
+        <button class="btn sec" id="b-vincular" type="button">Connecter l'icône</button>
       </div>
     </div>
   </section>
 
-  <!-- Sesión de hoy -->
+  <!-- Session -->
   <section id="v-sesion" hidden>
     <div class="barra">
-      <button class="icono-btn" data-ir="inicio" aria-label="Volver" type="button">←</button>
-      <h1>Sesión de hoy</h1>
+      <button class="icono-btn" data-ir="inicio" aria-label="Retour" type="button">←</button>
+      <h1>Session</h1>
+      <button class="icono-btn" id="b-pausa" aria-label="Pause" type="button">❚❚</button>
     </div>
     <div class="tarjeta">
       <div class="reloj">
-        <div class="tiempo" id="s-tiempo">00:00</div>
-        <div class="fase-act"><b id="s-fase">Recuperar</b><small id="s-fase-desc"></small></div>
+        <div class="tiempo" id="s-tiempo">0:00:00</div>
+        <span class="chip" id="s-fase">Bloc 1 · Conversation</span>
       </div>
-      <div class="fases" id="s-fases"></div>
-      <div class="controles" id="s-controles">
-        <button class="btn sec" id="b-pausa" type="button">Pausar</button>
-        <button class="btn sec" id="b-siguiente" type="button">Siguiente →</button>
+      <div class="bloques" id="s-fases"></div>
+      <small class="fase-desc" id="s-fase-desc"></small>
+    </div>
+    <div class="tarjeta pregunta" id="s-actual">
+      <div class="quien"><img src="icon.svg" alt=""><b>Lidia</b></div>
+      <div class="texto" id="s-actual-texto" lang="fr"></div>
+      <div class="voz">
+        <button class="btn sec" id="b-escuchar" type="button"><span>🔊</span>Écouter</button>
+        <button class="btn" id="b-voz" type="button"><span>🎙</span>Parler</button>
       </div>
     </div>
-    <div class="chat" id="s-chat"></div>
     <div class="entrada" id="s-entrada">
       <div class="caja">
-        <button class="icono-btn" id="b-foto" aria-label="Subir foto" type="button">📷</button>
-        <button class="icono-btn" id="b-voz" aria-label="Hablar" type="button">🎙</button>
-        <textarea id="s-texto" rows="1" placeholder="Écris ou parle…" lang="fr"></textarea>
-        <button class="icono-btn" id="b-enviar" aria-label="Enviar" type="button">↑</button>
+        <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
+        <textarea id="s-texto" rows="1" placeholder="Ou écris ta réponse…" lang="fr"></textarea>
+        <button class="icono-btn" id="b-enviar" aria-label="Envoyer" type="button">↑</button>
       </div>
       <input id="s-archivo" type="file" accept="image/*" hidden>
     </div>
-    <div class="terminada" id="s-terminada" hidden>Sesión terminada. Lo nuevo ya está en tu librería.</div>
+    <button class="btn sec siguiente" id="b-siguiente" type="button">Bloc suivant →</button>
+    <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
+    <details class="historial">
+      <summary>Voir toute la conversation</summary>
+      <div class="chat" id="s-chat"></div>
+    </details>
   </section>
 
-  <!-- Mi librería -->
+  <!-- Ma banque -->
   <section id="v-libreria" hidden>
     <div class="barra">
-      <button class="icono-btn" data-ir="inicio" aria-label="Volver" type="button">←</button>
-      <h1>Mi librería</h1>
+      <h1>Ma banque</h1>
     </div>
-    <input class="buscar" id="l-buscar" type="search" placeholder="Buscar…" lang="fr">
+    <input class="buscar" id="l-buscar" type="search" placeholder="Chercher un mot…" lang="fr">
     <div class="filtros" id="l-filtros">
-      <button type="button" data-tipo="" aria-pressed="true">Todo</button>
-      <button type="button" data-tipo="error" aria-pressed="false">Errores</button>
-      <button type="button" data-tipo="expresion" aria-pressed="false">Expresiones</button>
-      <button type="button" data-tipo="palabra" aria-pressed="false">Palabras</button>
-      <button type="button" data-tipo="hoy" aria-pressed="false">Toca hoy</button>
+      <button type="button" data-tipo="" aria-pressed="true">Tout</button>
+      <button type="button" data-tipo="error" aria-pressed="false">Erreurs</button>
+      <button type="button" data-tipo="expresion" aria-pressed="false">Expressions</button>
+      <button type="button" data-tipo="palabra" aria-pressed="false">Mots</button>
+      <button type="button" data-tipo="hoy" aria-pressed="false">À réviser</button>
     </div>
     <div class="items" id="l-items"></div>
   </section>
 
 </main>
+<nav class="pestanas" id="pestanas" hidden>
+  <button type="button" data-ir="inicio"><i>⌂</i>Accueil</button>
+  <button type="button" data-ir="sesion"><i>◷</i>Session</button>
+  <button type="button" data-ir="libreria"><i>▤</i>Ma banque</button>
+</nav>
 <div class="toast" id="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
@@ -418,21 +416,14 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const FASES = [
   // 2 horas en 4 bloques (prompt v2). `ini` en minutos.
-  { id: "conversacion", nombre: "Conversación guiada", ini: 0, desc: "Un tema de tu vida, una pregunta a la vez" },
-  { id: "oral", nombre: "Comprensión oral y shadowing", ini: 30, desc: "Escucha tu material y repite frases" },
-  { id: "gramatica", nombre: "Gramática y vocabulario", ini: 60, desc: "10 expresiones y el repaso de hoy" },
-  { id: "escritura", nombre: "Escritura corregida", ini: 90, desc: "Un párrafo o correo real: escríbelo o sube foto" },
+  { id: "conversacion", nombre: "Conversation guidée", corto: "Conversation", ini: 0, desc: "Un sujet de ta vie, une question à la fois" },
+  { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écoute ton matériel et répète des phrases" },
+  { id: "gramatica", nombre: "Grammaire et vocabulaire", corto: "Grammaire", ini: 60, desc: "10 expressions et la révision du jour" },
+  { id: "escritura", nombre: "Écriture corrigée", corto: "Écriture", ini: 90, desc: "Un paragraphe ou un courriel réel : écris-le ou envoie la photo" },
 ];
-const SALUDOS = [
-  "Bon dimanche ! On prend le temps aujourd'hui.",
-  "Bonne semaine ! On commence en douceur.",
-  "Salut Laura ! Prête pour ton heure de français ?",
-  "Allô ! On continue sur notre lancée.",
-  "Bonjour ! Aujourd'hui, on apprend en jasant.",
-  "Bon vendredi ! Une heure, et la fin de semaine t'attend.",
-  "Bon samedi ! Un petit café, pis on y va ?",
-];
-const PATRONES = { como_suena: "como suena", espanol: "el español se cuela", verbo_bloque: "verbos en bloque", genero_numero: "género y número", otro: "otro" };
+const BLOQUE_SEG = 30 * 60;
+const PATRONES = { como_suena: "comme ça sonne", espanol: "l'espagnol s'invite", verbo_bloque: "verbes en bloc", genero_numero: "genre et nombre", otro: "autre" };
+const HITOS = [7, 30, 60];
 const TEMAS = ["auto", "light", "dark"];
 const ICONOS_TEMA = { auto: "◐", light: "☀︎", dark: "☾" };
 
@@ -443,6 +434,9 @@ let ultimoGuardado = 0;
 
 // ── Utilidades ──
 function hoy() { return new Date().toLocaleDateString("en-CA"); }
+function diaMas(n) { const d = new Date(`${hoy()}T12:00:00`); d.setDate(d.getDate() + n); return d.toLocaleDateString("en-CA"); }
+function leerLocal(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function guardarLocal(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 function aviso(texto) {
   const t = $("toast");
   t.textContent = texto;
@@ -473,9 +467,8 @@ function markdown(texto) {
   if (lista) html += "</ul>";
   return html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<i>$2</i>");
 }
-function mmss(s) {
-  const mm = `${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  return s >= 3600 ? `${Math.floor(s / 3600)}:${mm}` : mm;
+function hhmmss(s) {
+  return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
 // ── Tema ──
@@ -484,7 +477,7 @@ function aplicarTema(t) {
   if (t === "auto") document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", t);
   $("b-tema").textContent = ICONOS_TEMA[t];
-  $("b-tema").setAttribute("aria-label", `Tema: ${{ auto: "automático", light: "claro", dark: "oscuro" }[t]}`);
+  $("b-tema").setAttribute("aria-label", `Thème : ${{ auto: "automatique", light: "clair", dark: "sombre" }[t]}`);
 }
 $("b-tema").onclick = () => {
   const t = TEMAS[(TEMAS.indexOf(leerTema()) + 1) % TEMAS.length];
@@ -496,6 +489,11 @@ aplicarTema(leerTema());
 // ── Navegación ──
 function mostrar(vista) {
   for (const v of ["login", "inicio", "sesion", "libreria"]) $(`v-${v}`).hidden = v !== vista;
+  // Las pestañas se ven en Accueil y Ma banque; en Session se esconden para que solo esté la clase.
+  const conPestanas = vista === "inicio" || vista === "libreria";
+  $("pestanas").hidden = !conPestanas;
+  document.body.classList.toggle("con-pestanas", conPestanas);
+  for (const b of $("pestanas").children) b.dataset.ir === vista ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current");
   window.scrollTo(0, 0);
 }
 function ir(vista) { location.hash = vista; }
@@ -526,77 +524,116 @@ $("f-login").onsubmit = async (e) => {
     email: $("correo").value.trim(),
     options: { emailRedirectTo: location.origin + location.pathname },
   });
-  aviso(error ? `No se pudo enviar: ${error.message}` : "Listo: abre el correo y toca «Iniciar sesión».");
+  aviso(error ? `Envoi impossible : ${error.message}` : "C'est parti : ouvre le courriel et touche le lien.");
 };
 
 $("f-icono").onsubmit = async (e) => {
   e.preventDefault();
   const codigo = $("codigo").value.replace(/\D/g, "");
-  if (codigo.length !== 6) return aviso("El código tiene 6 dígitos.");
+  if (codigo.length !== 6) return aviso("Le code a 6 chiffres.");
   const { data, error } = await sb.functions.invoke("vincular", { body: { accion: "canjear", codigo } });
-  if (error || !data?.token_hash) {
-    let detalle = "Código incorrecto o vencido.";
-    try { detalle = (await error.context.json()).error || detalle; } catch {}
-    return aviso(detalle);
-  }
+  if (error || !data?.token_hash) return aviso("Code incorrect ou expiré. Après 5 essais, demande-en un autre.");
   let { error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
   if (e2) ({ error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: "magiclink" }));
-  if (e2) aviso(`No pude abrir la sesión: ${e2.message}`);
+  if (e2) aviso(`Impossible d'ouvrir la session : ${e2.message}`);
 };
 
 $("b-vincular").onclick = async () => {
   $("b-vincular").disabled = true;
   const { data, error } = await sb.functions.invoke("vincular", { body: { accion: "crear" } });
   $("b-vincular").disabled = false;
-  if (error || !data?.codigo) return aviso("No pude crear el código. Intenta otra vez.");
+  if (error || !data?.codigo) return aviso("Impossible de créer le code. Réessaie.");
   $("i-codigo").textContent = data.codigo;
   $("i-codigo").hidden = false;
-  $("i-codigo-ayuda").textContent = `Abre Lidia desde el ícono y escribe este código. Vale ${data.minutos} minutos y sirve una sola vez.`;
+  $("i-codigo-ayuda").textContent = `Ouvre Lidia depuis l'icône et écris ce code. Il est valide ${data.minutos} minutes, une seule fois.`;
   $("i-codigo-ayuda").hidden = false;
-  $("b-vincular").textContent = "Pedir otro código";
+  $("b-vincular").textContent = "Demander un autre code";
 };
 
-// ── Inicio ──
+// ── Accueil ──
+// Racha amable (CLAUDE.md, regla 6), igual que en la función lidia: un día suelto se congela una vez; dos días la reinician.
+function racha(fechas) {
+  const dias = new Set(fechas);
+  let seguidos = 0, congelada = false, atras = dias.has(hoy()) ? 0 : 1;
+  while (true) {
+    if (dias.has(diaMas(-atras))) { seguidos++; atras++; }
+    else if (!congelada && seguidos > 0 && dias.has(diaMas(-atras - 1))) { congelada = true; atras++; }
+    else break;
+  }
+  return { seguidos, congelada };
+}
+function textoRacha({ seguidos, congelada }) {
+  if (!seguidos) return "On commence aujourd'hui";
+  const base = `${HITOS.includes(seguidos) ? "🎉" : "🔥"} ${seguidos} jour${seguidos > 1 ? "s" : ""} d'affilée`;
+  return congelada ? `${base} · 1 jour en pause` : base;
+}
+// Primero se pinta lo último guardado en el teléfono (abre al instante) y luego se actualiza con la nube.
+function pintarInicio(d) {
+  $("i-racha").textContent = d.racha;
+  $("i-fase").textContent = d.fase;
+  $("i-horas").textContent = d.horas;
+  $("i-errores").textContent = d.errores;
+  $("i-repaso").textContent = d.repaso;
+  $("i-repaso-t").textContent = d.repasoT;
+  $("b-sesion-t").textContent = d.boton;
+  $("i-hoy").textContent = d.hoy;
+}
 async function cargarInicio() {
   $("i-vinculo").hidden = EN_ICONO;
-  $("i-saludo").textContent = SALUDOS[new Date().getDay()];
-  const [perfil, sesiones, errores, simulacro] = await Promise.all([
+  const f = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
+  $("i-fecha").textContent = f.charAt(0).toUpperCase() + f.slice(1);
+  const guardado = leerLocal("lidia-inicio");
+  if (guardado) pintarInicio(guardado);
+
+  const [perfil, sesiones, errores, aRepasar, proximo] = await Promise.all([
     sb.from("perfil").select("*").maybeSingle(),
     sb.from("sesiones").select("id, fecha, segundos, fase_actual"),
     sb.from("banco").select("id", { count: "exact", head: true }).eq("tipo", "error").eq("dominado", false),
-    sb.from("textos").select("puntaje").not("puntaje", "is", null).order("fecha", { ascending: false }).limit(1).maybeSingle(),
+    sb.from("banco").select("id", { count: "exact", head: true }).eq("dominado", false).lte("proxima", hoy()),
+    sb.from("banco").select("proxima").eq("dominado", false).gt("proxima", hoy()).order("proxima").limit(1).maybeSingle(),
   ]);
+  if (sesiones.error) return;
   estado.perfil = perfil.data;
-  $("i-fase").textContent = `Fase ${perfil.data?.fase_plan ?? 1} de 5 · ${perfil.data?.tema_semana ?? "Ma vie au Québec"}`;
-  const total = (sesiones.data ?? []).reduce((a, s) => a + (s.segundos || 0), 0);
-  $("i-horas").textContent = (total / 3600).toLocaleString("es", { maximumFractionDigits: 1 });
-  $("i-errores").textContent = errores.count ?? 0;
-  $("i-simulacro").textContent = simulacro.data ? `${simulacro.data.puntaje} %` : "—";
-
-  const deHoy = (sesiones.data ?? []).find((s) => s.fecha === hoy());
-  if (!deHoy) {
-    $("i-hoy").textContent = `Tema de la semana: ${perfil.data?.tema_semana ?? "Ma vie au Québec"}. Dos horas, cuatro bloques.`;
-    $("b-sesion").textContent = "Empezar";
-  } else if (deHoy.fase_actual === "terminada") {
-    $("i-hoy").textContent = `Terminada · ${Math.round(deHoy.segundos / 60)} min. Mañana seguimos.`;
-    $("b-sesion").textContent = "Ver la conversación";
-  } else {
-    const f = FASES.find((x) => x.id === deHoy.fase_actual) ?? FASES[0];
-    $("i-hoy").textContent = `En pausa en ${f.nombre} · ${mmss(deHoy.segundos)}`;
-    $("b-sesion").textContent = "Continuar";
+  const lista = sesiones.data ?? [];
+  const total = lista.reduce((a, s) => a + (s.segundos || 0), 0);
+  const d = {
+    racha: textoRacha(racha(lista.map((s) => s.fecha))),
+    fase: `Phase ${perfil.data?.fase_plan ?? 1} sur 5 · ${perfil.data?.tema_semana ?? "Ma vie au Québec"}`,
+    horas: `${(total / 3600).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} h`,
+    errores: errores.count ?? 0,
+    repaso: "—", repasoT: "prochaine révision",
+    boton: "Commencer ma session de 2 heures",
+    hoy: "Conversation · Oral · Grammaire · Écriture",
+  };
+  if (aRepasar.count) { d.repaso = aRepasar.count; d.repasoT = "à réviser aujourd'hui"; }
+  else if (proximo.data) {
+    const dias = Math.round((new Date(`${proximo.data.proxima}T12:00:00`) - new Date(`${hoy()}T12:00:00`)) / 864e5);
+    d.repaso = dias === 1 ? "Demain" : `${dias} j`;
   }
+  const deHoy = lista.find((s) => s.fecha === hoy());
+  if (deHoy?.fase_actual === "terminada") {
+    d.boton = "Revoir la session d'aujourd'hui";
+    d.hoy = `Terminée · ${hhmmss(deHoy.segundos)}. On continue demain!`;
+  } else if (deHoy) {
+    const fa = FASES.find((x) => x.id === deHoy.fase_actual) ?? FASES[0];
+    d.boton = "Reprendre ma session";
+    d.hoy = `En pause · ${fa.corto} · ${hhmmss(deHoy.segundos)}`;
+  }
+  guardarLocal("lidia-inicio", d);
+  pintarInicio(d);
 }
 $("b-sesion").onclick = () => ir("sesion");
 
 // ── Sesión ──
 async function abrirSesion() {
   $("s-chat").innerHTML = "";
+  ponerActual("Un instant…");
   let { data: s } = await sb.from("sesiones").select("*").eq("fecha", hoy()).order("creado", { ascending: false }).limit(1).maybeSingle();
   if (!s) {
     const nueva = await sb.from("sesiones").insert({
       fecha: hoy(), fase_plan: estado.perfil?.fase_plan ?? 1, tema: estado.perfil?.tema_semana ?? "Ma vie au Québec",
     }).select().single();
-    if (nueva.error) return aviso(`No pude crear la sesión: ${nueva.error.message}`);
+    if (nueva.error) return aviso(`Impossible de créer la session : ${nueva.error.message}`);
     s = nueva.data;
   }
   estado.sesion = s;
@@ -604,26 +641,35 @@ async function abrirSesion() {
   estado.segundos = s.segundos || 0;
   estado.faseIdx = Math.max(0, FASES.findIndex((f) => f.id === s.fase_actual));
   const terminada = s.fase_actual === "terminada";
-  $("s-entrada").hidden = terminada;
-  $("s-controles").hidden = terminada;
-  $("s-terminada").hidden = !terminada;
+  mostrarTerminada(terminada);
   pintarReloj();
 
   const { data: msgs } = await sb.from("mensajes").select("*").eq("sesion_id", s.id).order("creado");
   for (const m of msgs ?? []) await pintarMensaje(m.rol, m.contenido, null, m.imagen_url);
+  if (!msgs?.some((m) => m.rol === "lidia")) ponerActual("");
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
   continuar();
 }
 
 function pintarReloj() {
-  $("s-tiempo").textContent = mmss(estado.segundos);
+  $("s-tiempo").textContent = hhmmss(estado.segundos);
   const f = FASES[estado.faseIdx];
-  $("s-fase").textContent = f.nombre;
+  $("s-fase").textContent = `Bloc ${estado.faseIdx + 1} · ${f.corto}`;
   $("s-fase-desc").textContent = f.desc;
-  $("s-fases").innerHTML = FASES.map((_, i) => `<i class="${i < estado.faseIdx ? "hecha" : i === estado.faseIdx ? "actual" : ""}"></i>`).join("");
-  $("b-pausa").textContent = estado.corriendo ? "Pausar" : "Continuar";
-  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminar sesión" : "Siguiente →";
+  $("s-fases").innerHTML = FASES.map((x, i) => {
+    const lleno = i < estado.faseIdx ? 100 : i > estado.faseIdx ? 0 : Math.min(100, Math.max(0, (estado.segundos - x.ini * 60) / BLOQUE_SEG * 100));
+    return `<div class="${i === estado.faseIdx ? "actual" : ""}"><i><u style="width:${lleno.toFixed(1)}%"></u></i>${x.corto}</div>`;
+  }).join("");
+  $("b-pausa").textContent = estado.corriendo ? "❚❚" : "▶";
+  $("b-pausa").setAttribute("aria-label", estado.corriendo ? "Pause" : "Reprendre");
+  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminer la session" : "Bloc suivant →";
+}
+function mostrarTerminada(terminada) {
+  $("s-entrada").hidden = terminada;
+  $("b-siguiente").hidden = terminada;
+  $("b-pausa").hidden = terminada;
+  $("s-terminada").hidden = !terminada;
 }
 
 function continuar() {
@@ -663,16 +709,22 @@ async function cambiarFase(idx) {
 }
 $("b-pausa").onclick = () => (estado.corriendo ? pausar() : continuar());
 $("b-siguiente").onclick = async () => {
-  if (estado.enviando) return aviso("Espera a que Lidia termine.");
+  if (estado.enviando) return aviso("Attends que Lidia ait fini.");
   if (estado.faseIdx < FASES.length - 1) return cambiarFase(estado.faseIdx + 1);
   pausar();
   await sb.from("sesiones").update({ fase_actual: "terminada", segundos: estado.segundos }).eq("id", estado.sesion.id);
   estado.sesion.fase_actual = "terminada";
-  $("s-entrada").hidden = true;
-  $("s-controles").hidden = true;
-  $("s-terminada").hidden = false;
+  mostrarTerminada(true);
 };
 document.addEventListener("visibilitychange", () => { if (document.hidden) guardarTiempo(); });
+
+// La tarjeta grande muestra solo lo último que dijo Lidia: una cosa a la vez.
+function ponerActual(texto, voz) {
+  estado.actual = { texto, voz };
+  $("s-actual-texto").innerHTML = markdown(texto);
+  $("b-escuchar").disabled = !texto;
+}
+$("b-escuchar").onclick = () => estado.actual?.texto && hablar(estado.actual.voz || estado.actual.texto);
 
 async function pintarMensaje(rol, texto, voz, imagenPath) {
   const div = document.createElement("div");
@@ -681,7 +733,7 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
   let html = "";
   if (imagenPath) {
     const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
-    if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Foto del texto">`;
+    if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Photo du texte">`;
   }
   html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? markdown(texto) : escapar(texto).replace(/\n/g, "<br>");
   div.innerHTML = html;
@@ -689,12 +741,12 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
     const b = document.createElement("button");
     b.className = "escuchar";
     b.type = "button";
-    b.textContent = "🔊 Escuchar";
+    b.textContent = "🔊 Écouter";
     b.onclick = () => hablar(voz || texto);
     div.appendChild(b);
+    ponerActual(texto, voz);
   }
   $("s-chat").appendChild(div);
-  div.scrollIntoView({ behavior: "smooth", block: "end" });
 }
 
 async function itemsHoy() {
@@ -715,16 +767,13 @@ async function enviarYa(texto, fotoPath) {
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
-  const pensando = document.createElement("div");
-  pensando.className = "msg lidia escribiendo";
-  pensando.textContent = fotoPath ? "Lidia está leyendo tu texto…" : "Lidia escribe…";
-  $("s-chat").appendChild(pensando);
-  pensando.scrollIntoView({ behavior: "smooth", block: "end" });
+  const anterior = estado.actual;
+  ponerActual(fotoPath ? "*Lidia lit ton texte…*" : "*Lidia écrit…*");
+  $("b-escuchar").disabled = true;
   try {
     const { data, error } = await sb.functions.invoke("lidia", {
       body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy() },
     });
-    pensando.remove();
     if (error) {
       let detalle = error.message;
       try { detalle = (await error.context.json()).error || detalle; } catch {}
@@ -732,10 +781,10 @@ async function enviarYa(texto, fotoPath) {
     }
     estado.resumen = data.resumen_sesion;
     await pintarMensaje("lidia", data.mensaje, data.voz);
-    if (data.nuevos_items?.length) aviso(`${data.nuevos_items.length} nuevo(s) en tu librería`);
+    if (data.nuevos_items?.length) aviso(`${data.nuevos_items.length} nouveauté${data.nuevos_items.length > 1 ? "s" : ""} dans ta banque`);
   } catch (e) {
-    pensando.remove();
-    aviso(`Lidia no respondió: ${e.message}`);
+    ponerActual(anterior?.texto || "", anterior?.voz);
+    aviso(`Lidia n'a pas répondu : ${e.message}`);
   } finally {
     estado.enviando = false;
     $("b-enviar").disabled = false;
@@ -776,7 +825,7 @@ $("s-archivo").onchange = async () => {
     $("s-texto").value = "";
     await enviar(nota || "Voici mon texte écrit à la main.", ruta);
   } catch (e) {
-    aviso(`No se pudo subir la foto: ${e.message}`);
+    aviso(`Impossible d'envoyer la photo : ${e.message}`);
   }
 };
 
@@ -803,7 +852,7 @@ if ("speechSynthesis" in window) {
   speechSynthesis.addEventListener("voiceschanged", elegirVoz);
 }
 function hablar(texto) {
-  if (!("speechSynthesis" in window)) return aviso("Este navegador no puede leer en voz alta.");
+  if (!("speechSynthesis" in window)) return aviso("Ce navigateur ne peut pas lire à voix haute.");
   speechSynthesis.cancel();
   if (!vozElegida) elegirVoz();
   const limpio = texto
@@ -824,7 +873,7 @@ function hablar(texto) {
 const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
 let escucha = null;
 $("b-voz").onclick = () => {
-  if (!Reconocimiento) return aviso("Este navegador no reconoce la voz. Prueba en Safari o Chrome.");
+  if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escucha) return escucha.stop();
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
@@ -835,7 +884,7 @@ $("b-voz").onclick = () => {
     $("s-texto").value = base + Array.from(e.results).map((r) => r[0].transcript).join(" ");
     ajustarAlto();
   };
-  escucha.onerror = (e) => { if (e.error !== "aborted") aviso(`Micrófono: ${e.error}`); };
+  escucha.onerror = (e) => { if (e.error !== "aborted") aviso(`Micro : ${e.error}`); };
   escucha.onend = () => { escucha = null; $("b-voz").classList.remove("activo"); };
   $("b-voz").classList.add("activo");
   escucha.start();
@@ -860,11 +909,11 @@ function pintarBanco() {
       <div class="corr" lang="fr">${it.original ? "→ " : ""}${escapar(it.correcto)}</div>
       ${it.nota ? `<div class="nota">${escapar(it.nota)}</div>` : ""}
       <div class="meta">
-        <span>${{ error: "error", expresion: "expresión", palabra: "palabra" }[it.tipo] || it.tipo}</span>
+        <span>${{ error: "erreur", expresion: "expression", palabra: "mot" }[it.tipo] || it.tipo}</span>
         ${it.patron ? `<span>${escapar(PATRONES[it.patron] || it.patron)}</span>` : ""}
-        ${it.dominado ? `<span class="dominado">dominado</span>` : `<span>repaso ${it.proxima <= hoy() ? "hoy" : it.proxima}</span>`}
+        ${it.dominado ? `<span class="dominado">maîtrisé</span>` : `<span>révision ${it.proxima <= hoy() ? "aujourd'hui" : new Date(`${it.proxima}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}</span>`}
       </div>
-    </div>`).join("") : `<div class="vacio">${estado.banco.length ? "Nada coincide con tu búsqueda." : "Tu librería está vacía por ahora."}</div>`;
+    </div>`).join("") : `<div class="vacio">${estado.banco.length ? "Rien ne correspond à ta recherche." : "Ta banque est vide pour l'instant."}</div>`;
 }
 $("l-buscar").addEventListener("input", pintarBanco);
 $("l-filtros").onclick = (e) => {
