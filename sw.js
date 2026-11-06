@@ -8,7 +8,8 @@ self.addEventListener("install", (e) => {
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
+  // Solo cachés de Lidia: Défilé guarda la suya ("defile-*") en el mismo origen.
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith("lidia-") && k !== CACHE).map((k) => caches.delete(k)))));
   self.clients.claim();
 });
 
