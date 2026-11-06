@@ -398,7 +398,7 @@ body.en-trayecto #trayInfo{display:inline;}
         <span id="faseNom">Fase 1 · Línea Base</span>
         <span id="facePct" class="mini-stat">20% FR</span>
         <span id="hoyN" class="mini-stat">0 hoy</span>
-        <span id="rachaN" class="mini-stat">🔥 0d</span>
+        <span id="rachaN" class="mini-stat">0 días</span>
         <span id="trayInfo">0/20</span>
       </div>
       <div class="jauge-pista"><div id="faseBarre"></div></div>
@@ -422,7 +422,7 @@ body.en-trayecto #trayInfo{display:inline;}
   <div class="cifras">
     <div class="cifra"><b id="pAsim">0</b><span>asimiladas</span></div>
     <div class="cifra"><b id="pHoy">0</b><span>hoy</span></div>
-    <div class="cifra"><b id="pRacha">0</b><span>racha</span></div>
+    <div class="cifra"><b id="pRacha">0</b><span>días activos</span></div>
     <div class="cifra"><b id="pPct">20%</b><span>FR</span></div>
   </div>
   <div id="lCats"></div>
@@ -432,7 +432,7 @@ body.en-trayecto #trayInfo{display:inline;}
     <div id="frListas"></div>
   </div>
   <div class="bloque">
-    <h3>Badges Desbloqueados</h3>
+    <h3>Hitos</h3>
     <div id="lBadges"></div>
   </div>
   <div class="bloque">
@@ -1755,6 +1755,8 @@ let milestones = G.r('dfl_milestones',[]);
    cada tarjeta y cada clave, para no repetir en 14 días. Viajan a la nube en defile_progreso. */
 let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[]},G.r('dfl_ix',{}));
 const NO_REPETIR_DIAS = 14;
+const LECTURAS_DIA = 5, LECTURA_MS = 4000;
+const HITOS_DIAS = [7, 30, 60, 100];
 const noEntSesion = new Set();
 function diasDesde(f){return f?Math.floor((Date.parse(hoy())-Date.parse(f))/864e5):1e9;}
 function reciente(p){return diasDesde(IX.visto[p.id])<NO_REPETIR_DIAS||(p.clave&&diasDesde(IX.claves[p.clave])<NO_REPETIR_DIAS);}
@@ -1767,8 +1769,9 @@ function guardarIX(){
 }
 const FORMATO_NOM={expresion:'Expression',mini_historia:'Mini-histoire',dato_util:'Bon à savoir',error_tipico:'Erreur typique',pregunta:'Question',dictado_corto:'Dictée',comparacion_es_qc:'ES ↔ QC',vocabulario_contexto:'Vocabulaire',tramite_quebec:'Démarche'};
 Object.keys(CATS).forEach(c=>{if(!(c in E.cats))E.cats[c]=0;});
-const hoy=()=>new Date().toISOString().slice(0,10);
-if(diario.fecha!==hoy()){actualizarRacha(diario.n);diario={fecha:hoy(),n:0};}
+/* fecha local del teléfono (antes era UTC y el día cambiaba a las 19-20 h de Quebec) */
+const hoy=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+if(diario.fecha!==hoy())diario={fecha:hoy(),n:0,leidas:0};
 sincronizarMilestones();
 
 const feed=document.getElementById('feed');
@@ -1784,11 +1787,19 @@ function pctFr(){const f=faseActual();return Math.round(f.pctMin+(f.pctMax-f.pct
 function modoIdioma(){const p=pctFr();return p<38?'chispa':p<66?'doble':'inmersion';}
 
 /* ─── racha ─── */
-function actualizarRacha(nAyer){
-  const ayer=new Date();ayer.setDate(ayer.getDate()-1);const ayerStr=ayer.toISOString().slice(0,10);
-  if(racha.fecha===ayerStr&&nAyer>0){racha.dias++;racha.fecha=hoy();}
-  else if(racha.fecha!==hoy()){racha={fecha:hoy(),dias:nAyer>0?1:0};}
-  G.w('dfl_racha',racha);
+/* Días activos: solo suman, nunca se reinician. Un día cuenta con lectura real:
+   5 tarjetas que se quedaron al menos 4 s en pantalla (el mismo umbral del modo trayecto).
+   racha guarda {fecha: último día contado, dias: total de días activos}. */
+function contarLectura(){
+  if(diario.fecha!==hoy())diario={fecha:hoy(),n:0,leidas:0};
+  diario.leidas=(diario.leidas||0)+1;
+  if(diario.leidas>=LECTURAS_DIA&&racha.fecha!==hoy()){
+    racha={fecha:hoy(),dias:(racha.dias||0)+1};
+    G.w('dfl_racha',racha);
+    if(HITOS_DIAS.includes(racha.dias))chequearMilestone('dias_'+racha.dias);
+    pintarBarra();
+  }
+  G.w('dfl_d',diario);guardarPronto();
 }
 
 function chequearMilestone(tipo){
@@ -1806,8 +1817,8 @@ function sincronizarMilestones(){
   const marcar=t=>{if(!milestones.includes(t))milestones.push(t);};
   if(E.fase>=2)marcar('fase_2');
   if(E.fase>=3)marcar('fase_3');
-  for(let n=10;n<=Math.floor(E.asim/10)*10;n+=10)marcar('pilulas_'+n);
-  for(let n=7;n<=racha.dias;n+=7)marcar('racha_'+n);
+  [50,100,200,500].forEach(n=>{if(E.asim>=n)marcar('pilulas_'+n);});
+  HITOS_DIAS.forEach(n=>{if(racha.dias>=n)marcar('dias_'+n);});
   const p=precisionActual();
   if(p&&p.total>=PREC_VENTANA){if(p.pct>=90)marcar('prec_90');else if(p.pct>=75)marcar('prec_75');}
   G.w('dfl_milestones',milestones);
@@ -1815,14 +1826,15 @@ function sincronizarMilestones(){
 
 function mostrarMilestone(tipo){
   const msgs={
-    'fase_2':'🎉 ¡FASE 2 DESBLOQUEADA! Más francés, más reto.',
-    'fase_3':'🏆 ¡FASE 3 CONSOLIDACIÓN! Inmersión total.',
-    'pilulas_50':'👑 50 píldoras asimiladas',
-    'pilulas_100':'🌟 100 píldoras asimiladas',
-    'racha_7':'🔥 7 días de racha — Eres consistente',
-    'racha_14':'⚡ 14 días de racha — Leyenda'
+    'fase_2':'Fase 2: más francés en cada tarjeta.',
+    'fase_3':'Fase 3: consolidación.',
+    'pilulas_50':'50 tarjetas asimiladas.',
+    'pilulas_100':'100 tarjetas asimiladas.',
+    'pilulas_200':'200 tarjetas asimiladas.',
+    'pilulas_500':'500 tarjetas asimiladas.',
+    'dias_7':'7 días activos.','dias_30':'30 días activos.','dias_60':'60 días activos.','dias_100':'100 días activos.'
   };
-  if(msgs[tipo]){msg(msgs[tipo],3000);confetti();}
+  if(msgs[tipo])msg(msgs[tipo],3000);
 }
 
 function confetti(){
@@ -2156,8 +2168,7 @@ async function crearCarte(p){
         const sub=pulso(ms,p.c,p.id,true);
         if(!vistas.includes(p.id)){vistas.push(p.id);G.w('dfl_v',vistas);}
         registrarEnTrayecto(p);
-        if(E.asim>0&&E.asim%10===0)chequearMilestone('pilulas_'+E.asim);
-        if(racha.dias>0&&racha.dias%7===0)chequearMilestone('racha_'+racha.dias);
+        if([50,100,200,500].includes(E.asim))chequearMilestone('pilulas_'+E.asim);
         if(sub)setTimeout(()=>msg('🎉 Fase '+E.fase+' — '+faseActual().nom,4000),600);
         setTimeout(()=>bajar(el),900);
       });
@@ -2173,8 +2184,7 @@ async function crearCarte(p){
       const sub=pulso(ms,p.c,p.id,false);
       if(!vistas.includes(p.id)){vistas.push(p.id);G.w('dfl_v',vistas);}
       registrarEnTrayecto(p);
-      if(E.asim>0&&E.asim%10===0)chequearMilestone('pilulas_'+E.asim);
-      if(racha.dias>0&&racha.dias%7===0)chequearMilestone('racha_'+racha.dias);
+      if([50,100,200,500].includes(E.asim))chequearMilestone('pilulas_'+E.asim);
       if(sub)setTimeout(()=>msg('🎉 Fase '+E.fase,4000),600);
       bajar(el);
     });
@@ -2522,6 +2532,7 @@ function verCarta(el){
 function dejarCarta(el){
   const p=el._p;if(!p||!el.isConnected||el.dataset.inter==='1'||el.dataset.salt)return;
   const ms=Date.now()-(+el.dataset.t0||Date.now());
+  if(ms>=LECTURA_MS)contarLectura();
   if(ms<2500){el.dataset.salt='1';if(!IX.salt.includes(p.id))IX.salt.push(p.id);guardarIX();}
 }
 
@@ -2696,18 +2707,16 @@ function abrirPanel(){
 
   /* badges desbloqueados */
   const badgeTexts={
-    'fase_2':'🎯 Fase 2','fase_3':'🏆 Fase 3',
-    'pilulas_10':'✨ 10 píldoras','pilulas_20':'🌱 20','pilulas_30':'💫 30',
-    'pilulas_40':'⚡ 40','pilulas_50':'🌟 50','pilulas_60':'🔥 60',
-    'pilulas_70':'💎 70','pilulas_80':'🚀 80','pilulas_90':'🎖️ 90','pilulas_100':'👑 100',
-    'pilulas_120':'🌌 120','pilulas_140':'🛸 140','pilulas_160':'🎇 160','pilulas_180':'🧭 180','pilulas_200':'🏔️ 200',
-    'racha_7':'🔥 7 días seguidos','racha_14':'⚡ 14 días','racha_21':'🌙 21 días','racha_30':'🏅 30 días',
-    'racha_60':'🎌 60 días','racha_90':'🌠 90 días',
-    'prec_75':'🎯 75% de precisión sostenida','prec_90':'🧠 90% de precisión sostenida'
+    'fase_2':'Fase 2','fase_3':'Fase 3',
+    'pilulas_50':'50 asimiladas','pilulas_100':'100 asimiladas','pilulas_200':'200 asimiladas','pilulas_500':'500 asimiladas',
+    'dias_7':'7 días activos','dias_30':'30 días activos','dias_60':'60 días activos','dias_100':'100 días activos',
+    'prec_75':'75 % de precisión sostenida','prec_90':'90 % de precisión sostenida'
   };
-  document.getElementById('lBadges').innerHTML=milestones.length
-    ?milestones.map(m=>'<div class="badge">'+(badgeTexts[m]||'🏅 '+m)+'</div>').join('')
-    :'<p class="muted">Desbloquea badges completando objetivos</p>';
+  /* solo hitos que nunca se pierden; los viejos de cada 10 o de racha ya no se muestran */
+  const hitos=milestones.filter(m=>badgeTexts[m]);
+  document.getElementById('lBadges').innerHTML=hitos.length
+    ?hitos.map(m=>'<div class="badge">'+badgeTexts[m]+'</div>').join('')
+    :'<p class="muted">Aquí aparecen tus hitos: fases, tarjetas asimiladas y días activos.</p>';
   pann.classList.add('on');fondP.classList.add('on');
 }
 document.getElementById('btnPanneau').addEventListener('click',abrirPanel);
