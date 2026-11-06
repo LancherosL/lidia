@@ -188,6 +188,19 @@ header>*{pointer-events:auto;}
 .act:hover{background:rgba(6,14,22,.8);border-color:rgba(243,240,234,.3);}
 .act.actif{color:var(--teinte);border-color:color-mix(in srgb,var(--teinte) 60%,transparent);box-shadow:0 0 12px rgba(224,163,62,.25);}
 .act.parle{color:var(--teinte);animation:pulse 800ms infinite;}
+.act-et{display:block;font-size:9px;color:var(--craie-f);text-align:center;margin-top:-10px;pointer-events:none;}
+
+/* ── tarjetas nuevas (francés primero, fuente visible) ── */
+.ayuda-es{margin-top:10px;}
+.ayuda-es summary{font-size:12px;color:var(--craie-f);cursor:pointer;list-style:none;}
+.ayuda-es ul{margin-top:6px;padding-left:0;list-style:none;}
+.ayuda-es li{font-size:13px;color:var(--craie-d);line-height:1.5;margin-bottom:4px;}
+.gancho-es-ayuda summary{font-size:12px;color:var(--craie-f);cursor:pointer;list-style:none;margin-top:4px;}
+.gancho-es-ayuda span{display:block;font-size:14px;color:var(--craie-d);margin-top:4px;}
+.dictee{margin-top:12px;}
+.dictee .entrar-codigo{font-size:16px;letter-spacing:0;text-align:left;margin:10px 0 0;}
+.fuente{font-size:11px;color:var(--craie-f);margin-top:10px;letter-spacing:.01em;}
+.btn-rondo.apagado{opacity:.45;}
 
 /* ── confetti burst ── */
 .confetti-burst{pointer-events:none;z-index:999;}
@@ -391,6 +404,7 @@ body.en-trayecto #trayInfo{display:inline;}
       <div class="jauge-pista"><div id="faseBarre"></div></div>
       <div class="tray-barra" id="trayBarra" style="display:none"><div class="tray-relleno" id="trayRelleno"></div></div>
     </div>
+    <button class="btn-rondo" id="btnAudio" aria-label="Audio automático">🔊</button>
     <button class="btn-rondo" id="btnTrayecto" aria-label="Empezar trayecto">🚇</button>
     <button class="btn-rondo" id="btnPanneau" aria-label="Mi progreso">📊</button>
   </header>
@@ -1737,6 +1751,21 @@ let racha    = G.r('dfl_racha',{fecha:'',dias:0});
 let precRep = G.r('dfl_prec',{hist:[]});
 const PREC_VENTANA = 20;
 let milestones = G.r('dfl_milestones',[]);
+/* interacciones: me gusta, no entendí, saltadas (<2.5 s sin tocar nada), y cuándo se vio
+   cada tarjeta y cada clave, para no repetir en 14 días. Viajan a la nube en defile_progreso. */
+let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[]},G.r('dfl_ix',{}));
+const NO_REPETIR_DIAS = 14;
+const noEntSesion = new Set();
+function diasDesde(f){return f?Math.floor((Date.parse(hoy())-Date.parse(f))/864e5):1e9;}
+function reciente(p){return diasDesde(IX.visto[p.id])<NO_REPETIR_DIAS||(p.clave&&diasDesde(IX.claves[p.clave])<NO_REPETIR_DIAS);}
+function guardarIX(){
+  const corta=(a,n)=>a.slice(-n);
+  IX.gusta=corta(IX.gusta,300);IX.noEnt=corta(IX.noEnt,300);IX.salt=corta(IX.salt,600);
+  IX.formatos=corta(IX.formatos,8);IX.temas=corta(IX.temas,8);
+  ['visto','claves'].forEach(k=>{Object.keys(IX[k]).forEach(x=>{if(diasDesde(IX[k][x])>60)delete IX[k][x];});});
+  G.w('dfl_ix',IX);guardarPronto();
+}
+const FORMATO_NOM={expresion:'Expression',mini_historia:'Mini-histoire',dato_util:'Bon à savoir',error_tipico:'Erreur typique',pregunta:'Question',dictado_corto:'Dictée',comparacion_es_qc:'ES ↔ QC',vocabulario_contexto:'Vocabulaire',tramite_quebec:'Démarche'};
 Object.keys(CATS).forEach(c=>{if(!(c in E.cats))E.cats[c]=0;});
 const hoy=()=>new Date().toISOString().slice(0,10);
 if(diario.fecha!==hoy()){actualizarRacha(diario.n);diario={fecha:hoy(),n:0};}
@@ -1815,7 +1844,8 @@ function pulso(ms, cat, id, interactuado){
   E.asim++;
   E.cats[cat]=(E.cats[cat]||0)+1;
   diario.n++;
-  const fi=fall.indexOf(id); if(fi>=0)fall.splice(fi,1);
+  /* releerla la saca del repaso, salvo si en esta misma vuelta tocó "no entendí" */
+  const fi=fall.indexOf(id); if(fi>=0&&!noEntSesion.has(id))fall.splice(fi,1);
 
   let delta=0;
   if(E.meseta>0){E.meseta--;delta=0;}
@@ -1871,8 +1901,13 @@ function _barajar(arr){
   return a;
 }
 
+/* lo que se salta rápido no vuelve; lo visto hace menos de 14 días tampoco */
+function elegibles(){
+  const salt=new Set(IX.salt);
+  return todas().filter(p=>(p.niv||1)<=E.fase&&!salt.has(p.id));
+}
 function _rellenarMazo(){
-  const pool=todas().filter(p=>(p.niv||1)<=E.fase).map(p=>p.id);
+  const pool=elegibles().filter(p=>!reciente(p)).map(p=>p.id);
   if(!pool.length)return;
   let nuevo=_barajar(pool);
   /* empujar al fondo cualquiera de las últimas repartidas que caiga al inicio */
@@ -1895,8 +1930,16 @@ function _repartir(id){
   G.w('dfl_mazo',MAZO);
 }
 
+let ultimaRepartida=null;
+/* nunca la misma categoría ni el mismo formato dos veces seguidas */
+function choca(p){return !!ultimaRepartida&&(p.c===ultimaRepartida.c||(!!p.formato&&p.formato===ultimaRepartida.formato));}
 function siguiente(){
-  const pool=todas().filter(p=>(p.niv||1)<=E.fase);
+  const p=_siguiente();
+  if(p)ultimaRepartida=p;
+  return p;
+}
+function _siguiente(){
+  const pool=elegibles();
   if(!pool.length)return null;
   const porId=new Map(pool.map(p=>[p.id,p]));
 
@@ -1910,40 +1953,50 @@ function siguiente(){
     }
   }
 
-  /* repartir del mazo, descartando ids que ya no existen */
+  /* repartir del mazo, descartando ids que ya no existen o que se vieron hace poco;
+     se mira hasta 8 adelante para no repetir categoría ni formato seguidos */
   let intentos=0;
   while(intentos<3){
-    while(MAZO.length){
-      const id=MAZO.shift();
-      if(porId.has(id)){
-        _repartir(id);
-        return porId.get(id);
-      }
+    MAZO=MAZO.filter(id=>porId.has(id)&&!reciente(porId.get(id)));
+    if(MAZO.length){
+      let i=MAZO.slice(0,8).findIndex(id=>!choca(porId.get(id)));
+      if(i<0)i=0;
+      const id=MAZO.splice(i,1)[0];
+      _repartir(id);
+      return porId.get(id);
     }
     _rellenarMazo();
     intentos++;
   }
-  return pool[Math.floor(Math.random()*pool.length)];
+  /* todo se vio hace poco (mientras llegan tarjetas nuevas): la vista hace más tiempo */
+  const vieja=pool.filter(p=>!COLA.includes(p.id)&&!choca(p)).sort((a,b)=>String(IX.visto[a.id]||'').localeCompare(String(IX.visto[b.id]||'')))[0];
+  return vieja||pool[Math.floor(Math.random()*pool.length)];
 }
 
-/* cuando llegan píldoras nuevas de la IA, se insertan al mazo actual
-   repartidas al azar para que aparezcan pronto sin romper el ciclo */
+/* cuando llegan tarjetas nuevas de la IA, se reparten al azar entre las próximas 15
+   para que aparezcan pronto, mezcladas con las demás */
 function _inyectarAlMazo(nuevas){
   nuevas.forEach(p=>{
-    const pos=Math.floor(Math.random()*Math.min(MAZO.length||1,8));
+    const pos=Math.floor(Math.random()*Math.min(MAZO.length||1,15));
     MAZO.splice(pos,0,p.id);
   });
   G.w('dfl_mazo',MAZO);
 }
 
 /* ─── render ─── */
+function bloqueDictee(p){
+  return '<div class="dictee"><button class="vacío" data-txt="'+esc(p.fr_chispa)+'">🔊 Écouter</button>'+
+         '<input class="entrar-codigo dictee-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Écris ce que tu entends">'+
+         '<button class="lleno dictee-ok">Vérifier</button><p class="etat dictee-res"></p>'+
+         '<div class="dictee-sol" hidden>'+frBlock(p,'inmersion')+'</div></div>';
+}
 function renderViñetas(arr){
   return arr.map(v=>'<li class="viñeta">'+v+'</li>').join('');
 }
 
 function renderCierre(p, cierre){
   if(!cierre||cierre.tipo==='siguiente'){
-    return '<div class="cierre-sig"><p class="cierre-hint">'+(cierre?esc(cierre.txt):'Desliza para seguir')+'</p>' +
+    return '<div class="cierre-sig"><p class="cierre-hint">'+(cierre&&cierre.txt?esc(cierre.txt):'Desliza para seguir')+'</p>' +
            '<button class="btn-sig">Siguiente 🔄</button></div>';
   }
   if(cierre.tipo==='opinion'||cierre.tipo==='ab'){
@@ -1982,6 +2035,20 @@ async function crearCarte(p){
   el.style.setProperty('--fondo-grado',cat.grado);
   el.style.background=cat.grado;
 
+  /* tarjetas nuevas (v2, de defile-generar): francés de Quebec primero, español solo si se toca */
+  const v2=p.v===2;
+  const dictee=v2&&p.formato==='dictado_corto'&&p.fr_chispa;
+  const gancho=v2
+    ?'<h1 class="gancho-es">'+p.gancho_fr+'</h1>'+
+      (p.gancho?'<details class="gancho-es-ayuda"><summary>ver en español</summary><span>'+esc(p.gancho)+'</span></details>':'')
+    :'<h1 class="gancho-es">'+esc(p.gancho)+'</h1>'+
+      (p.gancho_fr&&modo!=='chispa'?'<p class="gancho-fr"><span class="gfr-txt">'+p.gancho_fr+'</span><button class="gfr-son" data-txt="'+esc(p.gancho_fr)+'" aria-label="Escuchar el título">🔊</button></p>':'');
+  const ayuda=v2&&p.viñetas_es&&p.viñetas_es.length
+    ?'<details class="ayuda-es"><summary>ayuda en español</summary><ul>'+p.viñetas_es.map(v=>'<li>'+v+'</li>').join('')+'</ul></details>':'';
+  /* la fuente se nombra, sin enlace: todo pasa dentro de la app */
+  let dominio='';try{dominio=p.source&&p.source.url?new URL(p.source.url).hostname.replace(/^www\./,''):'';}catch(e){}
+  const fuente=p.source&&p.source.nombre?'<p class="fuente">Source : '+esc(p.source.nombre)+(dominio?' · '+esc(dominio):'')+'</p>':'';
+
   el.innerHTML=
     '<div class="card-overlay"></div>'+
     '<div class="card-inner">'+
@@ -1993,14 +2060,15 @@ async function crearCarte(p){
     /* ── PARTE 1: gancho ── */
     '<div class="card-gancho">'+
       '<div class="cat-tag"><span class="cat-emo pulse">'+cat.emo+'</span><span class="cat-nom">'+cat.nom+'</span>'+
-      '<span class="fr-pct">'+pctFr()+'% FR</span></div>'+
-      '<h1 class="gancho-es">'+esc(p.gancho)+'</h1>'+
-      (p.gancho_fr&&modo!=='chispa'?'<p class="gancho-fr"><span class="gfr-txt">'+p.gancho_fr+'</span><button class="gfr-son" data-txt="'+esc(p.gancho_fr)+'" aria-label="Escuchar el título">🔊</button></p>':'')+
+      '<span class="fr-pct">'+(v2&&FORMATO_NOM[p.formato]?FORMATO_NOM[p.formato]:pctFr()+'% FR')+'</span></div>'+
+      gancho+
     '</div>'+
     /* ── PARTE 2: dato ── */
     '<div class="card-dato">'+
       '<ul class="viñetas">'+renderViñetas(p.viñetas||[])+'</ul>'+
-      frBlock(p,modo)+
+      ayuda+
+      (dictee?bloqueDictee(p):frBlock(p,v2?'inmersion':modo))+
+      fuente+
     '</div>'+
     /* ── PARTE 3: cierre lúdico ── */
     '<div class="card-cierre">'+renderCierre(p, p.cierre)+'</div>'+
@@ -2008,7 +2076,9 @@ async function crearCarte(p){
     /* ── acciones laterales ── */
     '<div class="acciones">'+
       '<button class="act son-btn" data-txt="'+esc(p.fr_chispa||p.gancho_fr||'')+'" aria-label="Escuchar">🔊</button>'+
-      '<button class="act gardar" aria-label="Guardar">♡</button>'+
+      '<button class="act gardar" aria-label="Me gusta">♡</button>'+
+      '<button class="act banco-btn" aria-label="Guardar en el banco">🔖</button>'+
+      '<button class="act noent-btn" aria-label="No entendí">❓</button>'+
     '</div>';
 
   /* animación de entrada */
@@ -2021,14 +2091,56 @@ async function crearCarte(p){
     b.addEventListener('click',e=>{e.stopPropagation();decir(b.dataset.txt,b);});
   });
 
-  /* guardar */
+  /* dictée: se escucha, se escribe y solo al verificar aparece la frase (mismo criterio que el dictado de repaso) */
+  const dOk=el.querySelector('.dictee-ok');
+  if(dOk){
+    const dIn=el.querySelector('.dictee-in'),dRes=el.querySelector('.dictee-res'),dSol=el.querySelector('.dictee-sol');
+    const verificar=()=>{
+      const a=_normalizar(dIn.value).split(' ').filter(Boolean),b=_normalizar(p.fr_chispa.replace(/<[^>]+>/g,'')).split(' ');
+      const bien=a.join(' ')===b.join(' ')||(b.length>=3&&b.filter(w=>a.includes(w)).length/b.length>=.75);
+      dRes.className='etat dictee-res '+(bien?'bon':'mal');
+      dRes.textContent=bien?'✓ Bien escrito':'Casi. Compara con la frase:';
+      dSol.hidden=false;
+    };
+    dOk.addEventListener('click',verificar);
+    dIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();verificar();}});
+  }
+
+  /* cualquier toque cuenta como interacción: así no se marca como "saltada" */
+  el._p=p;
+  el.addEventListener('click',()=>{el.dataset.inter='1';},true);
+
+  /* me gusta */
   const bg=el.querySelector('.gardar');
   if(guard.includes(p.id))bg.classList.add('actif');
   bg.addEventListener('click',()=>{
     const i=guard.indexOf(p.id);
-    if(i>=0){guard.splice(i,1);bg.classList.remove('actif');msg('Quitada');}
-    else{guard.push(p.id);bg.classList.add('actif');msg('Guardada ♡');}
-    G.w('dfl_g',guard);guardarPronto();
+    if(i>=0){guard.splice(i,1);bg.classList.remove('actif');IX.gusta=IX.gusta.filter(x=>x!==p.id);msg('Quitada');}
+    else{guard.push(p.id);bg.classList.add('actif');IX.gusta.push(p.id);msg('Me gusta ♡');}
+    G.w('dfl_g',guard);guardarIX();
+  });
+
+  /* guardar en el banco compartido con Lidia (solo lo que ella guarda; nunca sobrescribe) */
+  const bb=el.querySelector('.banco-btn');
+  bb.addEventListener('click',async()=>{
+    if(bb.classList.contains('actif'))return;
+    bb.classList.add('actif');
+    const r=await guardarEnBanco(p);
+    if(!/banco 🔖$/.test(r))bb.classList.remove('actif');
+    msg(r);
+  });
+
+  /* no entendí: abre la ayuda en español, vuelve al repaso y la IA lo explica distinto */
+  const bn=el.querySelector('.noent-btn');
+  bn.addEventListener('click',()=>{
+    el.querySelectorAll('details').forEach(d=>d.open=true);
+    if(bn.classList.contains('actif'))return;
+    bn.classList.add('actif');
+    if(!IX.noEnt.includes(p.id))IX.noEnt.push(p.id);
+    noEntSesion.add(p.id);
+    if(!fall.includes(p.id)){fall.push(p.id);G.w('dfl_f',fall);}
+    guardarIX();
+    msg('Te lo explico de otra forma pronto');
   });
 
   /* cierre: opinión / A-B */
@@ -2372,13 +2484,57 @@ function pintarBarra(){
   document.documentElement.style.setProperty('--progreso-brillo',(0.92+(E.intens/100)*0.28).toFixed(3));
 }
 
+/* ─── audio automático (misma voz de siempre; iOS solo deja sonar tras un primer toque) ─── */
+let audioAuto=G.r('dfl_audio',true), audioListo=false;
+const bAudio=document.getElementById('btnAudio');
+function pintarAudio(){bAudio.classList.toggle('apagado',!audioAuto);bAudio.textContent=audioAuto?'🔊':'🔈';bAudio.setAttribute('aria-pressed',String(audioAuto));}
+pintarAudio();
+bAudio.addEventListener('click',()=>{
+  audioAuto=!audioAuto;G.w('dfl_audio',audioAuto);pintarAudio();
+  if(!audioAuto&&'speechSynthesis' in window)speechSynthesis.cancel();
+  msg(audioAuto?'Audio automático activado':'Audio automático apagado');
+  if(audioAuto&&cartaActiva&&cartaActiva._p)sonarCarta(cartaActiva._p);
+});
+document.addEventListener('pointerdown',()=>{
+  if(audioListo||!('speechSynthesis' in window))return;
+  audioListo=true;
+  /* desbloquea el habla en iOS con una frase vacía dentro del toque */
+  try{speechSynthesis.speak(new SpeechSynthesisUtterance(''));}catch(e){}
+},{capture:true});
+function sonarCarta(p){
+  if(!audioAuto||!audioListo)return;
+  /* en la dictée suena la frase a escribir; en las demás, el gancho en francés */
+  const t=p.formato==='dictado_corto'?p.fr_chispa:(p.gancho_fr||p.fr_chispa);
+  if(t)decir(t);
+}
+
+/* al aparecer: se anota cuándo se vio, su clave, formato y tema (para no repetir en 14 días) */
+function verCarta(el){
+  const p=el._p;if(!p)return;
+  IX.visto[p.id]=hoy();
+  if(p.clave)IX.claves[p.clave]=hoy();
+  if(p.formato)IX.formatos.push(p.formato);
+  if(p.tema)IX.temas.push(p.tema);
+  guardarIX();
+  sonarCarta(p);
+}
+/* al irse: si pasó en menos de 2,5 s y no se tocó nada, cuenta como saltada y no vuelve */
+function dejarCarta(el){
+  const p=el._p;if(!p||!el.isConnected||el.dataset.inter==='1'||el.dataset.salt)return;
+  const ms=Date.now()-(+el.dataset.t0||Date.now());
+  if(ms<2500){el.dataset.salt='1';if(!IX.salt.includes(p.id))IX.salt.push(p.id);guardarIX();}
+}
+
 /* ─── observer ─── */
+let cartaActiva=null;
 const obs=new IntersectionObserver(ents=>{
   ents.forEach(e=>{
     if(e.intersectionRatio>.6){
+      if(cartaActiva&&cartaActiva!==e.target)dejarCarta(cartaActiva);
+      cartaActiva=e.target;
       feed.querySelectorAll('.carte').forEach(c=>c.dataset.actif='0');
       e.target.dataset.actif='1';
-      if(e.target.dataset.t0==='0')e.target.dataset.t0=String(Date.now());
+      if(e.target.dataset.t0==='0'){e.target.dataset.t0=String(Date.now());verCarta(e.target);}
       const idx=[].indexOf.call(feed.children,e.target);
       if(feed.children.length-idx<4)alimentar(4);
       if(feed.children.length-idx<6)chequearPool(); /* si pool bajo, genera silencioso */
@@ -2413,6 +2569,10 @@ function fusionar(n){
   const dn=n.diario||{};if(dn.fecha===hoy())diario.n=Math.max(diario.n,dn.n||0);
   G.w('dfl_e',E);G.w('dfl_v',vistas);G.w('dfl_g',guard);G.w('dfl_f',fall);G.w('dfl_d',diario);
   G.w('dfl_milestones',milestones);G.w('dfl_racha',racha);
+  const ni=n.interacciones||{};
+  ['gusta','noEnt','salt'].forEach(k=>{IX[k]=u(IX[k],ni[k]);});
+  ['visto','claves'].forEach(k=>{Object.entries(ni[k]||{}).forEach(([x,f])=>{if(!IX[k][x]||f>IX[k][x])IX[k][x]=f;});});
+  G.w('dfl_ix',IX);
   sincronizarMilestones();
 }
 
@@ -2436,7 +2596,7 @@ async function guardar(silencio){
   syncing=true;
   try{
     const {error}=await sb.from('defile_progreso').upsert(
-      {user_id:usuaria.id,estado:E,vistas:vistas.slice(-800),guardadas:guard,falladas:fall,diario:diario,racha:racha,milestones:milestones,total:E.asim,progreso:E.cats,actualizado:new Date().toISOString()},
+      {user_id:usuaria.id,estado:E,vistas:vistas.slice(-800),guardadas:guard,falladas:fall,diario:diario,racha:racha,milestones:milestones,interacciones:IX,total:E.asim,progreso:E.cats,actualizado:new Date().toISOString()},
       {onConflict:'user_id'});
     if(error)throw error;
     if(!silencio)mkEstado('Guardado en la nube','bon');
@@ -2445,6 +2605,24 @@ async function guardar(silencio){
 }
 let _t=null;
 function guardarPronto(){clearTimeout(_t);_t=setTimeout(()=>guardar(true),900);}
+
+/* Banco compartido con Lidia: Défilé solo agrega lo que ella guarda (fuente "defile").
+   Si la frase ya está en el banco, no la toca: nunca borra ni sobrescribe lo de Lidia. */
+async function guardarEnBanco(p){
+  if(!usuaria)return 'Entra con tu cuenta para guardar en el banco';
+  const limpio=t=>String(t||'').replace(/<[^>]+>/g,'').trim();
+  const correcto=limpio(p.fr_chispa||p.gancho_fr);
+  if(!correcto)return 'Esta tarjeta no tiene frase para guardar';
+  try{
+    const {data:ya,error:e1}=await sb.from('banco').select('id').ilike('correcto',correcto.replace(/[%_\\]/g,'\\$&')).limit(1);
+    if(e1)throw e1;
+    if(ya&&ya.length)return 'Ya estaba en tu banco 🔖';
+    const nota=[limpio(p.fr_trad),p.source&&p.source.nombre?'Fuente: '+p.source.nombre:''].filter(Boolean).join(' · ')||null;
+    const {error}=await sb.from('banco').insert({user_id:usuaria.id,tipo:p.formato==='vocabulario_contexto'?'palabra':'expresion',correcto:correcto,nota:nota,fuente:'defile'});
+    if(error)throw error;
+    return 'Guardada en tu banco 🔖';
+  }catch(e){console.warn('Défile: no pude guardar en el banco',e);return 'No pude guardarla. Intenta otra vez.';}
+}
 
 async function registrar(id,cat,ms){
   if(!online||!usuaria)return;
@@ -2544,6 +2722,19 @@ pann.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-pyStart>80&&
 /* ─── generación IA ─── */
 let generando=false;
 
+/* lo que la IA necesita saber de ella: qué vio hace poco, qué le gustó, qué no entendió, qué saltó */
+function senalesIA(cat){
+  const porId=new Map(todas().map(p=>[p.id,p]));
+  const desc=id=>{const p=porId.get(id);return p?(p.c+'/'+(p.formato||'pildora')+': '+(p.clave||p.gancho_fr||p.gancho||'')):null;};
+  const ult=(a,n)=>a.slice(-n).map(desc).filter(Boolean);
+  return {
+    fase:E.fase, cat_floja:cat,
+    formatos:IX.formatos.slice(-8), temas:IX.temas.slice(-8),
+    claves:Object.keys(IX.claves).filter(k=>diasDesde(IX.claves[k])<NO_REPETIR_DIAS).slice(-80),
+    gustos:ult(IX.gusta,10), no_entendi:ult(IX.noEnt,10), saltadas:ult(IX.salt,10)
+  };
+}
+
 async function generarPildoras(silencio){
   if(generando||!usuaria)return; /* sin sesión, sin generar */
   generando=true;
@@ -2551,14 +2742,14 @@ async function generarPildoras(silencio){
   if(!silencio&&ie){ie.className='etat';ie.textContent='Escribiendo...';}
   /* categoría menos vista */
   const cat=Object.keys(CATS).sort((a,b)=>(E.cats[a]||0)-(E.cats[b]||0))[0];
-  const ya=todas().filter(p=>p.c===cat).map(p=>p.gancho).slice(0,12);
   try{
-    /* el prompt y la clave viven en la Edge Function "defile-generar" */
-    const {data,error}=await sb.functions.invoke('defile-generar',{body:{cat:cat,fase:E.fase,pct:pctFr(),ya:ya}});
+    /* el prompt, la búsqueda de fuentes y la clave viven en la Edge Function "defile-generar";
+       aquí solo van las señales para cubrir huecos */
+    const {data,error}=await sb.functions.invoke('defile-generar',{body:senalesIA(cat)});
     if(error){let d=error.message;try{d=(await error.context.json()).error||d;}catch(e){}throw new Error(d);}
     const nvas=[];
     (data.pildoras||[]).forEach((p,i)=>{
-      if(!p||!p.gancho||!p.viñetas)return;
+      if(!p||!p.gancho_fr||!p.viñetas)return;
       p.c=p.c||cat;p.niv=p.niv||E.fase;p.ia=true;p.id='ia'+Date.now()+'_'+i;
       gen.push(p);nvas.push(p);
     });
@@ -2566,7 +2757,7 @@ async function generarPildoras(silencio){
     G.w('dfl_gen',gen);
     _inyectarAlMazo(nvas);
     subirGen(nvas);
-    if(!silencio&&ie){ie.className='etat bon';ie.textContent=nvas.length+' píldoras nuevas de '+CATS[cat].nom+'.';}
+    if(!silencio&&ie){ie.className='etat bon';ie.textContent=nvas.length+' tarjetas nuevas, con fuente.';}
     alimentar(3);
   }catch(err){
     const m=String(err.message||err);
@@ -2647,7 +2838,7 @@ function iniciarTrayecto(minutos){
   pintarTrayecto();
   setTimeout(()=>{
     const p=feed.firstElementChild;
-    if(p){p.dataset.actif='1';if(p.dataset.t0==='0')p.dataset.t0=String(Date.now());}
+    if(p){p.dataset.actif='1';cartaActiva=p;if(p.dataset.t0==='0'){p.dataset.t0=String(Date.now());verCarta(p);}}
   },150);
 }
 
@@ -2737,9 +2928,11 @@ document.getElementById('btnSeguirLibre').addEventListener('click',()=>{
 });
 
 /* ─── auto-generación cuando el mazo se acaba ─── */
-function poolDisponible(){return MAZO.length;}
+/* sin fin fijo: se genera cuando quedan menos de 10 por ver o menos de 3 tarjetas nuevas de IA en reserva */
+function poolDisponible(){const porId=new Map(elegibles().map(p=>[p.id,p]));return MAZO.filter(id=>porId.has(id)&&!reciente(porId.get(id))).length;}
+function reservaIA(){const salt=new Set(IX.salt);return gen.filter(p=>p.v===2&&!salt.has(p.id)&&!reciente(p)).length;}
 function chequearPool(){
-  if(poolDisponible()<10&&!generando&&usuaria){
+  if((poolDisponible()<10||reservaIA()<3)&&!generando&&usuaria){
     generarPildoras(true); /* silencioso, sin molestar */
   }
 }
@@ -2752,7 +2945,7 @@ pintarTrayecto();
 alimentar(6);
 setTimeout(()=>{
   const p=feed.firstElementChild;
-  if(p){p.dataset.actif='1';if(p.dataset.t0==='0')p.dataset.t0=String(Date.now());}
+  if(p){p.dataset.actif='1';cartaActiva=p;if(p.dataset.t0==='0'){p.dataset.t0=String(Date.now());verCarta(p);}}
   chequearPool(); /* check inmediato al abrir */
 },200);
 
