@@ -1753,7 +1753,7 @@ const PREC_VENTANA = 20;
 let milestones = G.r('dfl_milestones',[]);
 /* interacciones: me gusta, no entendí, saltadas (<2.5 s sin tocar nada), y cuándo se vio
    cada tarjeta y cada clave, para no repetir en 14 días. Viajan a la nube en defile_progreso. */
-let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[]},G.r('dfl_ix',{}));
+let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[],rb:{}},G.r('dfl_ix',{}));
 const NO_REPETIR_DIAS = 14;
 const LECTURAS_DIA = 5, LECTURA_MS = 4000;
 const HITOS_DIAS = [7, 30, 60, 100];
@@ -2419,8 +2419,85 @@ function crearOpcionMultiple(objetivo, banco){
 
 function bajar(el){const s=el.nextElementSibling;if(s)s.scrollIntoView({behavior:'smooth',block:'start'});}
 
+/* ═══════════ REPASO DEL BANCO DE LIDIA ═══════════
+   Défilé lee el banco (errores y expresiones no dominados) y los repasa con su propio
+   calendario 1-3-7-21-60 días, guardado en interacciones. Nunca escribe en las filas de Lidia. */
+let bancoLidia = G.r('dfl_banco', []);
+const INTERVALOS_BANCO = [1, 3, 7, 21, 60];
+const BANCO_CADA = 7;            /* un repaso del banco cada 7 tarjetas, si hay pendientes */
+let bancoCont = 0;
+function hoyMas(n){const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function bancoPendientes(){
+  return bancoLidia.filter(b=>{const r=IX.rb[b.id];return b.correcto&&!(r&&r.dom)&&(!r||r.p<=hoy());});
+}
+function tocaRepasoBanco(){
+  if(++bancoCont<BANCO_CADA)return null;
+  const pend=bancoPendientes();
+  if(!pend.length)return null;
+  bancoCont=0;
+  /* primero los errores, que son lo que más rinde repasar */
+  const errores=pend.filter(b=>b.tipo==='error');
+  const fuente=errores.length&&Math.random()<.6?errores:pend;
+  return fuente[Math.floor(Math.random()*fuente.length)];
+}
+function repasarBanco(b,acierto){
+  const r=IX.rb[b.id]||{i:0,a:0};
+  if(acierto){const k=INTERVALOS_BANCO.indexOf(r.i);r.i=INTERVALOS_BANCO[Math.min(k+1,INTERVALOS_BANCO.length-1)];r.a++;}
+  else{r.i=1;r.a=0;}                /* el ítem vuelve a 1 día; el nivel de ella nunca baja */
+  r.p=hoyMas(r.i);r.dom=r.a>=3;r.u=new Date().toISOString();
+  IX.rb[b.id]=r;guardarIX();
+}
+function crearRepasoBanco(b){
+  const el=document.createElement('article');
+  el.className='carte revision';
+  el.dataset.rev='1';
+  el.dataset.id='rb_'+b.id;
+  el.style.setProperty('--teinte','#B79CF0');
+  const esError=b.tipo==='error'&&b.original;
+  const consigna=esError?'Tú escribiste esto. ¿Cómo se dice bien?':(b.nota?'¿Cómo se dice en francés?':'¿Te acuerdas? Dila en voz alta en una frase tuya.');
+  const pregunta=esError?'<s>'+esc(b.original)+'</s>':(b.nota?esc(b.nota):'<span class="rev-fr">'+esc(b.correcto)+'</span>');
+  el.innerHTML=
+    '<div class="card-overlay"></div>'+
+    '<div class="rev-inner">'+
+      '<div class="rev-tag">🔖 Repaso de tu banco</div>'+
+      '<p class="rev-consigna">'+consigna+'</p>'+
+      '<h2 class="rev-pregunta">'+pregunta+'</h2>'+
+      '<div class="rb-resp" hidden><div class="rev-feedback"><b>'+esc(b.correcto)+'</b>'+
+        '<button class="rev-son" data-txt="'+esc(b.correcto)+'" aria-label="Escuchar">🔊</button>'+
+        (esError&&b.nota?'<br>'+esc(b.nota):'')+'</div></div>'+
+      '<div class="rev-opts">'+
+        '<button class="rev-opt rb-ver">Ver la respuesta</button>'+
+        '<button class="rev-opt rb-si" hidden>✓ La sabía</button>'+
+        '<button class="rev-opt rb-no" hidden>Todavía no</button>'+
+      '</div>'+
+      '<div class="rev-resultado"></div>'+
+    '</div>';
+  el.querySelectorAll('[data-txt]').forEach(x=>x.addEventListener('click',e=>{e.stopPropagation();decir(x.dataset.txt,x);}));
+  const ver=el.querySelector('.rb-ver'),si=el.querySelector('.rb-si'),no=el.querySelector('.rb-no'),zona=el.querySelector('.rev-resultado');
+  ver.addEventListener('click',()=>{
+    el.querySelector('.rb-resp').hidden=false;ver.hidden=true;si.hidden=false;no.hidden=false;
+    decir(b.correcto);
+  });
+  const responder=acierto=>{
+    repasarBanco(b,acierto);
+    si.disabled=no.disabled=true;si.classList.add('bloq');no.classList.add('bloq');
+    (acierto?si:no).classList.add(acierto?'ok':'mal');
+    const r=IX.rb[b.id];
+    zona.innerHTML='<div class="rev-feedback">'+(acierto
+      ?(r.dom?'Dominada: ya no vuelve al repaso de Défilé.':'Vuelve en '+r.i+(r.i===1?' día.':' días.'))
+      :'Vuelve mañana. Intentar y corregir es lo que la fija.')+'</div>';
+    setTimeout(()=>bajar(el),1100);
+  };
+  si.addEventListener('click',()=>responder(true));
+  no.addEventListener('click',()=>responder(false));
+  return el;
+}
+
 async function alimentar(n){
   for(let i=0;i<n;i++){
+    /* ¿toca repaso del banco de Lidia? */
+    const rb=tocaRepasoBanco();
+    if(rb){feed.appendChild(crearRepasoBanco(rb));continue;}
     /* ¿toca repaso? */
     if(tocaRevision()){
       const rev=crearRevision();
@@ -2583,6 +2660,7 @@ function fusionar(n){
   const ni=n.interacciones||{};
   ['gusta','noEnt','salt'].forEach(k=>{IX[k]=u(IX[k],ni[k]);});
   ['visto','claves'].forEach(k=>{Object.entries(ni[k]||{}).forEach(([x,f])=>{if(!IX[k][x]||f>IX[k][x])IX[k][x]=f;});});
+  Object.entries(ni.rb||{}).forEach(([x,r])=>{const l=IX.rb[x];if(!l||(r.u||'')>(l.u||''))IX.rb[x]=r;});
   G.w('dfl_ix',IX);
   sincronizarMilestones();
 }
@@ -2595,6 +2673,9 @@ async function nubeCargar(){
     if(error)throw error;
     if(f)fusionar(f);
     const {data:cs,error:ec}=await sb.from('defile_cartes').select('id,tema,tipo,contenu,nivel').order('creado',{ascending:false}).limit(300);
+    /* banco de Lidia: solo lectura, para repasar sus errores y expresiones */
+    const {data:bl,error:eb}=await sb.from('banco').select('id,tipo,original,correcto,nota,fuente').eq('dominado',false).order('creado',{ascending:false}).limit(300);
+    if(!eb&&bl){bancoLidia=bl;G.w('dfl_banco',bancoLidia);}
     if(!ec&&cs){const ya=new Set(gen.map(c=>c.id));cs.forEach(x=>{if(ya.has(x.id))return;gen.push(Object.assign({},x.contenu,{id:x.id,c:x.tema,niv:x.nivel,ia:true}));});G.w('dfl_gen',gen);}
     pintarBarra();mkEstado('Al día · '+E.asim+' píldoras','bon');
     guardar(true);

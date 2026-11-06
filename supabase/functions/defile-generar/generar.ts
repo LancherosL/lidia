@@ -40,7 +40,7 @@ La lectora es una hispanohablante colombiana que vive en Quebec, nivel intermedi
 
 Reglas de contenido:
 - Francés de Quebec primero (no de Francia). gancho_fr, viñetas y fr_chispa van en francés québécois correcto. La ayuda en español va aparte: gancho, viñetas_es y fr_trad.
-- Gancho: si no engancha en los primeros 3 segundos, no importa el resto. Empieza por lo sorprendente, útil o contraintuitivo; nunca por una introducción.
+- Gancho: si no engancha en los primeros 3 segundos, no importa el resto. Empieza por lo sorprendente, útil o contraintuitivo; nunca por una introducción. El gancho abre una pregunta o un vacío de curiosidad que las viñetas responden de verdad; sin premios, sorteos ni promesas que la tarjeta no cumple.
 - Viñetas: máximo 3, cortas. Puedes usar <b>negrita</b> y empezar con un emoji.
 - fr_chispa: una frase corta y natural que ella pueda repetir en voz alta.
 - cierre: lúdico, nunca un examen. tipo "opinion" (2 opciones), "ab" (2 opciones que empiezan por "A " y "B ") o "siguiente" (opts vacío).
