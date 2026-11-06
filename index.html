@@ -115,7 +115,7 @@ button { cursor: pointer; }
   background: linear-gradient(135deg, var(--violeta), var(--oral)); color: #fff; font-size: 28px; font-weight: 700;
 }
 .avatar-lidia { width: 104px; height: 104px; margin: 0 auto; background: none; overflow: hidden; box-shadow: 0 0 0 4px var(--tarjeta), 0 0 0 5px var(--borde); }
-.avatar-lidia svg { display: block; width: 100%; height: 100%; }
+.avatar-lidia svg, .avatar-lidia img { display: block; width: 100%; height: 100%; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; padding: 5px 11px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
 .hola { text-align: center; }
 .hola h2 { margin: 12px 0 2px; font-size: 30px; letter-spacing: -.02em; }
@@ -179,6 +179,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .msg.aviso { align-self: center; background: none; color: var(--tinta-suave); font-size: 13px; padding: 2px 8px; }
 .msg img { display: block; max-width: 100%; border-radius: 12px; margin-bottom: 6px; }
 .msg .escuchar { margin-top: 8px; min-height: 36px; border: 0; background: none; color: var(--violeta); font-weight: 600; padding: 0; font-size: 15px; }
+.pregunta s, .msg s, .bloque-r s { color: var(--rojo); text-decoration-thickness: 1px; }
 .escribiendo { color: var(--tinta-suave); font-style: italic; }
 .entrada { padding: 12px 0; }
 .entrada .caja { display: flex; gap: 8px; align-items: flex-end; }
@@ -189,22 +190,42 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .icono-btn.activo, .btn.activo { background: var(--rojo); color: #fff; border-color: transparent; }
 .terminada { text-align: center; color: var(--tinta-suave); padding: 16px 0; }
 
-/* Librería */
-.buscar { width: 100%; min-height: 44px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--borde); background: var(--tarjeta); }
-.filtros { display: flex; gap: 8px; margin: 10px 0 14px; overflow-x: auto; scrollbar-width: none; }
-.filtros button {
-  flex: none; min-height: 36px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--borde); background: var(--tarjeta);
-}
-.filtros button[aria-pressed="true"] { background: var(--relleno); border-color: transparent; color: #fff; }
-.items { display: grid; gap: 8px; }
-.item { padding: 12px 14px; }
+/* Ma banque */
+.buscar { width: 100%; min-height: 50px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--borde); background: var(--tarjeta); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin: 12px 0 14px; padding: 4px; border-radius: 14px; background: color-mix(in srgb, var(--tinta) 7%, var(--fondo)); }
+.seg button small { display: block; font-size: 12px; font-weight: 600; line-height: 1.1; color: var(--tinta-suave); }
+.seg button { min-height: 44px; padding: 4px; border: 0; border-radius: 11px; background: none; font-size: 15px; font-weight: 600; color: var(--tinta-suave); }
+.seg button[aria-pressed="true"] { background: var(--tarjeta); color: var(--tinta); box-shadow: var(--sombra); }
+.items { display: grid; gap: 12px; }
+.item { padding: 16px; overflow-wrap: anywhere; }
 .item .orig { color: var(--rojo); text-decoration: line-through; text-decoration-thickness: 1px; }
-.item .corr { font-weight: 600; }
-.item .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--tinta-suave); }
-.item .meta span { padding: 1px 8px; border-radius: 99px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); }
-.item .meta span.dominado { color: var(--violeta); font-weight: 600; }
-.item .nota { margin-top: 4px; font-size: 14px; color: var(--tinta-suave); }
+.item .corr { font-weight: 700; font-size: 19px; line-height: 1.35; }
+.item .nota { margin-top: 6px; font-size: 15px; color: var(--tinta-suave); }
+.item .patron { margin-top: 6px; font-size: 14px; color: var(--violeta); font-weight: 600; }
+.prox { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--borde); font-size: 14px; color: var(--tinta-suave); }
+.prox b { color: var(--tinta); }
+.escala { display: flex; gap: 4px; flex: none; }
+.escala i { display: grid; place-items: center; width: 26px; height: 22px; border-radius: 7px; font-style: normal; font-size: 11px; font-weight: 700; background: color-mix(in srgb, var(--tinta) 7%, var(--tarjeta)); color: var(--tinta-suave); }
+.escala i.si { background: var(--relleno); color: #fff; }
 .vacio { text-align: center; color: var(--tinta-suave); padding: 24px 0; }
+
+/* Produire y Clôture */
+.btn.subir { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 104px; margin-top: 14px; border-radius: 22px; font-size: 18px; }
+.btn.subir span { font-size: 32px; line-height: 1; }
+.cierre { text-align: center; }
+.cierre .avatar-lidia { width: 76px; height: 76px; }
+.cierre h2 { margin: 12px 0 2px; font-size: 28px; letter-spacing: -.02em; }
+.cierre small { color: var(--tinta-suave); }
+.racha-grande { display: inline-flex; margin-top: 10px; padding: 8px 16px; border-radius: 99px; background: var(--relleno); color: #fff; font-weight: 700; }
+.bloque-r { margin-top: 12px; padding: 14px 16px; overflow-wrap: anywhere; }
+.bloque-r h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-suave); }
+.bloque-r p { margin: 0 0 8px; }
+.bloque-r ul { margin: 0 0 8px; padding-left: 22px; }
+.bloque-r .texto > :last-child { margin-bottom: 0; }
+.bloque-r .btn { margin-top: 10px; }
+.exprs { display: flex; flex-wrap: wrap; gap: 6px; }
+.exprs span { padding: 4px 10px; border-radius: 99px; font-size: 14px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
+.btn.ancho { width: 100%; margin-top: 16px; min-height: 56px; }
 
 /* Login y avisos */
 .login { margin-top: 18vh; text-align: center; }
@@ -368,6 +389,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
         <button class="btn" id="b-voz" type="button"><span>🎙</span>Parler</button>
       </div>
     </div>
+    <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
     <div class="entrada" id="s-entrada">
       <div class="caja">
         <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
@@ -384,18 +406,33 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
     </details>
   </section>
 
+  <!-- Clôture -->
+  <section id="v-cierre" hidden>
+    <div class="cierre">
+      <div class="avatar avatar-lidia"><img src="icon.svg" alt="Lidia" width="76" height="76"></div>
+      <h2>Belle session, Laura</h2>
+      <small id="c-sub"></small><br>
+      <span class="racha-grande" id="c-racha"></span>
+    </div>
+    <div class="tarjeta bloque-r" id="c-exprs-t" hidden><h3 id="c-exprs-h">Expressions</h3><div class="exprs" id="c-exprs"></div></div>
+    <div class="tarjeta bloque-r">
+      <h3>Phrases et défi pour demain</h3>
+      <div class="texto" id="c-mensaje" lang="fr"></div>
+      <button class="btn sec" id="b-c-escuchar" type="button">🔊 Écouter</button>
+    </div>
+    <button class="btn ancho" id="b-terminar" type="button">Terminer la session</button>
+  </section>
+
   <!-- Ma banque -->
   <section id="v-libreria" hidden>
     <div class="barra">
       <h1>Ma banque</h1>
     </div>
     <input class="buscar" id="l-buscar" type="search" placeholder="Chercher un mot…" lang="fr">
-    <div class="filtros" id="l-filtros">
-      <button type="button" data-tipo="" aria-pressed="true">Tout</button>
-      <button type="button" data-tipo="error" aria-pressed="false">Erreurs</button>
+    <div class="seg" id="l-filtros">
+      <button type="button" data-tipo="error" aria-pressed="true">Erreurs</button>
       <button type="button" data-tipo="expresion" aria-pressed="false">Expressions</button>
       <button type="button" data-tipo="palabra" aria-pressed="false">Mots</button>
-      <button type="button" data-tipo="hoy" aria-pressed="false">À réviser</button>
     </div>
     <div class="items" id="l-items"></div>
   </section>
@@ -428,7 +465,7 @@ const TEMAS = ["auto", "light", "dark"];
 const ICONOS_TEMA = { auto: "◐", light: "☀︎", dark: "☾" };
 
 const $ = (id) => document.getElementById(id);
-const estado = { usuaria: null, perfil: null, sesion: null, resumen: null, segundos: 0, corriendo: false, faseIdx: 0, enviando: false, filtro: "", banco: [] };
+const estado = { usuaria: null, perfil: null, sesion: null, resumen: null, segundos: 0, corriendo: false, faseIdx: 0, enviando: false, filtro: "error", banco: [] };
 let reloj = null;
 let ultimoGuardado = 0;
 
@@ -465,7 +502,7 @@ function markdown(texto) {
   }
   cerrarParrafo();
   if (lista) html += "</ul>";
-  return html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<i>$2</i>");
+  return html.replace(/~~(.+?)~~/g, "<s>$1</s>").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<i>$2</i>");
 }
 function hhmmss(s) {
   return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -488,7 +525,7 @@ aplicarTema(leerTema());
 
 // ── Navegación ──
 function mostrar(vista) {
-  for (const v of ["login", "inicio", "sesion", "libreria"]) $(`v-${v}`).hidden = v !== vista;
+  for (const v of ["login", "inicio", "sesion", "cierre", "libreria"]) $(`v-${v}`).hidden = v !== vista;
   // Las pestañas se ven en Accueil y Ma banque; en Session se esconden para que solo esté la clase.
   const conPestanas = vista === "inicio" || vista === "libreria";
   $("pestanas").hidden = !conPestanas;
@@ -502,6 +539,7 @@ async function enrutar() {
   const vista = location.hash.slice(1) || "inicio";
   if (vista !== "sesion") pausar();
   if (vista === "sesion") { mostrar("sesion"); await abrirSesion(); }
+  else if (vista === "cierre") { mostrar("cierre"); await cargarCierre(); }
   else if (vista === "libreria") { mostrar("libreria"); await cargarBanco(); }
   else { mostrar("inicio"); await cargarInicio(); }
 }
@@ -611,8 +649,9 @@ async function cargarInicio() {
     d.repaso = dias === 1 ? "Demain" : `${dias} j`;
   }
   const deHoy = lista.find((s) => s.fecha === hoy());
+  estado.hoyTerminada = deHoy?.fase_actual === "terminada";
   if (deHoy?.fase_actual === "terminada") {
-    d.boton = "Revoir la session d'aujourd'hui";
+    d.boton = "Revoir la clôture d'aujourd'hui";
     d.hoy = `Terminée · ${hhmmss(deHoy.segundos)}. On continue demain!`;
   } else if (deHoy) {
     const fa = FASES.find((x) => x.id === deHoy.fase_actual) ?? FASES[0];
@@ -622,7 +661,7 @@ async function cargarInicio() {
   guardarLocal("lidia-inicio", d);
   pintarInicio(d);
 }
-$("b-sesion").onclick = () => ir("sesion");
+$("b-sesion").onclick = () => ir(estado.hoyTerminada ? "cierre" : "sesion");
 
 // ── Sesión ──
 async function abrirSesion() {
@@ -663,12 +702,17 @@ function pintarReloj() {
   }).join("");
   $("b-pausa").textContent = estado.corriendo ? "❚❚" : "▶";
   $("b-pausa").setAttribute("aria-label", estado.corriendo ? "Pause" : "Reprendre");
-  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminer la session" : "Bloc suivant →";
+  const ultimo = estado.faseIdx === FASES.length - 1;
+  $("b-siguiente").textContent = ultimo ? "Clôturer la session" : "Bloc suivant →";
+  // Produire: en Écriture, la foto es la acción principal.
+  $("b-foto-grande").hidden = !ultimo || estado.sesion?.fase_actual === "terminada";
+  $("b-foto").hidden = ultimo;
 }
 function mostrarTerminada(terminada) {
   $("s-entrada").hidden = terminada;
   $("b-siguiente").hidden = terminada;
   $("b-pausa").hidden = terminada;
+  $("b-foto-grande").hidden = terminada || estado.faseIdx !== FASES.length - 1;
   $("s-terminada").hidden = !terminada;
 }
 
@@ -699,6 +743,7 @@ function guardarTiempo() {
   sb.from("sesiones").update({ segundos: estado.segundos }).eq("id", estado.sesion.id).then();
 }
 function arranqueFase(f) { return `(Nouvelle phase : ${f.nombre})`; }
+const FIN_SESION = "(Fin de la session : fais la clôture)";
 async function cambiarFase(idx) {
   estado.faseIdx = idx;
   const f = FASES[idx];
@@ -711,10 +756,10 @@ $("b-pausa").onclick = () => (estado.corriendo ? pausar() : continuar());
 $("b-siguiente").onclick = async () => {
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
   if (estado.faseIdx < FASES.length - 1) return cambiarFase(estado.faseIdx + 1);
-  pausar();
-  await sb.from("sesiones").update({ fase_actual: "terminada", segundos: estado.segundos }).eq("id", estado.sesion.id);
-  estado.sesion.fase_actual = "terminada";
-  mostrarTerminada(true);
+  // Al final de Écriture, Lidia hace el cierre (3 frases, 1 reto, la racha) y se pasa a Clôture.
+  const antes = estado.actual?.texto;
+  await enviar(FIN_SESION);
+  if (estado.actual?.texto !== antes) ir("cierre");
 };
 document.addEventListener("visibilitychange", () => { if (document.hidden) guardarTiempo(); });
 
@@ -728,7 +773,7 @@ $("b-escuchar").onclick = () => estado.actual?.texto && hablar(estado.actual.voz
 
 async function pintarMensaje(rol, texto, voz, imagenPath) {
   const div = document.createElement("div");
-  const esArranque = rol === "laura" && /^\(Nouvelle phase : .*\)$/.test(texto || "");
+  const esArranque = rol === "laura" && /^\((Nouvelle phase|Fin de la session) : .*\)$/.test(texto || "");
   div.className = `msg ${esArranque ? "aviso" : rol}`;
   let html = "";
   if (imagenPath) {
@@ -748,6 +793,44 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
   }
   $("s-chat").appendChild(div);
 }
+
+// ── Clôture ──
+async function cargarCierre() {
+  if (!estado.sesion || estado.sesion.fecha !== hoy()) {
+    const { data } = await sb.from("sesiones").select("*").eq("fecha", hoy()).order("creado", { ascending: false }).limit(1).maybeSingle();
+    if (!data) return ir("inicio");
+    estado.sesion = data;
+    estado.segundos = data.segundos || 0;
+  }
+  const s = estado.sesion;
+  const inicioDia = new Date(`${hoy()}T00:00:00`).toISOString();
+  const [ultimo, exprs, fechas] = await Promise.all([
+    sb.from("mensajes").select("contenido").eq("sesion_id", s.id).eq("rol", "lidia").order("creado", { ascending: false }).limit(1).maybeSingle(),
+    sb.from("banco").select("correcto").eq("tipo", "expresion").gte("creado", inicioDia).order("creado").limit(10),
+    sb.from("sesiones").select("fecha").order("fecha", { ascending: false }).limit(400),
+  ]);
+  const h = Math.floor(estado.segundos / 3600), m = Math.floor(estado.segundos / 60) % 60;
+  $("c-sub").textContent = `${h} h ${String(m).padStart(2, "0")} · Thème : ${s.tema || "Ma vie au Québec"}`;
+  $("c-racha").textContent = textoRacha(racha((fechas.data ?? []).map((x) => x.fecha)));
+  const lista = exprs.data ?? [];
+  $("c-exprs-t").hidden = !lista.length;
+  $("c-exprs-h").textContent = `${lista.length} expression${lista.length > 1 ? "s" : ""}`;
+  $("c-exprs").innerHTML = lista.map((x) => `<span lang="fr">${escapar(x.correcto)}</span>`).join("");
+  estado.cierre = ultimo.data?.contenido || "";
+  $("c-mensaje").innerHTML = markdown(estado.cierre);
+  const terminada = s.fase_actual === "terminada";
+  $("b-terminar").textContent = terminada ? "Retour à l'accueil" : "Terminer la session";
+}
+$("b-c-escuchar").onclick = () => estado.cierre && hablar(estado.cierre);
+$("b-terminar").onclick = async () => {
+  if (estado.sesion && estado.sesion.fase_actual !== "terminada") {
+    const { error } = await sb.from("sesiones").update({ fase_actual: "terminada", segundos: estado.segundos }).eq("id", estado.sesion.id);
+    if (error) return aviso(`Impossible d'enregistrer : ${error.message}`);
+    estado.sesion.fase_actual = "terminada";
+    aviso("Session enregistrée. À demain!");
+  }
+  ir("inicio");
+};
 
 async function itemsHoy() {
   const { data } = await sb.from("banco").select("id, tipo, original, correcto, patron")
@@ -805,7 +888,7 @@ function ajustarAlto() { const t = $("s-texto"); t.style.height = "auto"; t.styl
 $("s-texto").addEventListener("input", ajustarAlto);
 
 // ── Foto: se reduce a 1600 px y se sube a textos/<usuaria>/<sesión>/ ──
-$("b-foto").onclick = () => $("s-archivo").click();
+$("b-foto").onclick = $("b-foto-grande").onclick = () => $("s-archivo").click();
 $("s-archivo").onchange = async () => {
   const archivo = $("s-archivo").files[0];
   $("s-archivo").value = "";
@@ -890,30 +973,43 @@ $("b-voz").onclick = () => {
   escucha.start();
 };
 
-// ── Mi librería ──
+// ── Ma banque ──
+// Solo se carga el tipo que se ve (Erreurs, Expressions o Mots), y se guarda mientras la app está abierta.
+const INTERVALOS = [1, 3, 7, 21, 60];
+const bancoPorTipo = {};
 async function cargarBanco() {
-  const { data, error } = await sb.from("banco").select("*").order("creado", { ascending: false });
-  if (error) return aviso(error.message);
-  estado.banco = data ?? [];
   pintarBanco();
+  const tipo = estado.filtro;
+  const [items, ...conteos] = await Promise.all([
+    sb.from("banco").select("*").eq("tipo", tipo).order("dominado").order("proxima").limit(300),
+    ...["error", "expresion", "palabra"].map((t) => sb.from("banco").select("id", { count: "exact", head: true }).eq("tipo", t).eq("dominado", false)),
+  ]);
+  if (items.error) return aviso(items.error.message);
+  bancoPorTipo[tipo] = items.data ?? [];
+  const nombres = { error: "Erreurs", expresion: "Expressions", palabra: "Mots" };
+  for (const [i, b] of [...$("l-filtros").children].entries()) b.innerHTML = `${nombres[b.dataset.tipo]}${conteos[i].count ? `<small>${conteos[i].count}</small>` : ""}`;
+  if (tipo === estado.filtro) pintarBanco();
+}
+function cuandoRepaso(fecha) {
+  const dias = Math.round((new Date(`${fecha}T12:00:00`) - new Date(`${hoy()}T12:00:00`)) / 864e5);
+  return dias <= 0 ? "aujourd'hui" : dias === 1 ? "demain" : `dans ${dias} jours`;
 }
 function pintarBanco() {
+  const todos = bancoPorTipo[estado.filtro];
+  if (!todos) return ($("l-items").innerHTML = `<div class="vacio">Un instant…</div>`);
   const q = $("l-buscar").value.trim().toLowerCase();
-  const lista = estado.banco.filter((it) => {
-    if (estado.filtro === "hoy" ? !(it.proxima <= hoy() && !it.dominado) : estado.filtro && it.tipo !== estado.filtro) return false;
-    return !q || [it.original, it.correcto, it.nota].some((t) => (t || "").toLowerCase().includes(q));
-  });
+  const lista = todos.filter((it) => !q || [it.original, it.correcto, it.nota].some((t) => (t || "").toLowerCase().includes(q)));
   $("l-items").innerHTML = lista.length ? lista.map((it) => `
     <div class="tarjeta item">
       ${it.original ? `<div class="orig" lang="fr">${escapar(it.original)}</div>` : ""}
-      <div class="corr" lang="fr">${it.original ? "→ " : ""}${escapar(it.correcto)}</div>
-      ${it.nota ? `<div class="nota">${escapar(it.nota)}</div>` : ""}
-      <div class="meta">
-        <span>${{ error: "erreur", expresion: "expression", palabra: "mot" }[it.tipo] || it.tipo}</span>
-        ${it.patron ? `<span>${escapar(PATRONES[it.patron] || it.patron)}</span>` : ""}
-        ${it.dominado ? `<span class="dominado">maîtrisé</span>` : `<span>révision ${it.proxima <= hoy() ? "aujourd'hui" : new Date(`${it.proxima}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}</span>`}
+      <div class="corr" lang="fr">${escapar(it.correcto)}</div>
+      ${it.nota ? `<div class="nota" lang="fr">${escapar(it.nota)}</div>` : ""}
+      ${it.patron && PATRONES[it.patron] ? `<div class="patron">${escapar(PATRONES[it.patron])}</div>` : ""}
+      <div class="prox">
+        <span>${it.dominado ? "<b>Maîtrisé</b>" : `Prochaine révision : <b>${cuandoRepaso(it.proxima)}</b>`}</span>
+        <span class="escala">${INTERVALOS.map((n) => `<i class="${it.dominado || n <= (it.intervalo || 1) ? "si" : ""}">${n}</i>`).join("")}</span>
       </div>
-    </div>`).join("") : `<div class="vacio">${estado.banco.length ? "Rien ne correspond à ta recherche." : "Ta banque est vide pour l'instant."}</div>`;
+    </div>`).join("") : `<div class="vacio">${todos.length ? "Rien ne correspond à ta recherche." : "Rien ici pour l'instant."}</div>`;
 }
 $("l-buscar").addEventListener("input", pintarBanco);
 $("l-filtros").onclick = (e) => {
@@ -921,7 +1017,7 @@ $("l-filtros").onclick = (e) => {
   if (!b) return;
   estado.filtro = b.dataset.tipo;
   for (const x of $("l-filtros").children) x.setAttribute("aria-pressed", x === b);
-  pintarBanco();
+  cargarBanco();
 };
 
 // ── Arranque ──
