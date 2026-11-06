@@ -363,6 +363,8 @@ body.en-trayecto #trayInfo{display:inline;}
 /* bloques del panel */
 .bloque{margin-top:22px;padding:18px 16px;border-radius:16px;border:1px solid var(--linha);background:rgba(243,240,234,.03);}
 .bloque h3{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:6px;}
+.bloque .vida-tit{margin-top:18px;}
+.bloque textarea{width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--linha);background:rgba(243,240,234,.06);color:inherit;font:inherit;font-size:15px;line-height:1.45;resize:vertical;}
 .bloque p{font-size:13px;color:var(--craie-f);line-height:1.55;margin-bottom:12px;}
 .lleno,.vacío{display:block;width:100%;padding:13px;border-radius:100px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:background .2s,opacity .2s;}
 .lleno{background:var(--craie);color:#0A1420;}
@@ -426,6 +428,16 @@ body.en-trayecto #trayInfo{display:inline;}
     <div class="cifra"><b id="pPct">20%</b><span>FR</span></div>
   </div>
   <div id="lCats"></div>
+  <div class="bloque">
+    <h3>Lo que Défilé aprende de ti</h3>
+    <p>Así se reparte el próximo lote entre las 5 creadoras, según lo que te gustó, guardaste y saltaste en los últimos 7 días. Ninguna pasa de 50 % ni baja de 5 %, y 1 de cada 10 tarjetas es para descubrir algo nuevo.</p>
+    <div id="lPerfiles"></div>
+    <h3 class="vida-tit">Tu semana</h3>
+    <p>Una línea por tema: lo que le contaste a Simone, tus citas o lo que guardaste en Instagram y Facebook. Cada línea sube su perfil durante 7 días.</p>
+    <textarea id="vidaTxt" rows="4" placeholder="Cita de fisio el jueves&#10;Mensaje para la garderie&#10;Practicar el subjonctif para el TECFÉE"></textarea>
+    <button class="vacío" id="btnVida">Guardar mi semana</button>
+    <div class="etat" id="estadoVida"></div>
+  </div>
   <div class="bloque">
     <h3>Tu francés</h3>
     <div class="fr-resumen" id="frResumen"></div>
@@ -1753,10 +1765,82 @@ const PREC_VENTANA = 20;
 let milestones = G.r('dfl_milestones',[]);
 /* interacciones: me gusta, no entendí, saltadas (<2.5 s sin tocar nada), y cuándo se vio
    cada tarjeta y cada clave, para no repetir en 14 días. Viajan a la nube en defile_progreso. */
-let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[],rb:{}},G.r('dfl_ix',{}));
+let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[],rb:{},ev:[],vida:[],repasar:[]},G.r('dfl_ix',{}));
 const NO_REPETIR_DIAS = 14;
 const LECTURAS_DIA = 5, LECTURA_MS = 4000;
 const HITOS_DIAS = [7, 30, 60, 100];
+
+/* ─── perfiles: 5 creadoras internas de Défilé; en defile-generar cada una es un sub-prompt ─── */
+const PERFILES={
+  quotidien:{nom:'La Québécoise du quotidien',emo:'🏘️'},
+  profe:{nom:'La Profe C2',emo:'✍️'},
+  maman:{nom:'Maman et garderie',emo:'🧸'},
+  curieuse:{nom:'La Curieuse du monde',emo:'🌎'},
+  corps:{nom:'Corps et maison',emo:'🧘'}
+};
+/* lo que vale cada reacción para el siguiente lote; ❓ no resta: pide el mismo tema más hondo y más lento */
+const PESOS_SENAL={gusta:2,quita:-2,banco:3,salto:-2,lectura:1,dictee:1,sabia:1,noent:0};
+const PESO_MIN=.05, PESO_MAX=.5, VENTANA_DIAS=7, OLVIDO=.7, EMPUJE_VIDA=1, EMPUJE_ERROR=.15, MAX_ERRORES=4;
+
+/* ── pesos (inicio): funciones puras; la simulación de 7 días las corre fuera del navegador ── */
+function _edad(f,hoyS){return Math.round((Date.parse(hoyS)-Date.parse(f))/864e5);}
+/* suma de señales de los últimos 7 días; cada día de antigüedad vale 0,8 del anterior */
+function puntajes(ev,hoyS,campo){
+  const s={};
+  ev.forEach(e=>{const a=_edad(e.d,hoyS);if(a<0||a>=VENTANA_DIAS||!e[campo])return;s[e[campo]]=(s[e[campo]]||0)+e.w*Math.pow(OLVIDO,a);});
+  return s;
+}
+/* reparte el 100 % entre perfiles: ninguno pasa de 50 % ni baja de 5 %.
+   Busca el factor que, recortando cada peso a esos límites, hace que todo sume 100 %. */
+function limitar(w){
+  const k=Object.keys(w),suma=f=>k.reduce((a,x)=>a+Math.min(PESO_MAX,Math.max(PESO_MIN,w[x]*f)),0);
+  let lo=0,hi=1;
+  while(suma(hi)<1&&hi<1e12)hi*=2;
+  for(let i=0;i<60;i++){const m=(lo+hi)/2;if(suma(m)<1)lo=m;else hi=m;}
+  const out={};k.forEach(x=>{out[x]=Math.min(PESO_MAX,Math.max(PESO_MIN,w[x]*hi));});
+  return out;
+}
+/* todos empiezan en 20 %; suben con lo que le gusta y guarda, bajan con lo que salta.
+   Cada puntaje se mide contra su actividad total, para que un día largo no lo congele todo;
+   lo que ella contó de su semana y sus errores recientes empujan su perfil */
+function pesosPerfiles(ev,vida,hoyS,extra){
+  const s=puntajes(ev,hoyS,'p'),ks=Object.keys(PERFILES);
+  const escala=ks.reduce((a,p)=>a+Math.abs(s[p]||0),0)/ks.length+5;
+  const z={};ks.forEach(p=>{z[p]=(s[p]||0)/escala;});
+  (vida||[]).forEach(v=>{if(v.p in z&&v.hasta>=hoyS)z[v.p]=Math.max(z[v.p],0)+EMPUJE_VIDA;});
+  Object.entries(extra||{}).forEach(([p,n])=>{if(p in z)z[p]+=Math.min(MAX_ERRORES,n)*EMPUJE_ERROR;});
+  const w={};ks.forEach(p=>{w[p]=Math.exp(z[p]);});
+  return limitar(w);
+}
+/* ── pesos (fin) ── */
+
+/* tarjetas viejas sin perfil: se deduce de su tema, formato o categoría */
+function perfilDe(p){
+  if(p.perfil&&PERFILES[p.perfil])return p.perfil;
+  const t=p.tema||'',f=p.formato||'';
+  if(t==='saaq_salud'||t==='tramites'||t==='casa_barrio')return 'quotidien';
+  if(/garderie|crianza/.test(t))return 'maman';
+  if(/salud|comida|fisio|movimiento/.test(t))return 'corps';
+  if(/actualidad|mundo|agua/.test(t)||['cerveau','chats','culture','bio','math'].includes(p.c))return 'curieuse';
+  if(['error_tipico','dictado_corto','pregunta'].includes(f)||['francais','verbos'].includes(p.c)||/lengua|pronunciacion|tecfee/.test(t))return 'profe';
+  return 'quotidien';
+}
+/* lo que ella escribe de su semana se asigna al perfil que le toca, por palabras */
+function perfilDeTexto(t){
+  t=t.toLowerCase();
+  if(/garderie|niñ|hij|enfant|escuela|colegio|école|ecole|crianza|bebé|bebe|mamá|maman/.test(t))return 'maman';
+  if(/fisio|physio|salud|santé|sante|médic|medic|doctor|estira|dolor|ejercicio|comida|receta|cocina|dormir|sueño/.test(t))return 'corps';
+  if(/tecf|gramát|gramat|dictad|dictée|examen|redacc|ortogra|conjug|subjonct/.test(t))return 'profe';
+  if(/notici|colombia|agua|eau|mundo|monde|elecci|clima del mundo|guerra|ciencia/.test(t))return 'curieuse';
+  return 'quotidien';
+}
+function anotar(p,k){
+  if(!p||!(k in PESOS_SENAL))return;
+  IX.ev.push({d:hoy(),p:perfilDe(p),t:p.tema||'',k:k,w:PESOS_SENAL[k],id:p.id});
+  guardarIX();
+}
+function erroresRecientes(){return bancoLidia.filter(b=>b.tipo==='error'&&b.creado&&_edad(String(b.creado).slice(0,10),hoy())<VENTANA_DIAS);}
+function pesosActuales(){return pesosPerfiles(IX.ev,IX.vida,hoy(),{profe:erroresRecientes().length});}
 const noEntSesion = new Set();
 function diasDesde(f){return f?Math.floor((Date.parse(hoy())-Date.parse(f))/864e5):1e9;}
 function reciente(p){return diasDesde(IX.visto[p.id])<NO_REPETIR_DIAS||(p.clave&&diasDesde(IX.claves[p.clave])<NO_REPETIR_DIAS);}
@@ -1765,9 +1849,10 @@ function guardarIX(){
   IX.gusta=corta(IX.gusta,300);IX.noEnt=corta(IX.noEnt,300);IX.salt=corta(IX.salt,600);
   IX.formatos=corta(IX.formatos,8);IX.temas=corta(IX.temas,8);
   ['visto','claves'].forEach(k=>{Object.keys(IX[k]).forEach(x=>{if(diasDesde(IX[k][x])>60)delete IX[k][x];});});
+  IX.ev=IX.ev.filter(e=>diasDesde(e.d)<14).slice(-2000);IX.repasar=corta(IX.repasar,10);
   G.w('dfl_ix',IX);guardarPronto();
 }
-const FORMATO_NOM={expresion:'Expression',mini_historia:'Mini-histoire',dato_util:'Bon à savoir',error_tipico:'Erreur typique',pregunta:'Question',dictado_corto:'Dictée',comparacion_es_qc:'ES ↔ QC',vocabulario_contexto:'Vocabulaire',tramite_quebec:'Démarche'};
+const FORMATO_NOM={expresion:'Expression',mini_historia:'Mini-histoire',dato_util:'Bon à savoir',error_tipico:'Erreur typique',pregunta:'Question',dictado_corto:'Dictée',comparacion_es_qc:'ES ↔ QC',vocabulario_contexto:'Vocabulaire',tramite_quebec:'Démarche',frase_util:'Phrase utile',situacion_real:'Situation réelle',dato_contexto:'Le fait',tutorial_corto:'Tutoriel',problema_solucion:'Problème → solution',antes_despues:'Avant / après'};
 Object.keys(CATS).forEach(c=>{if(!(c in E.cats))E.cats[c]=0;});
 /* fecha local del teléfono (antes era UTC y el día cambiaba a las 19-20 h de Quebec) */
 const hoy=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
@@ -1919,9 +2004,11 @@ function elegibles(){
   return todas().filter(p=>(p.niv||1)<=E.fase&&!salt.has(p.id));
 }
 function _rellenarMazo(){
-  const pool=elegibles().filter(p=>!reciente(p)).map(p=>p.id);
-  if(!pool.length)return;
-  let nuevo=_barajar(pool);
+  const cand=elegibles().filter(p=>!reciente(p));
+  if(!cand.length)return;
+  /* barajado con peso: los perfiles que más le sirven esta semana salen antes */
+  const w=pesosActuales();
+  let nuevo=cand.map(p=>[p.id,Math.pow(Math.random(),1/(w[perfilDe(p)]||.2))]).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
   /* empujar al fondo cualquiera de las últimas repartidas que caiga al inicio */
   if(nuevo.length>COLA_MAX*2){
     const cabeza=[],resto=[];
@@ -2072,7 +2159,7 @@ async function crearCarte(p){
     /* ── PARTE 1: gancho ── */
     '<div class="card-gancho">'+
       '<div class="cat-tag"><span class="cat-emo pulse">'+cat.emo+'</span><span class="cat-nom">'+cat.nom+'</span>'+
-      '<span class="fr-pct">'+(v2&&FORMATO_NOM[p.formato]?FORMATO_NOM[p.formato]:pctFr()+'% FR')+'</span></div>'+
+      '<span class="fr-pct">'+(v2&&FORMATO_NOM[p.formato]?(PERFILES[p.perfil]?PERFILES[p.perfil].emo+' '+PERFILES[p.perfil].nom+' · ':'')+FORMATO_NOM[p.formato]:pctFr()+'% FR')+'</span></div>'+
       gancho+
     '</div>'+
     /* ── PARTE 2: dato ── */
@@ -2113,6 +2200,7 @@ async function crearCarte(p){
       dRes.className='etat dictee-res '+(bien?'bon':'mal');
       dRes.textContent=bien?'✓ Bien escrito':'Casi. Compara con la frase:';
       dSol.hidden=false;
+      if(!el.dataset.dic){el.dataset.dic='1';anotar(p,'dictee');}
     };
     dOk.addEventListener('click',verificar);
     dIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();verificar();}});
@@ -2127,8 +2215,8 @@ async function crearCarte(p){
   if(guard.includes(p.id))bg.classList.add('actif');
   bg.addEventListener('click',()=>{
     const i=guard.indexOf(p.id);
-    if(i>=0){guard.splice(i,1);bg.classList.remove('actif');IX.gusta=IX.gusta.filter(x=>x!==p.id);msg('Quitada');}
-    else{guard.push(p.id);bg.classList.add('actif');IX.gusta.push(p.id);msg('Me gusta ♡');}
+    if(i>=0){guard.splice(i,1);bg.classList.remove('actif');IX.gusta=IX.gusta.filter(x=>x!==p.id);anotar(p,'quita');msg('Quitada');}
+    else{guard.push(p.id);bg.classList.add('actif');IX.gusta.push(p.id);anotar(p,'gusta');msg('Me gusta ♡');}
     G.w('dfl_g',guard);guardarIX();
   });
 
@@ -2139,6 +2227,7 @@ async function crearCarte(p){
     bb.classList.add('actif');
     const r=await guardarEnBanco(p);
     if(!/banco 🔖$/.test(r))bb.classList.remove('actif');
+    else anotar(p,'banco');
     msg(r);
   });
 
@@ -2149,6 +2238,7 @@ async function crearCarte(p){
     if(bn.classList.contains('actif'))return;
     bn.classList.add('actif');
     if(!IX.noEnt.includes(p.id))IX.noEnt.push(p.id);
+    anotar(p,'noent');
     noEntSesion.add(p.id);
     if(!fall.includes(p.id)){fall.push(p.id);G.w('dfl_f',fall);}
     guardarIX();
@@ -2480,6 +2570,9 @@ function crearRepasoBanco(b){
   });
   const responder=acierto=>{
     repasarBanco(b,acierto);
+    /* «La sabía» suma 1 al tema en Défilé (nada en Lidia); «Todavía no» pide un ejemplo nuevo en el próximo lote */
+    if(acierto)anotar({id:'rb_'+b.id,perfil:'profe',tema:'lengua'},'sabia');
+    else{IX.repasar=IX.repasar.filter(x=>x!==b.correcto);IX.repasar.push(b.correcto);guardarIX();}
     si.disabled=no.disabled=true;si.classList.add('bloq');no.classList.add('bloq');
     (acierto?si:no).classList.add(acierto?'ok':'mal');
     const r=IX.rb[b.id];
@@ -2607,10 +2700,13 @@ function verCarta(el){
 }
 /* al irse: si pasó en menos de 2,5 s y no se tocó nada, cuenta como saltada y no vuelve */
 function dejarCarta(el){
-  const p=el._p;if(!p||!el.isConnected||el.dataset.inter==='1'||el.dataset.salt)return;
+  const p=el._p;if(!p||!el.isConnected||el.dataset.salt)return;
   const ms=Date.now()-(+el.dataset.t0||Date.now());
+  /* quedarse 4 s o más suma 1 al perfil, aunque haya tocado algo */
+  if(ms>=LECTURA_MS&&!el.dataset.leida){el.dataset.leida='1';anotar(p,'lectura');}
+  if(el.dataset.inter==='1')return;
   if(ms>=LECTURA_MS)contarLectura();
-  if(ms<2500){el.dataset.salt='1';if(!IX.salt.includes(p.id))IX.salt.push(p.id);guardarIX();}
+  if(ms<2500){el.dataset.salt='1';if(!IX.salt.includes(p.id))IX.salt.push(p.id);anotar(p,'salto');}
 }
 
 /* ─── observer ─── */
@@ -2661,6 +2757,12 @@ function fusionar(n){
   ['gusta','noEnt','salt'].forEach(k=>{IX[k]=u(IX[k],ni[k]);});
   ['visto','claves'].forEach(k=>{Object.entries(ni[k]||{}).forEach(([x,f])=>{if(!IX[k][x]||f>IX[k][x])IX[k][x]=f;});});
   Object.entries(ni.rb||{}).forEach(([x,r])=>{const l=IX.rb[x];if(!l||(r.u||'')>(l.u||''))IX.rb[x]=r;});
+  /* señales de los dos aparatos: se suman sin duplicar (misma tarjeta, mismo día, misma reacción) */
+  const llave=e=>e.d+'|'+e.k+'|'+e.id,ya=new Set(IX.ev.map(llave));
+  (ni.ev||[]).forEach(e=>{if(!ya.has(llave(e))){IX.ev.push(e);ya.add(llave(e));}});
+  IX.ev.sort((a,b)=>a.d.localeCompare(b.d));
+  if((ni.vidaU||'')>(IX.vidaU||'')){IX.vida=ni.vida||[];IX.vidaU=ni.vidaU;}
+  IX.repasar=u(IX.repasar,ni.repasar).slice(-10);
   G.w('dfl_ix',IX);
   sincronizarMilestones();
 }
@@ -2674,7 +2776,7 @@ async function nubeCargar(){
     if(f)fusionar(f);
     const {data:cs,error:ec}=await sb.from('defile_cartes').select('id,tema,tipo,contenu,nivel').order('creado',{ascending:false}).limit(300);
     /* banco de Lidia: solo lectura, para repasar sus errores y expresiones */
-    const {data:bl,error:eb}=await sb.from('banco').select('id,tipo,original,correcto,nota,fuente').eq('dominado',false).order('creado',{ascending:false}).limit(300);
+    const {data:bl,error:eb}=await sb.from('banco').select('id,tipo,original,correcto,nota,fuente,creado').eq('dominado',false).order('creado',{ascending:false}).limit(300);
     if(!eb&&bl){bancoLidia=bl;G.w('dfl_banco',bancoLidia);}
     if(!ec&&cs){const ya=new Set(gen.map(c=>c.id));cs.forEach(x=>{if(ya.has(x.id))return;gen.push(Object.assign({},x.contenu,{id:x.id,c:x.tema,niv:x.nivel,ia:true}));});G.w('dfl_gen',gen);}
     pintarBarra();mkEstado('Al día · '+E.asim+' píldoras','bon');
@@ -2741,6 +2843,10 @@ function abrirPanel(){
            '<div class="theme-pista"><div class="theme-barra" style="width:'+pct+'%;background:'+v.teinte+'"></div></div></div>';
   }).join('');
 
+  /* ── panel: lo que aprende ── */
+  pintarPerfiles();
+  document.getElementById('vidaTxt').value=IX.vida.filter(v=>v.hasta>=hoy()).map(v=>v.txt).join('\n');
+
   /* ── panel: tu francés ── */
   const conocidas = todas().filter(p=>p.fr_chispa && p.fr_trad && vistas.includes(p.id));
   const dominadas = conocidas.filter(p=>!fall.includes(p.id));
@@ -2802,6 +2908,24 @@ function abrirPanel(){
 }
 document.getElementById('btnPanneau').addEventListener('click',abrirPanel);
 function cerrarPanel(){pann.classList.remove('on');fondP.classList.remove('on');}
+function pintarPerfiles(){
+  const w=pesosActuales(),vivos=new Set(IX.vida.filter(v=>v.hasta>=hoy()).map(v=>v.p));
+  document.getElementById('lPerfiles').innerHTML=Object.entries(PERFILES).sort((a,b)=>w[b[0]]-w[a[0]]).map(([k,v])=>{
+    const pct=Math.round(w[k]*100);
+    return '<div class="theme"><div class="theme-haut"><span class="theme-nom">'+v.emo+' '+v.nom+(vivos.has(k)?' · tu semana':'')+'</span><span class="theme-niv">'+pct+' %</span></div>'+
+           '<div class="theme-pista"><div class="theme-barra" style="width:'+(pct*2)+'%;background:#B79CF0"></div></div></div>';
+  }).join('');
+}
+/* tu semana: cada línea empuja su perfil 7 días desde que se escribió; si no cambia, conserva su fecha */
+document.getElementById('btnVida').addEventListener('click',()=>{
+  const antes=new Map(IX.vida.map(v=>[v.txt,v]));
+  IX.vida=document.getElementById('vidaTxt').value.split('\n').map(t=>t.trim().slice(0,140)).filter(Boolean).slice(0,10)
+    .map(t=>{const v=antes.get(t);return v&&v.hasta>=hoy()?v:{txt:t,p:perfilDeTexto(t),hasta:hoyMas(7)};});
+  IX.vidaU=new Date().toISOString();
+  guardarIX();pintarPerfiles();
+  const e=document.getElementById('estadoVida');e.className='etat bon';
+  e.textContent=IX.vida.length?'Guardado. El próximo lote lo tiene en cuenta.':'Semana vacía: solo cuentan tus reacciones.';
+});
 fondP.addEventListener('click',cerrarPanel);
 document.getElementById('btnCerrarPann').addEventListener('click',cerrarPanel);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pann.classList.contains('on'))cerrarPanel();});
@@ -2817,11 +2941,19 @@ function senalesIA(cat){
   const porId=new Map(todas().map(p=>[p.id,p]));
   const desc=id=>{const p=porId.get(id);return p?(p.c+'/'+(p.formato||'pildora')+': '+(p.clave||p.gancho_fr||p.gancho||'')):null;};
   const ult=(a,n)=>a.slice(-n).map(desc).filter(Boolean);
+  const pt=puntajes(IX.ev,hoy(),'t');
   return {
     fase:E.fase, cat_floja:cat,
     formatos:IX.formatos.slice(-8), temas:IX.temas.slice(-8),
     claves:Object.keys(IX.claves).filter(k=>diasDesde(IX.claves[k])<NO_REPETIR_DIAS).slice(-80),
-    gustos:ult(IX.gusta,10), no_entendi:ult(IX.noEnt,10), saltadas:ult(IX.salt,10)
+    gustos:ult(IX.gusta,10), no_entendi:ult(IX.noEnt,10), saltadas:ult(IX.salt,10),
+    /* para el director: pesos de los últimos 7 días, temas, su vida, errores pendientes del banco */
+    pesos:pesosActuales(),
+    temas_gusta:Object.entries(pt).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]),
+    temas_evita:Object.entries(pt).filter(x=>x[1]<0).sort((a,b)=>a[1]-b[1]).slice(0,4).map(x=>x[0]),
+    vida:IX.vida.filter(v=>v.hasta>=hoy()).map(v=>v.txt).slice(0,10),
+    errores:bancoPendientes().filter(b=>b.tipo==='error'&&b.original).slice(0,6).map(b=>b.original+' → '+b.correcto),
+    repasar:IX.repasar.slice(-5)
   };
 }
 
