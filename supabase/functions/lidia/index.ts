@@ -69,12 +69,24 @@ function hoyMas(dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Días seguidos con sesión, contando hoy hacia atrás (la racha que menciona el prompt, con el dato real).
-function diasSeguidos(fechas: string[]): number {
+// Racha amable (CLAUDE.md, regla 6): cuenta días con sesión hacia atrás desde hoy.
+// Un día suelto sin estudiar se congela una sola vez (no suma ni corta); dos días seguidos la reinician.
+const HITOS = [7, 30, 60];
+function racha(fechas: string[]) {
   const dias = new Set(fechas);
-  let n = 0;
-  while (dias.has(hoyMas(-n))) n++;
-  return n;
+  let dias_seguidos = 0;
+  let congelada = false;
+  let atras = dias.has(hoyMas(0)) ? 0 : 1; // si hoy todavía no hay sesión, se cuenta desde ayer
+  while (true) {
+    if (dias.has(hoyMas(-atras))) {
+      dias_seguidos++;
+      atras++;
+    } else if (!congelada && dias_seguidos > 0 && dias.has(hoyMas(-atras - 1))) {
+      congelada = true;
+      atras++;
+    } else break;
+  }
+  return { dias_seguidos, racha_congelada: congelada, hito: HITOS.includes(dias_seguidos) ? dias_seguidos : null };
 }
 
 // Repaso espaciado: acierto → siguiente intervalo; fallo → vuelve a 1 día.
@@ -177,7 +189,7 @@ Deno.serve(async (req) => {
     items_hoy,
     resumen_ayer: ayerR.data?.resumen ?? null,
     resumen_sesion: resumen_sesion ?? null,
-    dias_seguidos: diasSeguidos((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
+    ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n${mensaje}`;
   const historial = armarHistorial((historialR.data ?? []).reverse());
@@ -257,7 +269,7 @@ Deno.serve(async (req) => {
   }
 
   const cambiosSesion: Record<string, unknown> = { fase_actual: fase, resumen: lidia.resumen_sesion };
-  if (fase === "cierre" && lidia.resultado_cierre !== null) cambiosSesion.resultado = lidia.resultado_cierre;
+  if (lidia.resultado_cierre !== null) cambiosSesion.resultado = lidia.resultado_cierre;
   await db.from("sesiones").update(cambiosSesion).eq("id", sesion_id);
 
   return json({ ...lidia, modelo: respuesta.model, uso: respuesta.usage });

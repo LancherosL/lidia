@@ -151,7 +151,7 @@ button { cursor: pointer; }
 .reloj .fase-act { flex: 1; min-width: 0; }
 .reloj .fase-act b { display: block; }
 .reloj .fase-act small { color: var(--tinta-suave); }
-.fases { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 12px; }
+.fases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
 .fases i { height: 6px; border-radius: 3px; background: var(--borde); }
 .fases i.hecha { background: color-mix(in srgb, var(--violeta) 45%, var(--borde)); }
 .fases i.actual { background: var(--violeta); }
@@ -374,7 +374,7 @@ button { cursor: pointer; }
       <div class="fases" id="s-fases"></div>
       <div class="controles" id="s-controles">
         <button class="btn sec" id="b-pausa" type="button">Pausar</button>
-        <button class="btn sec" id="b-siguiente" type="button">Siguiente fase →</button>
+        <button class="btn sec" id="b-siguiente" type="button">Siguiente →</button>
       </div>
     </div>
     <div class="chat" id="s-chat"></div>
@@ -417,12 +417,11 @@ const SUPABASE_KEY = "sb_publishable_hBWS7ZShEGv_zC51x_4n2g_jG9551G3";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const FASES = [
-  { id: "recuperar", nombre: "Recuperar", ini: 0, desc: "Escribe o di de memoria lo de ayer" },
-  { id: "plan", nombre: "Plan", ini: 5, desc: "Meta del día y tu predicción (0–100)" },
-  { id: "escuchar_leer", nombre: "Escuchar o leer", ini: 8, desc: "Preguntas previas y texto del tema" },
-  { id: "producir", nombre: "Producir", ini: 25, desc: "Escribe a mano y sube foto, o habla" },
-  { id: "codigo", nombre: "Código lingüístico", ini: 45, desc: "Ejercicios del banco que tocan hoy" },
-  { id: "cierre", nombre: "Cierre", ini: 55, desc: "Predicción vs resultado" },
+  // 2 horas en 4 bloques (prompt v2). `ini` en minutos.
+  { id: "conversacion", nombre: "Conversación guiada", ini: 0, desc: "Un tema de tu vida, una pregunta a la vez" },
+  { id: "oral", nombre: "Comprensión oral y shadowing", ini: 30, desc: "Escucha tu material y repite frases" },
+  { id: "gramatica", nombre: "Gramática y vocabulario", ini: 60, desc: "10 expresiones y el repaso de hoy" },
+  { id: "escritura", nombre: "Escritura corregida", ini: 90, desc: "Un párrafo o correo real: escríbelo o sube foto" },
 ];
 const SALUDOS = [
   "Bon dimanche ! On prend le temps aujourd'hui.",
@@ -474,7 +473,10 @@ function markdown(texto) {
   if (lista) html += "</ul>";
   return html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*/g, "$1<i>$2</i>");
 }
-function mmss(s) { return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+function mmss(s) {
+  const mm = `${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${mm}` : mm;
+}
 
 // ── Tema ──
 function leerTema() { try { return localStorage.getItem("lidia-tema") || "auto"; } catch { return "auto"; } }
@@ -573,7 +575,7 @@ async function cargarInicio() {
 
   const deHoy = (sesiones.data ?? []).find((s) => s.fecha === hoy());
   if (!deHoy) {
-    $("i-hoy").textContent = `Tema de la semana: ${perfil.data?.tema_semana ?? "Ma vie au Québec"}. Una hora, seis fases.`;
+    $("i-hoy").textContent = `Tema de la semana: ${perfil.data?.tema_semana ?? "Ma vie au Québec"}. Dos horas, cuatro bloques.`;
     $("b-sesion").textContent = "Empezar";
   } else if (deHoy.fase_actual === "terminada") {
     $("i-hoy").textContent = `Terminada · ${Math.round(deHoy.segundos / 60)} min. Mañana seguimos.`;
@@ -621,7 +623,7 @@ function pintarReloj() {
   $("s-fase-desc").textContent = f.desc;
   $("s-fases").innerHTML = FASES.map((_, i) => `<i class="${i < estado.faseIdx ? "hecha" : i === estado.faseIdx ? "actual" : ""}"></i>`).join("");
   $("b-pausa").textContent = estado.corriendo ? "Pausar" : "Continuar";
-  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminar sesión" : "Siguiente fase →";
+  $("b-siguiente").textContent = estado.faseIdx === FASES.length - 1 ? "Terminar sesión" : "Siguiente →";
 }
 
 function continuar() {
@@ -713,10 +715,6 @@ async function enviarYa(texto, fotoPath) {
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
-  if (fase === "plan") {
-    const n = texto.match(/\b(100|\d{1,2})\b/);
-    if (n) sb.from("sesiones").update({ prediccion: Number(n[1]) }).eq("id", estado.sesion.id).then();
-  }
   const pensando = document.createElement("div");
   pensando.className = "msg lidia escribiendo";
   pensando.textContent = fotoPath ? "Lidia está leyendo tu texto…" : "Lidia escribe…";
