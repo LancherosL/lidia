@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#060E16">
+<meta name="theme-color" content="#1C1C1E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Défile — dopamina limpia</title>
@@ -382,6 +382,83 @@ body.en-trayecto #trayInfo{display:inline;}
   padding:12px 20px;border-radius:16px;opacity:0;pointer-events:none;
   transition:opacity .22s,transform .22s;max-width:84vw;box-shadow:0 6px 20px rgba(0,0,0,.4);}
 #toast.on{opacity:1;transform:translate(-50%,0);}
+
+
+/* ══ tarjeta v3 (interfaz v2, 6-nov-2026): un solo acento morado, como Lidia ══ */
+:root{--morado:#A68BEA;--relleno:#7A5AC8;--morado-osc:#2E2547;--carbon:#1C1C1E;--hoja:#2A2A2D;--tinta3:#F4F2EE;--suave3:#B9B5AE;}
+html,body{background:var(--carbon);}
+header{background:linear-gradient(to bottom,rgba(28,28,30,.55),transparent);}
+#faseNom,#facePct,.jauge-pista{display:none;}
+.jauge-haut{justify-content:flex-start;gap:5px;margin:0;width:fit-content;max-width:100%;padding:7px 12px;border-radius:99px;
+  background:rgba(28,28,30,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+#hoyN,#rachaN{margin:0;font-size:14px;font-weight:700;color:var(--tinta3);white-space:nowrap;}
+#rachaN{order:-1;}
+.carte.v3{background:var(--carbon);display:flex;flex-direction:column;}
+.c-visual{position:relative;flex:0 0 52dvh;overflow:hidden;}
+.c-visual svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.c-visual::after{content:"";position:absolute;inset:auto 0 0 0;height:38%;background:linear-gradient(to bottom,transparent,var(--carbon));}
+.c-emo{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);font-size:min(36vw,160px);line-height:1;
+  filter:drop-shadow(0 8px 30px rgba(166,139,234,.45));}
+.carte.v3:not([data-actif="1"]) .c-emo{transform:translate(-50%,-50%) scale(.94);}
+.c-emo{transition:transform .45s ease;}
+.c-autora{position:absolute;z-index:4;top:calc(env(safe-area-inset-top,0px) + 66px);left:16px;right:16px;display:flex;align-items:center;gap:10px;}
+.c-ava{flex:0 0 46px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:var(--carbon);box-shadow:0 0 0 2.5px var(--morado);}
+.c-autora b{display:block;font-size:17px;line-height:1.2;color:var(--tinta3);text-shadow:0 1px 8px rgba(0,0,0,.5);}
+.c-autora small{display:block;font-size:14px;color:var(--suave3);text-shadow:0 1px 8px rgba(0,0,0,.6);}
+.c-texto{position:relative;z-index:3;flex:1;min-height:0;overflow:hidden;padding:0 20px calc(env(safe-area-inset-bottom,0px) + 16px);margin-top:-8px;}
+.c-gancho{margin:0 0 16px;font-family:var(--sans);font-size:clamp(22px,6.6vw,28px);line-height:1.18;font-weight:700;letter-spacing:-.01em;color:var(--tinta3);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.c-fr{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;border-radius:18px;background:var(--morado-osc);border-left:4px solid var(--morado);}
+.c-fr p{margin:0;flex:1;font-size:clamp(19px,5.7vw,23px);line-height:1.25;font-weight:700;color:#fff;}
+.c-fr-son{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:var(--relleno);display:grid;place-items:center;}
+.c-fr-son svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.c-fr-son svg .ll{fill:#fff;}
+.c-fr-son.parle{animation:pulse 800ms infinite;}
+.c-aplica{margin:12px 0 0;font-size:17px;line-height:1.35;color:var(--suave3);}
+.c-mas{margin-top:8px;padding:6px 0;font-size:16px;font-weight:700;color:var(--morado);}
+.c-dictee{display:flex;flex-direction:column;gap:10px;}
+.c-dic-oir{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:16px;background:var(--relleno);color:#fff;font-size:17px;font-weight:700;}
+.c-dic-oir svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;}
+.c-dic-oir svg .ll{fill:#fff;}
+.c-dic-fila{display:flex;gap:8px;}
+.c-dic-fila input{flex:1;min-width:0;font:inherit;font-size:17px;padding:12px 14px;border-radius:14px;border:1.5px solid rgba(244,242,238,.25);background:rgba(244,242,238,.06);color:var(--tinta3);}
+.c-dic-fila button{padding:0 16px;border-radius:14px;border:1.5px solid var(--morado);color:var(--morado);font-weight:700;font-size:16px;}
+.c-dictee .etat.bon{color:var(--morado);font-weight:700;}
+.c-dictee .etat.mal{color:var(--suave3);font-weight:700;}
+/* botones grandes a la derecha: vacío = sin marcar, lleno y morado = marcado */
+.carte.v3 .acciones{top:auto;transform:none;bottom:calc(48dvh + 6px);gap:12px;}
+.carte.v3 .act{width:56px;height:56px;border:2px solid rgba(244,242,238,.85);background:rgba(28,28,30,.55);box-shadow:none;}
+.carte.v3 .act svg{width:26px;height:26px;fill:none;stroke:var(--tinta3);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.carte.v3 .act.actif{background:var(--relleno);border-color:var(--relleno);box-shadow:none;}
+.carte.v3 .act.actif svg .ll{fill:#fff;stroke:#fff;}
+.carte.v3 .act.actif svg .q{stroke:var(--relleno);}
+.carte.v3 .act.actif svg .qp{fill:var(--relleno);}
+.carte.v3 .act.parle{background:var(--relleno);border-color:var(--relleno);}
+/* ver más: hoja que sube */
+.c-velo{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s;}
+.c-hoja{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:72dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--hoja);
+  border-radius:26px 26px 0 0;padding:10px 22px calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 -10px 40px rgba(0,0,0,.5);color:var(--tinta3);}
+.carte.hoja-on .c-velo{opacity:1;pointer-events:auto;}
+.carte.hoja-on .c-hoja{transform:none;}
+.c-asa{display:block;width:60px;height:22px;margin:0 auto 6px;position:relative;}
+.c-asa::before{content:"";position:absolute;left:9px;right:9px;top:8px;height:5px;border-radius:3px;background:#55525A;}
+.c-hoja h3{margin:0 0 10px;font-size:19px;}
+.c-trad{margin:0 0 12px;font-size:17px;color:var(--tinta3);}
+.c-expl{margin:0 0 14px;padding-left:20px;color:var(--suave3);font-size:17px;line-height:1.45;}
+.c-expl li{margin-bottom:8px;}
+.c-expl b{color:var(--tinta3);}
+.c-hoja .c-fr{margin-bottom:12px;}
+.c-fuente{font-size:14px;color:#8A867F;margin:4px 0 12px;}
+.c-hoja .card-cierre{margin-top:6px;border:0;background:rgba(244,242,238,.05);border-radius:16px;animation:none;}
+.c-hoja .c-opt.elegida{border-color:var(--morado);background:rgba(166,139,234,.18);box-shadow:none;}
+.c-hoja .reac-txt{color:var(--morado);}
+.c-hoja .cierre-q{font-family:var(--sans);font-weight:700;font-size:17px;}
+@media(min-width:700px){
+  .c-texto{padding-left:max(20px,calc(50vw - 280px));padding-right:max(20px,calc(50vw - 280px));}
+  .c-autora{left:max(16px,calc(50vw - 300px));}
+  .c-hoja{left:max(0px,calc(50vw - 320px));right:max(0px,calc(50vw - 320px));}
+}
 
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important;}}
 @media(min-width:700px){
@@ -2122,63 +2199,92 @@ function frBlock(p, modo){
          '<button class="mini-son" data-txt="'+esc(p.fr_chispa)+'" aria-label="Escuchar">🔊</button></div>';
 }
 
+/* ─── tarjeta v3 (interfaz v2): creadora arriba, imagen grande, gancho en español, francés grande con audio ─── */
+const EMO_TEMA={lengua:'🗣️',pronunciacion:'👄',tecfee:'📝',garderie_trabajo:'🧸',crianza_escuela:'🎒',saaq_salud:'🚗',casa_barrio:'🏘️',
+  comida:'🥘',salud_fisio:'🧘',clima:'❄️',cultura_quebecoise:'⚜️',tramites:'📋',actualidad:'📰',colombia_mundo:'🌎',agua_ambiente:'💧'};
+const APLICA_FMT={expresion:'Dilo así en Québec, y guárdalo si te sirve.',frase_util:'Lista para usar hoy mismo.',situacion_real:'La próxima vez, dilo así.',
+  error_tipico:'Así lo dice alguien que habla bien.',dictado_corto:'Escúchala y escríbela sin mirar.',tramite_quebec:'Te sirve para tu próximo trámite.',
+  vocabulario_contexto:'Úsala en una frase tuya hoy.',comparacion_es_qc:'Así se dice aquí, no en Bogotá.'};
+const ICO={
+  son:'<svg viewBox="0 0 24 24"><path class="ll" d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  cor:'<svg viewBox="0 0 24 24"><path class="ll" d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  ban:'<svg viewBox="0 0 24 24"><path class="ll" d="M6 3.5h12v17l-6-4-6 4z"/></svg>',
+  pre:'<svg viewBox="0 0 24 24"><circle class="ll" cx="12" cy="12" r="9"/><path class="q" d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.8"/><circle class="q qp" cx="12" cy="17.2" r=".7"/></svg>'
+};
+function frCaja(txt){
+  return '<div class="c-fr"><p>'+txt+'</p><button class="c-fr-son" data-txt="'+esc(txt)+'" aria-label="Escuchar en francés">'+ICO.son+'</button></div>';
+}
+/* imagen grande: no hay foto real, así que un visual morado a pantalla completa con el emoji del tema, distinto en cada tarjeta */
+function visualGrande(p,cat){
+  const s=_seedNum(p.id),r=(n,m)=>(s>>>n)%m;
+  const emo=p.emoji||EMO_TEMA[p.tema]||cat.emoGrande;
+  const bolas=[0,1,2,3].map(k=>'<circle cx="'+(20+r(k*3,360))+'" cy="'+(30+r(k*3+2,400))+'" r="'+(10+r(k*2+1,46))+'" fill="#A68BEA" opacity="'+(.10+(k%2)*.12)+'"/>').join('');
+  return '<div class="c-visual"><svg viewBox="0 0 390 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+
+    '<defs><radialGradient id="cv'+p.id+'" cx="'+(35+r(1,35))+'%" cy="'+(30+r(4,25))+'%" r="85%"><stop offset="0" stop-color="#5B47A0"/><stop offset=".55" stop-color="#2E2547"/><stop offset="1" stop-color="#1C1C1E"/></radialGradient></defs>'+
+    '<rect width="390" height="470" fill="url(#cv'+p.id+')"/>'+
+    '<circle cx="195" cy="250" r="150" fill="#3C3164" opacity=".55"/><circle cx="195" cy="250" r="118" fill="none" stroke="#A68BEA" stroke-width="3" opacity=".45"/>'+
+    bolas+'</svg><div class="c-emo">'+emo+'</div></div>';
+}
+
 async function crearCarte(p){
-  const cat=CATS[p.c];
-  const modo=modoIdioma();
+  const cat=CATS[p.c]||CATS.francais;
   const el=document.createElement('article');
-  el.className='carte';
+  el.className='carte v3';
   el.dataset.cat=p.c;
   el.dataset.id=p.id;
   el.dataset.t0='0';
-  el.style.setProperty('--teinte',cat.teinte);
-  el.style.setProperty('--fondo-grado',cat.grado);
-  el.style.background=cat.grado;
+  el.style.setProperty('--teinte','#A68BEA');
 
-  /* tarjetas nuevas (v2, de defile-generar): francés de Quebec primero, español solo si se toca */
   const v2=p.v===2;
   const dictee=v2&&p.formato==='dictado_corto'&&p.fr_chispa;
-  const gancho=v2
-    ?'<h1 class="gancho-es">'+p.gancho_fr+'</h1>'+
-      (p.gancho?'<details class="gancho-es-ayuda"><summary>ver en español</summary><span>'+esc(p.gancho)+'</span></details>':'')
-    :'<h1 class="gancho-es">'+esc(p.gancho)+'</h1>'+
-      (p.gancho_fr&&modo!=='chispa'?'<p class="gancho-fr"><span class="gfr-txt">'+p.gancho_fr+'</span><button class="gfr-son" data-txt="'+esc(p.gancho_fr)+'" aria-label="Escuchar el título">🔊</button></p>':'');
-  const ayuda=v2&&p.viñetas_es&&p.viñetas_es.length
-    ?'<details class="ayuda-es"><summary>ayuda en español</summary><ul>'+p.viñetas_es.map(v=>'<li>'+v+'</li>').join('')+'</ul></details>':'';
-  /* la fuente se nombra, sin enlace: todo pasa dentro de la app */
+  const perf=PERFILES[perfilDe(p)];
+  const fmt=FORMATO_NOM[p.formato]||'Le fait';
+  const frase=p.fr_chispa||p.gancho_fr||'';
+  const gancho=p.gancho||(v2?'':String(p.gancho_fr||''));
+  const aplica=p.aplica||APLICA_FMT[p.formato]||'Dilo así en Québec, y guárdalo si te sirve.';
+  /* lo demás va en «ver más»: la explicación en español, la otra frase en francés, la fuente y el cierre */
+  const expl=(v2&&p.viñetas_es&&p.viñetas_es.length)?p.viñetas_es:(p.viñetas||[]);
   let dominio='';try{dominio=p.source&&p.source.url?new URL(p.source.url).hostname.replace(/^www\./,''):'';}catch(e){}
-  const fuente=p.source&&p.source.nombre?'<p class="fuente">Source : '+esc(p.source.nombre)+(dominio?' · '+esc(dominio):'')+'</p>':'';
+  const fuente=p.source&&p.source.nombre?'<p class="c-fuente">Fuente: '+esc(p.source.nombre)+(dominio?' · '+esc(dominio):'')+'</p>':'';
+  const otraFr=p.gancho_fr&&p.gancho_fr!==frase&&!dictee?frCaja(p.gancho_fr):'';
+  const principal=dictee
+    ?'<div class="c-dictee"><button class="c-dic-oir" data-txt="'+esc(p.fr_chispa)+'">'+ICO.son+' Escuchar la frase</button>'+
+      '<div class="c-dic-fila"><input class="dictee-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe lo que oyes">'+
+      '<button class="dictee-ok">Revisar</button></div><p class="etat dictee-res"></p><div class="dictee-sol" hidden>'+frCaja(p.fr_chispa)+'</div></div>'
+    :(frase?frCaja(frase):'');
 
   el.innerHTML=
-    '<div class="card-overlay"></div>'+
-    '<div class="card-inner">'+
-    /* ── VISUAL: emoji grande + SVG ── */
-    '<div class="card-visual">'+
-      '<div class="emoji-grande">'+cat.emoGrande+'</div>'+
-      '<div class="svg-ilustra">'+svgVariante(p.c,p.id)+'</div>'+
+    visualGrande(p,cat)+
+    '<div class="c-autora"><span class="c-ava">'+(perf?perf.emo:cat.emo)+'</span><span><b>'+(perf?perf.nom:cat.nom)+'</b><small>'+fmt+'</small></span></div>'+
+    '<div class="c-texto">'+
+      '<h1 class="c-gancho">'+esc(gancho)+'</h1>'+
+      principal+
+      '<p class="c-aplica">'+esc(aplica)+'</p>'+
+      '<button class="c-mas">ver más ›</button>'+
     '</div>'+
-    /* ── PARTE 1: gancho ── */
-    '<div class="card-gancho">'+
-      '<div class="cat-tag"><span class="cat-emo pulse">'+cat.emo+'</span><span class="cat-nom">'+cat.nom+'</span>'+
-      '<span class="fr-pct">'+(v2&&FORMATO_NOM[p.formato]?(PERFILES[p.perfil]?PERFILES[p.perfil].emo+' '+PERFILES[p.perfil].nom+' · ':'')+FORMATO_NOM[p.formato]:pctFr()+'% FR')+'</span></div>'+
-      gancho+
-    '</div>'+
-    /* ── PARTE 2: dato ── */
-    '<div class="card-dato">'+
-      '<ul class="viñetas">'+renderViñetas(p.viñetas||[])+'</ul>'+
-      ayuda+
-      (dictee?bloqueDictee(p):frBlock(p,v2?'inmersion':modo))+
-      fuente+
-    '</div>'+
-    /* ── PARTE 3: cierre lúdico ── */
-    '<div class="card-cierre">'+renderCierre(p, p.cierre)+'</div>'+
-    '</div>'+
-    /* ── acciones laterales ── */
+    '<div class="c-velo"></div>'+
+    '<section class="c-hoja" aria-label="Ver más">'+
+      '<button class="c-asa" aria-label="Cerrar"></button>'+
+      '<h3>Más despacio</h3>'+
+      (p.fr_trad&&!dictee?'<p class="c-trad">«'+esc(p.fr_trad)+'»</p>':'')+
+      (expl.length?'<ul class="c-expl">'+expl.map(v=>'<li>'+v+'</li>').join('')+'</ul>':'')+
+      otraFr+fuente+
+      '<div class="card-cierre">'+renderCierre(p,p.cierre)+'</div>'+
+    '</section>'+
     '<div class="acciones">'+
-      '<button class="act son-btn" data-txt="'+esc(p.fr_chispa||p.gancho_fr||'')+'" aria-label="Escuchar">🔊</button>'+
-      '<button class="act gardar" aria-label="Me gusta">♡</button>'+
-      '<button class="act banco-btn" aria-label="Guardar en el banco">🔖</button>'+
-      '<button class="act noent-btn" aria-label="No entendí">❓</button>'+
+      '<button class="act son-btn" data-txt="'+esc(frase)+'" aria-label="Escuchar">'+ICO.son+'</button>'+
+      '<button class="act gardar" aria-label="Me gusta">'+ICO.cor+'</button>'+
+      '<button class="act banco-btn" aria-label="Guardar en el banco">'+ICO.ban+'</button>'+
+      '<button class="act noent-btn" aria-label="No entendí">'+ICO.pre+'</button>'+
     '</div>';
+
+  const hoja=el.querySelector('.c-hoja');
+  const abrirHoja=()=>el.classList.add('hoja-on');
+  const cerrarHoja=()=>el.classList.remove('hoja-on');
+  el.querySelector('.c-mas').addEventListener('click',abrirHoja);
+  el.querySelector('.c-velo').addEventListener('click',cerrarHoja);
+  el.querySelector('.c-asa').addEventListener('click',cerrarHoja);
+  hoja.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
 
   /* animación de entrada */
   el.style.opacity='0';el.style.transform='translateY(20px)';
@@ -2247,6 +2353,7 @@ async function crearCarte(p){
   if(IX.noEnt.includes(p.id))bn.classList.add('actif');
   bn.addEventListener('click',()=>{
     if(bn.classList.contains('actif')){
+      cerrarHoja();
       bn.classList.remove('actif');
       IX.noEnt=IX.noEnt.filter(x=>x!==p.id);
       noEntSesion.delete(p.id);
@@ -2255,7 +2362,7 @@ async function crearCarte(p){
       msg('Quitada la marca «no entendí»');
       return;
     }
-    el.querySelectorAll('details').forEach(d=>d.open=true);
+    abrirHoja();
     bn.classList.add('actif');
     if(!IX.noEnt.includes(p.id))IX.noEnt.push(p.id);
     anotar(p,'noent');
@@ -2303,7 +2410,7 @@ async function crearCarte(p){
   /* doble toque = guardar */
   let ult=0;
   el.addEventListener('click',ev=>{
-    if(ev.target.closest('button'))return;
+    if(ev.target.closest('button,input,.c-hoja'))return;
     const t=Date.now();
     if(t-ult<320){bg.click();ult=0;}else ult=t;
   });
@@ -2674,8 +2781,8 @@ function pintarBarra(){
   const nb=document.getElementById('faseNom');
   if(nb){nb.textContent='Fase '+E.fase+' · '+f.nom;nb.style.color='var(--teinte)';}
   const fp=document.getElementById('facePct');if(fp)fp.textContent=pctFr()+'% FR';
-  const hoy_n=document.getElementById('hoyN');if(hoy_n)hoy_n.textContent=diario.n+' hoy';
-  const racha_n=document.getElementById('rachaN');if(racha_n)racha_n.textContent=racha.dias+' días';
+  const hoy_n=document.getElementById('hoyN');if(hoy_n)hoy_n.textContent='· '+diario.n+(diario.n===1?' frase hoy':' frases hoy');
+  const racha_n=document.getElementById('rachaN');if(racha_n)racha_n.textContent='🔥 '+racha.dias+(racha.dias===1?' día':' días');
   const sig=FASES[E.fase];
   let pct=sig?Math.min(E.asim/Math.max(1,sig.umbral),1)*100:E.intens;
   const b=document.getElementById('faseBarre');if(b){b.style.width=pct+'%';}
@@ -2704,7 +2811,7 @@ document.addEventListener('pointerdown',()=>{
 function sonarCarta(p){
   if(!audioAuto||!audioListo)return;
   /* en la dictée suena la frase a escribir; en las demás, el gancho en francés */
-  const t=p.formato==='dictado_corto'?p.fr_chispa:(p.gancho_fr||p.fr_chispa);
+  const t=p.fr_chispa||p.gancho_fr;
   if(t)decir(t);
 }
 

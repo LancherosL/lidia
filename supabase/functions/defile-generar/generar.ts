@@ -55,7 +55,10 @@ Reglas de contenido:
 - Francés de Quebec primero (no de Francia). gancho_fr, viñetas y fr_chispa van en francés québécois correcto. La ayuda en español va aparte: gancho, viñetas_es y fr_trad.
 - Gancho: si no engancha en los primeros 3 segundos, no importa el resto. Empieza por lo sorprendente, útil o contraintuitivo; nunca por una introducción. El gancho abre una pregunta o un vacío de curiosidad que las viñetas responden de verdad; sin premios, sorteos ni promesas que la tarjeta no cumple.
 - Viñetas: máximo 3, cortas. Puedes usar <b>negrita</b> y empezar con un emoji.
-- fr_chispa: una frase corta y natural que ella pueda repetir en voz alta.
+- fr_chispa: una frase corta y natural que ella pueda repetir en voz alta (máximo 70 caracteres). Es la lección de la tarjeta: sale grande, debajo del gancho, con audio.
+- gancho: en español, es lo primero que ella lee; máximo 80 caracteres, como un post de Instagram. gancho y fr_chispa dicen lo mismo, o fr_chispa es la frase que el gancho promete.
+- aplica: una sola línea en español (máximo 70 caracteres) que dice cuándo o cómo usar fr_chispa en su vida en Quebec. Ejemplo: «Úsalo cuando no quieras salir con el frío.»
+- emoji: un solo emoji que ilustra el tema concreto de la tarjeta (🦠 para las mitocondrias, ❄️ para el frío); sale grande como imagen.
 - cierre: lúdico, nunca un examen. tipo "opinion" (2 opciones), "ab" (2 opciones que empiezan por "A " y "B ") o "siguiente" (opts vacío).
 - clave: la expresión, palabra o idea central de la tarjeta, en francés, en minúsculas.
 - c: el color visual de la tarjeta, la categoría que mejor le quede.
@@ -84,7 +87,7 @@ const ESQUEMA = {
         additionalProperties: false,
         required: [
           "perfil", "c", "formato", "tema", "clave", "dificultad", "largo", "tono",
-          "gancho_fr", "gancho", "viñetas", "viñetas_es", "fr_chispa", "fr_trad", "cierre", "source",
+          "gancho_fr", "gancho", "aplica", "emoji", "viñetas", "viñetas_es", "fr_chispa", "fr_trad", "cierre", "source",
         ],
         properties: {
           perfil: { type: "string", enum: Object.keys(PERFILES) },
@@ -97,6 +100,8 @@ const ESQUEMA = {
           tono: { type: "string", enum: ["serio", "divertido"] },
           gancho_fr: { type: "string" },
           gancho: { type: "string" },
+          aplica: { type: "string" },
+          emoji: { type: "string" },
           viñetas: { type: "array", items: { type: "string" } },
           viñetas_es: { type: "array", items: { type: "string" } },
           fr_chispa: { type: "string" },
@@ -134,6 +139,8 @@ type Pildora = {
   tono: string;
   gancho_fr: string;
   gancho: string;
+  aplica: string;
+  emoji: string;
   viñetas: string[];
   viñetas_es: string[];
   fr_chispa: string;
