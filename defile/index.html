@@ -1765,7 +1765,7 @@ const PREC_VENTANA = 20;
 let milestones = G.r('dfl_milestones',[]);
 /* interacciones: me gusta, no entendí, saltadas (<2.5 s sin tocar nada), y cuándo se vio
    cada tarjeta y cada clave, para no repetir en 14 días. Viajan a la nube en defile_progreso. */
-let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[],rb:{},ev:[],vida:[],repasar:[]},G.r('dfl_ix',{}));
+let IX = Object.assign({gusta:[],noEnt:[],salt:[],visto:{},claves:{},formatos:[],temas:[],rb:{},ev:[],vida:[],repasar:[],bk:{}},G.r('dfl_ix',{}));
 const NO_REPETIR_DIAS = 14;
 const LECTURAS_DIA = 5, LECTURA_MS = 4000;
 const HITOS_DIAS = [7, 30, 60, 100];
@@ -1779,7 +1779,7 @@ const PERFILES={
   corps:{nom:'Corps et maison',emo:'🧘'}
 };
 /* lo que vale cada reacción para el siguiente lote; ❓ no resta: pide el mismo tema más hondo y más lento */
-const PESOS_SENAL={gusta:2,quita:-2,banco:3,salto:-2,lectura:1,dictee:1,sabia:1,noent:0};
+const PESOS_SENAL={gusta:2,quita:-2,banco:3,desbanco:-3,salto:-2,lectura:1,dictee:1,sabia:1,noent:0};
 const PESO_MIN=.05, PESO_MAX=.5, VENTANA_DIAS=7, OLVIDO=.7, EMPUJE_VIDA=1, EMPUJE_ERROR=.15, MAX_ERRORES=4;
 
 /* ── pesos (inicio): funciones puras; la simulación de 7 días las corre fuera del navegador ── */
@@ -2222,20 +2222,40 @@ async function crearCarte(p){
 
   /* guardar en el banco compartido con Lidia (solo lo que ella guarda; nunca sobrescribe) */
   const bb=el.querySelector('.banco-btn');
+  if(IX.bk[p.id])bb.classList.add('actif');
   bb.addEventListener('click',async()=>{
-    if(bb.classList.contains('actif'))return;
-    bb.classList.add('actif');
-    const r=await guardarEnBanco(p);
-    if(!/banco 🔖$/.test(r))bb.classList.remove('actif');
-    else anotar(p,'banco');
-    msg(r);
+    if(bb.dataset.ocupado)return;
+    bb.dataset.ocupado='1';
+    if(IX.bk[p.id]){
+      bb.classList.remove('actif');
+      const r=await quitarDeBanco(IX.bk[p.id]);
+      if(r.ok){delete IX.bk[p.id];anotar(p,'desbanco');}
+      else bb.classList.add('actif');
+      msg(r.txt);
+    }else{
+      bb.classList.add('actif');
+      const r=await guardarEnBanco(p);
+      if(r.ok){IX.bk[p.id]=r.id;anotar(p,'banco');}
+      else bb.classList.remove('actif');
+      msg(r.txt);
+    }
+    delete bb.dataset.ocupado;
   });
 
   /* no entendí: abre la ayuda en español, vuelve al repaso y la IA lo explica distinto */
   const bn=el.querySelector('.noent-btn');
+  if(IX.noEnt.includes(p.id))bn.classList.add('actif');
   bn.addEventListener('click',()=>{
+    if(bn.classList.contains('actif')){
+      bn.classList.remove('actif');
+      IX.noEnt=IX.noEnt.filter(x=>x!==p.id);
+      noEntSesion.delete(p.id);
+      const fi=fall.indexOf(p.id);if(fi>=0){fall.splice(fi,1);G.w('dfl_f',fall);}
+      guardarIX();
+      msg('Quitada la marca «no entendí»');
+      return;
+    }
     el.querySelectorAll('details').forEach(d=>d.open=true);
-    if(bn.classList.contains('actif'))return;
     bn.classList.add('actif');
     if(!IX.noEnt.includes(p.id))IX.noEnt.push(p.id);
     anotar(p,'noent');
@@ -2761,6 +2781,7 @@ function fusionar(n){
   const llave=e=>e.d+'|'+e.k+'|'+e.id,ya=new Set(IX.ev.map(llave));
   (ni.ev||[]).forEach(e=>{if(!ya.has(llave(e))){IX.ev.push(e);ya.add(llave(e));}});
   IX.ev.sort((a,b)=>a.d.localeCompare(b.d));
+  IX.bk=Object.assign({},ni.bk||{},IX.bk);
   if((ni.vidaU||'')>(IX.vidaU||'')){IX.vida=ni.vida||[];IX.vidaU=ni.vidaU;}
   IX.repasar=u(IX.repasar,ni.repasar).slice(-10);
   G.w('dfl_ix',IX);
@@ -2803,19 +2824,30 @@ function guardarPronto(){clearTimeout(_t);_t=setTimeout(()=>guardar(true),900);}
 /* Banco compartido con Lidia: Défilé solo agrega lo que ella guarda (fuente "defile").
    Si la frase ya está en el banco, no la toca: nunca borra ni sobrescribe lo de Lidia. */
 async function guardarEnBanco(p){
-  if(!usuaria)return 'Entra con tu cuenta para guardar en el banco';
+  if(!usuaria)return {txt:'Entra con tu cuenta para guardar en el banco'};
   const limpio=t=>String(t||'').replace(/<[^>]+>/g,'').trim();
   const correcto=limpio(p.fr_chispa||p.gancho_fr);
-  if(!correcto)return 'Esta tarjeta no tiene frase para guardar';
+  if(!correcto)return {txt:'Esta tarjeta no tiene frase para guardar'};
   try{
     const {data:ya,error:e1}=await sb.from('banco').select('id').ilike('correcto',correcto.replace(/[%_\\]/g,'\\$&')).limit(1);
     if(e1)throw e1;
-    if(ya&&ya.length)return 'Ya estaba en tu banco 🔖';
+    if(ya&&ya.length)return {ok:true,id:'ya',txt:'Ya estaba en tu banco 🔖'};
     const nota=[limpio(p.fr_trad),p.source&&p.source.nombre?'Fuente: '+p.source.nombre:''].filter(Boolean).join(' · ')||null;
-    const {error}=await sb.from('banco').insert({user_id:usuaria.id,tipo:p.formato==='vocabulario_contexto'?'palabra':'expresion',correcto:correcto,nota:nota,fuente:'defile'});
+    const {data:fila,error}=await sb.from('banco').insert({user_id:usuaria.id,tipo:p.formato==='vocabulario_contexto'?'palabra':'expresion',correcto:correcto,nota:nota,fuente:'defile'}).select('id').single();
     if(error)throw error;
-    return 'Guardada en tu banco 🔖';
-  }catch(e){console.warn('Défile: no pude guardar en el banco',e);return 'No pude guardarla. Intenta otra vez.';}
+    return {ok:true,id:fila.id,txt:'Guardada en tu banco 🔖'};
+  }catch(e){console.warn('Défile: no pude guardar en el banco',e);return {txt:'No pude guardarla. Intenta otra vez.'};}
+}
+/* Quitar 🔖: solo borra la fila que Défilé creó con ese toque (fuente "defile", sin repasos hechos).
+   Si la frase ya estaba en el banco, o Lidia ya la repasó, no se toca. */
+async function quitarDeBanco(bid){
+  if(!bid||bid==='ya')return {ok:true,txt:'Quitada de tus guardadas'};
+  if(!usuaria)return {txt:'Entra con tu cuenta para quitarla del banco'};
+  try{
+    const {error}=await sb.from('banco').delete().eq('id',bid).eq('fuente','defile').eq('intervalo',1).eq('aciertos_seguidos',0);
+    if(error)throw error;
+    return {ok:true,txt:'Quitada del banco'};
+  }catch(e){console.warn('Défile: no pude quitarla del banco',e);return {txt:'No pude quitarla. Intenta otra vez.'};}
 }
 
 async function registrar(id,cat,ms){
