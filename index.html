@@ -30,6 +30,7 @@
   --dorado: #A8892A;
   --verde: #3E8F52;
   --rojo: #C2453D;
+  --rosa: #C2477E;
   --tinte: 12%;
   --radio: 18px;
 }
@@ -50,6 +51,7 @@
     --dorado: #D2B45A;
     --verde: #6CBF7F;
     --rojo: #E2766F;
+    --rosa: #E88BB4;
     --tinte: 18%;
   }
 }
@@ -69,6 +71,7 @@
   --dorado: #D2B45A;
   --verde: #6CBF7F;
   --rojo: #E2766F;
+  --rosa: #E88BB4;
   --tinte: 18%;
 }
 
@@ -156,16 +159,56 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .bloques i { display: block; height: 8px; margin-bottom: 6px; border-radius: 99px; background: var(--borde); overflow: hidden; }
 .bloques i u { display: block; height: 100%; background: var(--violeta); }
 .fase-desc { display: block; margin-top: 10px; color: var(--tinta-suave); }
-.pregunta { margin-top: 14px; }
-.pregunta .quien { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.pregunta .quien img { width: 36px; height: 36px; border-radius: 50%; }
-.pregunta .texto { font-size: 19px; line-height: 1.45; overflow-wrap: anywhere; }
-.pregunta .texto p { margin: 0 0 10px; }
-.pregunta .texto ul { margin: 0 0 10px; padding-left: 22px; }
-.pregunta .texto > :last-child { margin-bottom: 0; }
-.voz { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-.voz .btn { min-height: 64px; flex-direction: column; gap: 2px; font-size: 16px; border-radius: 18px; }
+.panel .tarjeta + * { margin-top: 12px; }
+.solo-pc { display: none; }
+.cifras.dos { grid-template-columns: 1fr 1fr; margin-top: 0; }
+.dicho { margin: 14px 4px 0; font-size: 14px; color: var(--tinta-suave); font-style: italic; overflow-wrap: anywhere; }
+.tarjetas { display: grid; gap: 10px; margin-top: 14px; }
+.pensando { padding: 18px; border-radius: var(--radio); background: var(--tarjeta); border: 1px solid var(--borde); color: var(--tinta-suave); font-style: italic; }
+
+/* Tarjetas de Lidia por tipo: siempre el mismo color, la misma etiqueta y el mismo icono. */
+.bq {
+  --c: var(--violeta);
+  padding: 14px 16px 14px 18px; border-radius: var(--radio); overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--c) var(--tinte), var(--tarjeta)); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  border-left: 6px solid var(--c);
+}
+.bq.pregunta { --c: var(--azul); background: var(--tarjeta); }
+.bq.exemple { --c: var(--verde); }
+.bq.correction { --c: var(--ambar); }
+.bq.defi { --c: var(--violeta); }
+.bq.bravo { --c: var(--rosa); }
+.bq.texto { --c: var(--borde); background: var(--tarjeta); }
+.bq-e { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--c); }
+.bq.texto .bq-e { color: var(--tinta-suave); }
+.bq-e span { font-size: 16px; letter-spacing: 0; }
+.bq-t { font-size: 18px; line-height: 1.6; max-height: calc(3 * 1.6em); overflow: hidden; }
+.bq.pregunta .bq-t { font-size: 20px; font-weight: 500; }
+.bq.abierto .bq-t { max-height: none; }
+.bq-t p { margin: 0 0 6px; }
+.bq-t ul { margin: 0 0 6px; padding-left: 22px; }
+.bq-t > :last-child { margin-bottom: 0; }
+.bq-mas { margin-top: 4px; padding: 4px 0; border: 0; background: none; color: var(--c); font-weight: 700; font-size: 14px; }
+.bq.texto .bq-mas { color: var(--violeta); }
+details.bq.plus { --c: var(--tinta-suave); background: var(--tarjeta); }
+details.bq.plus summary { font-weight: 700; color: var(--tinta-suave); cursor: pointer; }
+details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
+.msg.lidia .bq { padding: 8px 12px; border-radius: 12px; }
+.msg.lidia .bq + .bq { margin-top: 6px; }
+.msg.lidia .bq-t { font-size: 15px; max-height: none; }
+.msg.lidia .bq-mas { display: none; }
+
+/* Écouter y Parler: siempre a la vista; Parler es la acción principal. */
+.voz {
+  position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: 1fr 2fr; gap: 10px;
+  margin-top: 14px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fondo) 80%, transparent);
+}
+.voz .btn { min-height: 68px; flex-direction: column; gap: 2px; font-size: 16px; border-radius: 20px; }
 .voz .btn span { font-size: 26px; line-height: 1; }
+#b-voz { font-size: 18px; }
+#b-voz.activo { background: var(--rojo); }
+.icono-btn.auto[aria-pressed="false"] { opacity: .55; }
 .btn.siguiente { width: 100%; margin-top: 4px; }
 .historial { margin-top: 18px; }
 .historial summary { padding: 10px 0; color: var(--violeta); font-weight: 600; cursor: pointer; }
@@ -227,6 +270,43 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .exprs span { padding: 4px 10px; border-radius: 99px; font-size: 14px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); color: var(--violeta); }
 .btn.ancho { width: 100%; margin-top: 16px; min-height: 56px; }
 
+/* iPad y computador */
+@media (min-width: 768px) {
+  body { font-size: 18px; }
+  .app { max-width: 860px; padding-left: 32px; padding-right: 32px; }
+  .bq-t { font-size: 19px; }
+  .bq.pregunta .bq-t { font-size: 21px; }
+}
+@media (min-width: 1024px) {
+  .app { max-width: 1180px; padding: 28px 40px 48px; }
+  /* Pestañas arriba, como un menú de computador */
+  .pestanas {
+    top: 0; bottom: auto; justify-content: center; gap: 8px; padding: 10px 40px;
+    border-top: 0; border-bottom: 1px solid var(--borde);
+  }
+  .pestanas button { flex: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 12px; font-size: 16px; }
+  .pestanas button i { font-size: 18px; }
+  .pestanas button[aria-current="page"] { background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); }
+  body.con-pestanas .app { padding-top: 96px; padding-bottom: 48px; }
+  /* Accueil: a la izquierda Lidia y el botón; a la derecha las cifras y las apps */
+  #v-inicio:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 48px; align-items: start; }
+  #v-inicio > .barra { grid-column: 1 / -1; }
+  #v-inicio .col-b .cifras { margin-top: 0; }
+  .avatar-lidia { width: 140px; height: 140px; }
+  .hola h2 { font-size: 38px; }
+  /* Session: conversación a la izquierda, progreso a la derecha */
+  .sesion-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+  .panel { order: 2; position: sticky; top: 24px; }
+  .solo-pc { display: block; }
+  .voz { position: static; background: none; padding-bottom: 0; }
+  .bq-t { font-size: 20px; }
+  .bq.pregunta .bq-t { font-size: 22px; }
+  /* Ma banque y Clôture */
+  .items { grid-template-columns: 1fr 1fr; }
+  #v-libreria .buscar, #v-libreria .seg { max-width: 640px; }
+  #v-cierre { max-width: 760px; margin: 0 auto; }
+}
+
 /* Login y avisos */
 .login { margin-top: 18vh; text-align: center; }
 .login .avatar { margin: 0 auto 12px; }
@@ -278,6 +358,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
       <h1></h1>
       <button class="icono-btn" id="b-tema" aria-label="Thème" type="button"></button>
     </div>
+    <div class="col-a">
     <div class="hola">
       <div class="avatar avatar-lidia"><svg viewBox="0 0 120 120" role="img" aria-label="Lidia">
         <defs>
@@ -345,6 +426,8 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
       <span id="b-sesion-t">Commencer ma session de 2 heures</span>
       <small id="i-hoy">Conversation · Oral · Grammaire · Écriture</small>
     </button>
+    </div>
+    <div class="col-b">
     <div class="cifras">
       <div class="tarjeta cifra"><b id="i-horas">–</b><span>heures cumulées</span></div>
       <div class="tarjeta cifra"><b id="i-errores">–</b><span>erreurs à travailler</span></div>
@@ -364,6 +447,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
         <button class="btn sec" id="b-vincular" type="button">Connecter l'icône</button>
       </div>
     </div>
+    </div>
   </section>
 
   <!-- Session -->
@@ -371,39 +455,51 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
     <div class="barra">
       <button class="icono-btn" data-ir="inicio" aria-label="Retour" type="button">←</button>
       <h1>Session</h1>
+      <button class="icono-btn auto" id="b-auto" type="button" aria-pressed="true" aria-label="Lecture automatique">🔊</button>
       <button class="icono-btn" id="b-pausa" aria-label="Pause" type="button">❚❚</button>
     </div>
-    <div class="tarjeta">
-      <div class="reloj">
-        <div class="tiempo" id="s-tiempo">0:00:00</div>
-        <span class="chip" id="s-fase">Bloc 1 · Conversation</span>
+    <div class="sesion-grid">
+      <aside class="panel">
+        <div class="tarjeta">
+          <div class="reloj">
+            <div class="tiempo" id="s-tiempo">0:00:00</div>
+            <span class="chip" id="s-fase">Bloc 1 · Conversation</span>
+          </div>
+          <div class="bloques" id="s-fases"></div>
+          <small class="fase-desc" id="s-fase-desc"></small>
+        </div>
+        <div class="solo-pc">
+          <div class="cifras dos">
+            <div class="tarjeta cifra"><b id="s-racha">–</b><span>jours d'affilée</span></div>
+            <div class="tarjeta cifra"><b id="s-errores">–</b><span>erreurs à travailler</span></div>
+          </div>
+          <div class="bq defi" id="s-reto" hidden><div class="bq-e"><span>🎯</span>Défi du jour</div><div class="bq-t" id="s-reto-t" lang="fr"></div></div>
+        </div>
+      </aside>
+      <div class="conversa">
+        <div class="dicho" id="s-dicho" hidden></div>
+        <div class="tarjetas" id="s-actual" lang="fr"></div>
+        <div class="voz">
+          <button class="btn sec" id="b-escuchar" type="button"><span>🔊</span><b>Écouter</b></button>
+          <button class="btn" id="b-voz" type="button"><span>🎙</span><b>Parler</b></button>
+        </div>
+        <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
+        <div class="entrada" id="s-entrada">
+          <div class="caja">
+            <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
+            <textarea id="s-texto" rows="1" placeholder="Ou écris ta réponse…" lang="fr"></textarea>
+            <button class="icono-btn" id="b-enviar" aria-label="Envoyer" type="button">↑</button>
+          </div>
+          <input id="s-archivo" type="file" accept="image/*" hidden>
+        </div>
+        <button class="btn sec siguiente" id="b-siguiente" type="button">Bloc suivant →</button>
+        <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
+        <details class="historial">
+          <summary>Voir toute la conversation</summary>
+          <div class="chat" id="s-chat"></div>
+        </details>
       </div>
-      <div class="bloques" id="s-fases"></div>
-      <small class="fase-desc" id="s-fase-desc"></small>
     </div>
-    <div class="tarjeta pregunta" id="s-actual">
-      <div class="quien"><img src="icon.svg" alt=""><b>Lidia</b></div>
-      <div class="texto" id="s-actual-texto" lang="fr"></div>
-      <div class="voz">
-        <button class="btn sec" id="b-escuchar" type="button"><span>🔊</span>Écouter</button>
-        <button class="btn" id="b-voz" type="button"><span>🎙</span>Parler</button>
-      </div>
-    </div>
-    <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
-    <div class="entrada" id="s-entrada">
-      <div class="caja">
-        <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
-        <textarea id="s-texto" rows="1" placeholder="Ou écris ta réponse…" lang="fr"></textarea>
-        <button class="icono-btn" id="b-enviar" aria-label="Envoyer" type="button">↑</button>
-      </div>
-      <input id="s-archivo" type="file" accept="image/*" hidden>
-    </div>
-    <button class="btn sec siguiente" id="b-siguiente" type="button">Bloc suivant →</button>
-    <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
-    <details class="historial">
-      <summary>Voir toute la conversation</summary>
-      <div class="chat" id="s-chat"></div>
-    </details>
   </section>
 
   <!-- Clôture -->
@@ -415,11 +511,8 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
       <span class="racha-grande" id="c-racha"></span>
     </div>
     <div class="tarjeta bloque-r" id="c-exprs-t" hidden><h3 id="c-exprs-h">Expressions</h3><div class="exprs" id="c-exprs"></div></div>
-    <div class="tarjeta bloque-r">
-      <h3>Phrases et défi pour demain</h3>
-      <div class="texto" id="c-mensaje" lang="fr"></div>
-      <button class="btn sec" id="b-c-escuchar" type="button">🔊 Écouter</button>
-    </div>
+    <div class="tarjetas" id="c-mensaje" lang="fr"></div>
+    <button class="btn sec ancho" id="b-c-escuchar" type="button">🔊 Écouter</button>
     <button class="btn ancho" id="b-terminar" type="button">Terminer la session</button>
   </section>
 
@@ -666,7 +759,7 @@ $("b-sesion").onclick = () => ir(estado.hoyTerminada ? "cierre" : "sesion");
 // ── Sesión ──
 async function abrirSesion() {
   $("s-chat").innerHTML = "";
-  ponerActual("Un instant…");
+  pensando("Un instant…");
   let { data: s } = await sb.from("sesiones").select("*").eq("fecha", hoy()).order("creado", { ascending: false }).limit(1).maybeSingle();
   if (!s) {
     const nueva = await sb.from("sesiones").insert({
@@ -686,9 +779,32 @@ async function abrirSesion() {
   const { data: msgs } = await sb.from("mensajes").select("*").eq("sesion_id", s.id).order("creado");
   for (const m of msgs ?? []) await pintarMensaje(m.rol, m.contenido, null, m.imagen_url);
   if (!msgs?.some((m) => m.rol === "lidia")) ponerActual("");
+  const ultimaLaura = [...(msgs ?? [])].reverse().find((m) => m.rol === "laura" && !/^\((Nouvelle phase|Fin de la session) : .*\)$/.test(m.contenido || ""));
+  $("s-dicho").hidden = !ultimaLaura;
+  if (ultimaLaura) $("s-dicho").textContent = `Toi : ${ultimaLaura.contenido}`;
+  cargarPanel(s);
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
   continuar();
+}
+
+// Panel de computador: racha, errores vivos y el reto que dejó Lidia en la sesión anterior.
+async function cargarPanel(s) {
+  const guardado = leerLocal("lidia-inicio");
+  $("s-racha").textContent = guardado?.racha?.match(/\d+/)?.[0] ?? "0";
+  $("s-errores").textContent = guardado?.errores ?? "–";
+  const { data: previa } = await sb.from("sesiones").select("id").lt("fecha", s.fecha).order("fecha", { ascending: false }).limit(1).maybeSingle();
+  if (!previa) return;
+  const { data: msgs } = await sb.from("mensajes").select("contenido").eq("sesion_id", previa.id).eq("rol", "lidia").order("creado", { ascending: false }).limit(4);
+  for (const m of msgs ?? []) {
+    const defi = partir(m.contenido).find((b) => b.tipo === "defi")?.texto
+      ?? m.contenido?.match(/d[ée]fi[^:\n]*:\**\s*([^\n]+)/i)?.[1];
+    if (defi) {
+      $("s-reto-t").innerHTML = markdown(defi);
+      $("s-reto").hidden = false;
+      return;
+    }
+  }
 }
 
 function pintarReloj() {
@@ -764,12 +880,90 @@ $("b-siguiente").onclick = async () => {
 document.addEventListener("visibilitychange", () => { if (document.hidden) guardarTiempo(); });
 
 // La tarjeta grande muestra solo lo último que dijo Lidia: una cosa a la vez.
+// Lidia manda su mensaje partido por tipo: «[[tipo]] texto». Los mensajes viejos, sin tipo, salen como «texto».
+const TIPOS_BLOQUE = {
+  pregunta: { etiqueta: "Question", icono: "💬" },
+  exemple: { etiqueta: "Exemple", icono: "🌿" },
+  correction: { etiqueta: "Correction", icono: "✏️" },
+  defi: { etiqueta: "Défi", icono: "🎯" },
+  bravo: { etiqueta: "Bravo", icono: "🎉" },
+  plus: { etiqueta: "Voir plus", icono: "➕" },
+  texto: { etiqueta: "Lidia", icono: "✦" },
+};
+function partir(texto) {
+  const partes = (texto || "").split(/(?:^|\n+)\[\[(pregunta|exemple|correction|defi|bravo|plus)\]\]\s*/);
+  const bloques = [];
+  if (partes[0].trim()) bloques.push({ tipo: "texto", texto: partes[0].trim() });
+  for (let i = 1; i < partes.length; i += 2) bloques.push({ tipo: partes[i], texto: partes[i + 1].trim() });
+  // La pregunta siempre al final: es lo que Laura tiene que contestar.
+  return [...bloques.filter((b) => b.tipo !== "pregunta"), ...bloques.filter((b) => b.tipo === "pregunta")];
+}
+function textoPlano(texto) { return partir(texto).filter((b) => b.tipo !== "plus").map((b) => b.texto).join("\n"); }
+function htmlBloques(texto) {
+  return partir(texto).map((b) => {
+    const t = TIPOS_BLOQUE[b.tipo];
+    if (b.tipo === "plus") return `<details class="bq plus"><summary>${t.icono} ${t.etiqueta}</summary><div class="bq-t">${markdown(b.texto)}</div></details>`;
+    return `<div class="bq ${b.tipo}"><div class="bq-e"><span>${t.icono}</span>${t.etiqueta}</div><div class="bq-t">${markdown(b.texto)}</div><button class="bq-mas" type="button" hidden>Voir plus</button></div>`;
+  }).join("");
+}
+// Nada de más de 3 líneas a la vista: lo largo se pliega con «Voir plus».
+function plegar(contenedor) {
+  for (const bq of contenedor.querySelectorAll(".bq:not(.plus)")) {
+    const t = bq.querySelector(".bq-t"), b = bq.querySelector(".bq-mas");
+    if (!t || !b) continue;
+    b.hidden = t.scrollHeight <= t.clientHeight + 2;
+    b.onclick = () => { b.textContent = bq.classList.toggle("abierto") ? "Voir moins" : "Voir plus"; };
+  }
+}
+
+// Lo último de Lidia, en tarjetas por tipo: una cosa a la vez.
 function ponerActual(texto, voz) {
   estado.actual = { texto, voz };
-  $("s-actual-texto").innerHTML = markdown(texto);
+  $("s-actual").innerHTML = texto ? htmlBloques(texto) : "";
+  plegar($("s-actual"));
   $("b-escuchar").disabled = !texto;
 }
-$("b-escuchar").onclick = () => estado.actual?.texto && hablar(estado.actual.voz || estado.actual.texto);
+function pensando(texto) {
+  $("s-actual").innerHTML = `<div class="pensando">${texto}</div>`;
+  $("b-escuchar").disabled = true;
+}
+
+// ── Voz primero ──
+// Lidia lee sola cada mensaje nuevo (se puede apagar). Écouter repite o para.
+function leerAuto() { try { return localStorage.getItem("lidia-voz-auto") !== "no"; } catch { return true; } }
+function pintarAuto() {
+  const on = leerAuto();
+  $("b-auto").setAttribute("aria-pressed", on);
+  $("b-auto").textContent = on ? "🔊" : "🔇";
+  $("b-auto").setAttribute("aria-label", on ? "Lecture automatique : activée" : "Lecture automatique : désactivée");
+}
+$("b-auto").onclick = () => {
+  try { localStorage.setItem("lidia-voz-auto", leerAuto() ? "no" : "si"); } catch {}
+  pintarAuto();
+  if (!leerAuto() && "speechSynthesis" in window) speechSynthesis.cancel();
+  aviso(leerAuto() ? "Lidia lit ses messages à voix haute." : "Lecture automatique désactivée.");
+};
+pintarAuto();
+// Safari solo deja hablar después de un toque: el primer toque «abre» la voz.
+let vozAbierta = false;
+function abrirVoz() {
+  if (vozAbierta || !("speechSynthesis" in window)) return;
+  vozAbierta = true;
+  const u = new SpeechSynthesisUtterance(" ");
+  u.volume = 0;
+  speechSynthesis.speak(u);
+}
+function decir(texto, voz) { if (texto) hablar(voz || textoPlano(texto)); }
+$("b-escuchar").onclick = () => {
+  abrirVoz();
+  if ("speechSynthesis" in window && speechSynthesis.speaking) return speechSynthesis.cancel();
+  decir(estado.actual?.texto, estado.actual?.voz);
+};
+setInterval(() => {
+  if ($("v-sesion").hidden || !("speechSynthesis" in window)) return;
+  const habla = speechSynthesis.speaking;
+  $("b-escuchar").innerHTML = habla ? "<span>⏹</span><b>Arrêter</b>" : "<span>🔊</span><b>Écouter</b>";
+}, 300);
 
 async function pintarMensaje(rol, texto, voz, imagenPath) {
   const div = document.createElement("div");
@@ -780,14 +974,14 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
     const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
     if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Photo du texte">`;
   }
-  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? markdown(texto) : escapar(texto).replace(/\n/g, "<br>");
+  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? htmlBloques(texto) : escapar(texto).replace(/\n/g, "<br>");
   div.innerHTML = html;
   if (rol === "lidia") {
     const b = document.createElement("button");
     b.className = "escuchar";
     b.type = "button";
     b.textContent = "🔊 Écouter";
-    b.onclick = () => hablar(voz || texto);
+    b.onclick = () => { abrirVoz(); decir(texto, voz); };
     div.appendChild(b);
     ponerActual(texto, voz);
   }
@@ -817,11 +1011,12 @@ async function cargarCierre() {
   $("c-exprs-h").textContent = `${lista.length} expression${lista.length > 1 ? "s" : ""}`;
   $("c-exprs").innerHTML = lista.map((x) => `<span lang="fr">${escapar(x.correcto)}</span>`).join("");
   estado.cierre = ultimo.data?.contenido || "";
-  $("c-mensaje").innerHTML = markdown(estado.cierre);
+  $("c-mensaje").innerHTML = htmlBloques(estado.cierre);
+  plegar($("c-mensaje"));
   const terminada = s.fase_actual === "terminada";
   $("b-terminar").textContent = terminada ? "Retour à l'accueil" : "Terminer la session";
 }
-$("b-c-escuchar").onclick = () => estado.cierre && hablar(estado.cierre);
+$("b-c-escuchar").onclick = () => { abrirVoz(); decir(estado.cierre); };
 $("b-terminar").onclick = async () => {
   if (estado.sesion && estado.sesion.fase_actual !== "terminada") {
     const { error } = await sb.from("sesiones").update({ fase_actual: "terminada", segundos: estado.segundos }).eq("id", estado.sesion.id);
@@ -850,9 +1045,13 @@ async function enviarYa(texto, fotoPath) {
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
+  // Lo que Laura dijo se muestra después, en pequeño.
+  if (!/^\((Nouvelle phase|Fin de la session) : .*\)$/.test(texto)) {
+    $("s-dicho").textContent = `Toi : ${fotoPath ? "📷 " : ""}${texto}`;
+    $("s-dicho").hidden = false;
+  }
   const anterior = estado.actual;
-  ponerActual(fotoPath ? "*Lidia lit ton texte…*" : "*Lidia écrit…*");
-  $("b-escuchar").disabled = true;
+  pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
     const { data, error } = await sb.functions.invoke("lidia", {
       body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy() },
@@ -864,6 +1063,7 @@ async function enviarYa(texto, fotoPath) {
     }
     estado.resumen = data.resumen_sesion;
     await pintarMensaje("lidia", data.mensaje, data.voz);
+    if (leerAuto()) decir(data.mensaje, data.voz);
     if (data.nuevos_items?.length) aviso(`${data.nuevos_items.length} nouveauté${data.nuevos_items.length > 1 ? "s" : ""} dans ta banque`);
   } catch (e) {
     ponerActual(anterior?.texto || "", anterior?.voz);
@@ -875,6 +1075,7 @@ async function enviarYa(texto, fotoPath) {
 }
 
 $("b-enviar").onclick = () => {
+  abrirVoz();
   const t = $("s-texto").value.trim();
   if (!t) return;
   $("s-texto").value = "";
@@ -955,21 +1156,32 @@ function hablar(texto) {
 }
 const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
 let escucha = null;
+// El dictado escribe «Anna»: es Ana (Ana Maria).
+function arreglarNombres(t) { return t.replace(/\bAnna\b/g, "Ana"); }
+// Parler: un toque para hablar, otro para enviar. Lo dicho se manda solo a Lidia.
 $("b-voz").onclick = () => {
+  abrirVoz();
   if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escucha) return escucha.stop();
+  if (estado.enviando) return aviso("Attends que Lidia ait fini.");
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  let dicho = "";
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
   escucha.interimResults = true;
   escucha.continuous = true;
-  const base = $("s-texto").value ? $("s-texto").value + " " : "";
-  escucha.onresult = (e) => {
-    $("s-texto").value = base + Array.from(e.results).map((r) => r[0].transcript).join(" ");
-    ajustarAlto();
+  escucha.onresult = (e) => { dicho = Array.from(e.results).map((r) => r[0].transcript).join(" "); };
+  escucha.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
+  escucha.onend = () => {
+    escucha = null;
+    $("b-voz").classList.remove("activo");
+    $("b-voz").innerHTML = "<span>🎙</span><b>Parler</b>";
+    const t = arreglarNombres(dicho.trim());
+    if (t) enviar(t);
+    else aviso("Je n'ai rien entendu. Réessaie.");
   };
-  escucha.onerror = (e) => { if (e.error !== "aborted") aviso(`Micro : ${e.error}`); };
-  escucha.onend = () => { escucha = null; $("b-voz").classList.remove("activo"); };
   $("b-voz").classList.add("activo");
+  $("b-voz").innerHTML = "<span>⏺</span><b>Je t'écoute… touche pour envoyer</b>";
   escucha.start();
 };
 
