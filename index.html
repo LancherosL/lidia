@@ -630,6 +630,9 @@ function ir(vista) { location.hash = vista; }
 async function enrutar() {
   if (!estado.usuaria) return mostrar("login");
   const vista = location.hash.slice(1) || "inicio";
+  // Al cambiar de pantalla, Lidia se calla; solo sigue leyendo el cierre al pasar de Session a Clôture.
+  if (vista !== estado.vista && !(estado.vista === "sesion" && vista === "cierre")) callar();
+  estado.vista = vista;
   if (vista !== "sesion") pausar();
   if (vista === "sesion") { mostrar("sesion"); await abrirSesion(); }
   else if (vista === "cierre") { mostrar("cierre"); await cargarCierre(); }
