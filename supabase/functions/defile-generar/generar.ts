@@ -58,7 +58,8 @@ Reglas de contenido:
 - fr_chispa: una frase corta y natural que ella pueda repetir en voz alta (máximo 70 caracteres). Es la lección de la tarjeta: sale grande, debajo del gancho, con audio.
 - gancho: en español, es lo primero que ella lee; máximo 80 caracteres, como un post de Instagram. gancho y fr_chispa dicen lo mismo, o fr_chispa es la frase que el gancho promete.
 - aplica: una sola línea en español (máximo 70 caracteres) que dice cuándo o cómo usar fr_chispa en su vida en Quebec. Ejemplo: «Úsalo cuando no quieras salir con el frío.»
-- emoji: un solo emoji que ilustra el tema concreto de la tarjeta (🦠 para las mitocondrias, ❄️ para el frío); sale grande como imagen.
+- emoji: un solo emoji que ilustra el tema concreto de la tarjeta (🦠 para las mitocondrias, ❄️ para el frío); sale grande como imagen si no hay foto.
+- imagen_q: 2 a 4 palabras en inglés para buscar una foto real del tema en Wikimedia Commons: algo concreto que se pueda fotografiar (por ejemplo «knit winter hat snow», «swimming pool lanes»), sin nombres de personas.
 - cierre: lúdico, nunca un examen. tipo "opinion" (2 opciones), "ab" (2 opciones que empiezan por "A " y "B ") o "siguiente" (opts vacío).
 - clave: la expresión, palabra o idea central de la tarjeta, en francés, en minúsculas.
 - c: el color visual de la tarjeta, la categoría que mejor le quede.
@@ -87,7 +88,7 @@ const ESQUEMA = {
         additionalProperties: false,
         required: [
           "perfil", "c", "formato", "tema", "clave", "dificultad", "largo", "tono",
-          "gancho_fr", "gancho", "aplica", "emoji", "viñetas", "viñetas_es", "fr_chispa", "fr_trad", "cierre", "source",
+          "gancho_fr", "gancho", "aplica", "emoji", "imagen_q", "viñetas", "viñetas_es", "fr_chispa", "fr_trad", "cierre", "source",
         ],
         properties: {
           perfil: { type: "string", enum: Object.keys(PERFILES) },
@@ -102,6 +103,7 @@ const ESQUEMA = {
           gancho: { type: "string" },
           aplica: { type: "string" },
           emoji: { type: "string" },
+          imagen_q: { type: "string" },
           viñetas: { type: "array", items: { type: "string" } },
           viñetas_es: { type: "array", items: { type: "string" } },
           fr_chispa: { type: "string" },
@@ -141,6 +143,7 @@ type Pildora = {
   gancho: string;
   aplica: string;
   emoji: string;
+  imagen_q: string;
   viñetas: string[];
   viñetas_es: string[];
   fr_chispa: string;

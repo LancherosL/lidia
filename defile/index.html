@@ -434,6 +434,18 @@ header{background:linear-gradient(to bottom,rgba(28,28,30,.55),transparent);}
 .carte.v3 .act.actif svg .q{stroke:var(--relleno);}
 .carte.v3 .act.actif svg .qp{fill:var(--relleno);}
 .carte.v3 .act.parle{background:var(--relleno);border-color:var(--relleno);}
+/* foto real con zoom lento (solo en la tarjeta que se ve) y piloto de video en bucle */
+.c-foto,.c-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease;transform-origin:50% 40%;}
+.carte.con-foto .c-foto,.carte.con-video .c-video{opacity:1;}
+.carte.con-foto .c-emo,.carte.con-video .c-emo{opacity:0;}
+.carte.v3[data-actif="1"] .c-foto{animation:zoomLento 16s ease-in-out infinite alternate;}
+@keyframes zoomLento{from{transform:scale(1)}to{transform:scale(1.14) translate(-1.5%,-1%)}}
+.c-credito{position:absolute;z-index:2;right:84px;left:16px;bottom:10px;margin:0;font-size:10.5px;line-height:1.3;color:rgba(244,242,238,.6);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.8);}
+.c-visual::after{z-index:1;}
+.carte.con-foto .c-visual::before,.carte.con-video .c-visual::before{content:"";position:absolute;z-index:1;inset:0 0 auto 0;height:180px;background:linear-gradient(to bottom,rgba(28,28,30,.7),transparent);}
+.carte.v3{animation:entrar .45s cubic-bezier(.2,.8,.2,1);}
+@keyframes entrar{from{opacity:0;transform:translateY(28px) scale(.98)}to{opacity:1;transform:none}}
 /* ver más: hoja que sube */
 .c-velo{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s;cursor:pointer;}
 .c-hoja{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:72dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--hoja);
@@ -2231,7 +2243,66 @@ function visualGrande(p,cat){
     '<defs><radialGradient id="cv'+p.id+'" cx="'+(35+r(1,35))+'%" cy="'+(30+r(4,25))+'%" r="85%"><stop offset="0" stop-color="#5B47A0"/><stop offset=".55" stop-color="#2E2547"/><stop offset="1" stop-color="#1C1C1E"/></radialGradient></defs>'+
     '<rect width="390" height="470" fill="url(#cv'+p.id+')"/>'+
     '<circle cx="195" cy="250" r="150" fill="#3C3164" opacity=".55"/><circle cx="195" cy="250" r="118" fill="none" stroke="#A68BEA" stroke-width="3" opacity=".45"/>'+
-    bolas+'</svg><div class="c-emo">'+emo+'</div></div>';
+    bolas+'</svg><div class="c-emo">'+emo+'</div>'+
+    (VIDEO_PILOTO.temas.includes(p.tema)?'<video class="c-video" muted loop playsinline preload="none" aria-hidden="true">'+
+      VIDEO_PILOTO.src.map(v=>'<source src="'+v.u+'"'+(v.t?' type=\''+v.t+'\'':'')+'>').join('')+'</video>':'<img class="c-foto" alt="" decoding="async">')+
+    '<p class="c-credito"></p></div>';
+}
+
+/* ─── fotos y video (piloto, gratis): Wikimedia Commons, sin cuenta ni clave; licencias libres con su crédito ───
+   Solo se busca la foto de la tarjeta que se ve y de la siguiente. El emoji queda de respaldo si no hay foto. */
+const TEMA_FOTO={lengua:'library books reading',pronunciacion:'woman speaking microphone',tecfee:'student writing exam',garderie_trabajo:'daycare children playing',
+  crianza_escuela:'school children classroom',saaq_salud:'Quebec road winter car',casa_barrio:'Montreal street houses',comida:'Quebec food poutine',
+  salud_fisio:'physiotherapy exercise',clima:'Montreal snow winter street',cultura_quebecoise:'Quebec City old town',tramites:'office paperwork form',
+  actualidad:'newspaper reading',colombia_mundo:'Bogota Colombia city',agua_ambiente:'Saint Lawrence river water'};
+const VIDEO_PILOTO={temas:['clima'],
+  src:[{u:'https://upload.wikimedia.org/wikipedia/commons/transcoded/3/35/Snowing_in_Harbin_20220305.ogv/Snowing_in_Harbin_20220305.ogv.480p.vp9.webm',t:'video/webm; codecs="vp9"'},
+       {u:'https://upload.wikimedia.org/wikipedia/commons/transcoded/3/35/Snowing_in_Harbin_20220305.ogv/Snowing_in_Harbin_20220305.ogv.360p.mpeg4.mov',t:''}],
+  credito:'Video: SD hehua · CC BY 4.0 · Wikimedia Commons'};
+let FOTOS=G.r('dfl_fotos',{});
+const _sinHtml=t=>String(t||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+async function buscarFoto(q){
+  const url='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=6'+
+    '&gsrsearch='+encodeURIComponent(q+' filetype:bitmap')+'&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiextmetadatafilter=LicenseShortName|Artist&iiurlwidth=900';
+  const r=await fetch(url);if(!r.ok)return null;
+  const pages=Object.values(((await r.json()).query||{}).pages||{}).sort((a,b)=>a.index-b.index);
+  for(const pg of pages){
+    const ii=(pg.imageinfo||[])[0];if(!ii||ii.mime!=='image/jpeg'||ii.width<600||ii.height<400)continue;
+    const m=ii.extmetadata||{};
+    return {u:ii.thumburl||ii.url,a:_sinHtml(m.Artist&&m.Artist.value).slice(0,40),l:_sinHtml(m.LicenseShortName&&m.LicenseShortName.value),f:ii.descriptionurl};
+  }
+  return null;
+}
+async function cargarFoto(el){
+  const p=el&&el._p,img=el&&el.querySelector('.c-foto');
+  if(!p||!img||img.dataset.pedida)return;
+  img.dataset.pedida='1';
+  let f=FOTOS[p.id];
+  if(f===undefined){
+    const qs=[p.imagen_q,TEMA_FOTO[p.tema]].filter(Boolean);
+    f=null;
+    for(const q of qs){try{f=await buscarFoto(q);}catch(e){f=null;}if(f)break;}
+    FOTOS[p.id]=f;
+    const ks=Object.keys(FOTOS);if(ks.length>300)ks.slice(0,ks.length-300).forEach(k=>delete FOTOS[k]);
+    G.w('dfl_fotos',FOTOS);
+  }
+  if(!f)return;
+  const t0=performance.now();
+  img.onload=()=>{el.classList.add('con-foto');el.dataset.fotoMs=String(Math.round(performance.now()-t0));};
+  img.src=f.u;
+  el.querySelector('.c-credito').textContent='Foto: '+(f.a?f.a+' · ':'')+(f.l?f.l+' · ':'')+'Wikimedia Commons';
+}
+/* al cambiar de tarjeta: foto de esta y de la siguiente; el video solo corre en la que se ve */
+function activarMedia(el){
+  feed.querySelectorAll('.c-video').forEach(v=>{if(!el.contains(v)&&!v.paused)v.pause();});
+  cargarFoto(el);cargarFoto(el.nextElementSibling);
+  const v=el.querySelector('.c-video');
+  if(v){
+    if(v.preload==='none'){v.preload='auto';v.load();const t0=performance.now();
+      v.addEventListener('playing',()=>{el.classList.add('con-video');if(!el.dataset.videoMs)el.dataset.videoMs=String(Math.round(performance.now()-t0));},{once:true});}
+    el.querySelector('.c-credito').textContent=VIDEO_PILOTO.credito;
+    const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{});
+  }
 }
 
 async function crearCarte(p){
@@ -2860,6 +2931,7 @@ const obs=new IntersectionObserver(ents=>{
       cartaActiva=e.target;
       feed.querySelectorAll('.carte').forEach(c=>c.dataset.actif='0');
       e.target.dataset.actif='1';
+      if(e.target.classList.contains('v3'))activarMedia(e.target);
       if(e.target.dataset.t0==='0'){e.target.dataset.t0=String(Date.now());verCarta(e.target);}
       const idx=[].indexOf.call(feed.children,e.target);
       if(feed.children.length-idx<4)alimentar(4);
