@@ -2841,7 +2841,46 @@ if('speechSynthesis' in window){
   /* iOS necesita un segundo intento */
   setTimeout(elegirVoz,800);
 }
-function decir(txt,btn){
+/* ─── voz B (ElevenLabs, Sarah) por la función "voz" de Frances, con caché; la voz del navegador queda de respaldo ───
+   Lidia va primero: Défilé solo gasta hasta VOZ_TOPE caracteres nuevos al mes (las frases ya guardadas no gastan). */
+const VOZ_TOPE=2500;
+const vozUrls=new Map();
+let vozTurno=0,vozPausa=0;
+const vozAudio=new Audio();vozAudio.preload='auto';
+function _mes(){return hoy().slice(0,7);}
+function vozGasto(){const v=IX.vozMes||{};return v.m===_mes()?(v.n||0):0;}
+async function decir(txt,btn){
+  const limpio=String(txt||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  if(!limpio)return;
+  const turno=++vozTurno;
+  try{speechSynthesis.cancel();}catch(e){}
+  vozAudio.pause();
+  const yaUrl=vozUrls.get(limpio);
+  const puede=usuaria&&online&&Date.now()>vozPausa&&(yaUrl||vozGasto()+limpio.length<=VOZ_TOPE);
+  if(!puede)return decirNavegador(limpio,btn);
+  if(btn)btn.classList.add('parle');
+  const limpiar=()=>{if(btn)btn.classList.remove('parle');};
+  try{
+    let url=yaUrl&&yaUrl.hasta>Date.now()?yaUrl.u:null;
+    if(!url){
+      const {data,error}=await sb.functions.invoke('voz',{body:{texto:limpio}});
+      if(error||!data||!data.url)throw error||new Error('sin url');
+      url=data.url;
+      vozUrls.set(limpio,{u:url,hasta:Date.now()+50*60e3});
+      if(!data.cache){IX.vozMes={m:_mes(),n:vozGasto()+limpio.length};guardarIX();}
+    }
+    if(turno!==vozTurno){limpiar();return;}  /* ya pasó a otra tarjeta */
+    vozAudio.src=url;
+    vozAudio.onended=vozAudio.onerror=limpiar;
+    await vozAudio.play();
+  }catch(e){
+    console.warn('Défile: voz B no disponible, uso la del navegador',e);
+    vozPausa=Date.now()+10*60e3;  /* cupo agotado o red: 10 min con la voz del navegador */
+    limpiar();
+    if(turno===vozTurno)decirNavegador(limpio,btn);
+  }
+}
+function decirNavegador(txt,btn){
   if(!txt||!('speechSynthesis' in window)){ if(btn)btn.classList.remove('parle'); return; }
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(txt.replace(/<[^>]+>/g,''));
@@ -2884,7 +2923,7 @@ function pintarAudio(){bAudio.classList.toggle('apagado',!audioAuto);bAudio.text
 pintarAudio();
 bAudio.addEventListener('click',()=>{
   audioAuto=!audioAuto;G.w('dfl_audio',audioAuto);pintarAudio();
-  if(!audioAuto&&'speechSynthesis' in window)speechSynthesis.cancel();
+  if(!audioAuto){vozTurno++;vozAudio.pause();if('speechSynthesis' in window)speechSynthesis.cancel();}
   msg(audioAuto?'Audio automático activado':'Audio automático apagado');
   if(audioAuto&&cartaActiva&&cartaActiva._p)sonarCarta(cartaActiva._p);
 });
@@ -2893,6 +2932,8 @@ document.addEventListener('pointerdown',()=>{
   audioListo=true;
   /* desbloquea el habla en iOS con una frase vacía dentro del toque */
   try{speechSynthesis.speak(new SpeechSynthesisUtterance(''));}catch(e){}
+  /* y el audio de la voz B: iOS solo deja sonar un <audio> que ya sonó una vez dentro de un toque */
+  try{vozAudio.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';const pr=vozAudio.play();if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}
 },{capture:true});
 function sonarCarta(p){
   if(!audioAuto||!audioListo)return;
@@ -2976,6 +3017,7 @@ function fusionar(n){
   (ni.ev||[]).forEach(e=>{if(!ya.has(llave(e))){IX.ev.push(e);ya.add(llave(e));}});
   IX.ev.sort((a,b)=>a.d.localeCompare(b.d));
   IX.bk=Object.assign({},ni.bk||{},IX.bk);
+  if(ni.vozMes&&ni.vozMes.m===(IX.vozMes||{}).m)IX.vozMes.n=Math.max(IX.vozMes.n||0,ni.vozMes.n||0);else if(ni.vozMes&&ni.vozMes.m>((IX.vozMes||{}).m||''))IX.vozMes=ni.vozMes;
   if((ni.vidaU||'')>(IX.vidaU||'')){IX.vida=ni.vida||[];IX.vidaU=ni.vidaU;}
   IX.repasar=u(IX.repasar,ni.repasar).slice(-10);
   G.w('dfl_ix',IX);
