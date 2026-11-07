@@ -940,29 +940,72 @@ function pintarAuto() {
 $("b-auto").onclick = () => {
   try { localStorage.setItem("lidia-voz-auto", leerAuto() ? "no" : "si"); } catch {}
   pintarAuto();
-  if (!leerAuto() && "speechSynthesis" in window) speechSynthesis.cancel();
+  if (!leerAuto()) callar();
   aviso(leerAuto() ? "Lidia lit ses messages à voix haute." : "Lecture automatique désactivée.");
 };
 pintarAuto();
 // Safari solo deja hablar después de un toque: el primer toque «abre» la voz.
 let vozAbierta = false;
+// La voz de Lidia es la B de la prueba ciega (ElevenLabs, función «voz», con caché en Supabase).
+// Si la función falla, lee la voz del navegador.
+const audioLidia = new Audio();
+let turnoVoz = 0, cargandoVoz = false;
 function abrirVoz() {
-  if (vozAbierta || !("speechSynthesis" in window)) return;
+  if (vozAbierta) return;
   vozAbierta = true;
-  const u = new SpeechSynthesisUtterance(" ");
-  u.volume = 0;
-  speechSynthesis.speak(u);
+  // Un audio mudo dentro del toque deja que el iPhone reproduzca después sin otro toque.
+  const silencio = new Uint8Array(44 + 800);
+  const v = new DataView(silencio.buffer);
+  [..."RIFF"].forEach((c, i) => v.setUint8(i, c.charCodeAt(0)));
+  v.setUint32(4, 36 + 800, true);
+  [..."WAVEfmt "].forEach((c, i) => v.setUint8(8 + i, c.charCodeAt(0)));
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  [..."data"].forEach((c, i) => v.setUint8(36 + i, c.charCodeAt(0)));
+  v.setUint32(40, 800, true);
+  silencio.fill(128, 44);
+  audioLidia.src = URL.createObjectURL(new Blob([silencio], { type: "audio/wav" }));
+  audioLidia.play().catch(() => {});
+  if ("speechSynthesis" in window) {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }
 }
-function decir(texto, voz) { if (texto) hablar(voz || textoPlano(texto)); }
+function callar() {
+  turnoVoz++;
+  cargandoVoz = false;
+  audioLidia.pause();
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+}
+function hablando() {
+  return cargandoVoz || (!audioLidia.paused && !audioLidia.ended) || ("speechSynthesis" in window && speechSynthesis.speaking);
+}
+async function hablarLidia(texto) {
+  callar();
+  const mio = turnoVoz;
+  cargandoVoz = true;
+  try {
+    const { data, error } = await sb.functions.invoke("voz", { body: { texto: limpiarVoz(texto) } });
+    if (error || !data?.url) throw new Error("voz");
+    if (mio !== turnoVoz) return;
+    audioLidia.src = data.url;
+    await audioLidia.play();
+  } catch {
+    if (mio === turnoVoz) hablar(texto);
+  } finally {
+    if (mio === turnoVoz) cargandoVoz = false;
+  }
+}
+function decir(texto, voz) { if (texto) hablarLidia(voz || textoPlano(texto)); }
 $("b-escuchar").onclick = () => {
   abrirVoz();
-  if ("speechSynthesis" in window && speechSynthesis.speaking) return speechSynthesis.cancel();
+  if (hablando()) return callar();
   decir(estado.actual?.texto, estado.actual?.voz);
 };
 setInterval(() => {
-  if ($("v-sesion").hidden || !("speechSynthesis" in window)) return;
-  const habla = speechSynthesis.speaking;
-  $("b-escuchar").innerHTML = habla ? "<span>⏹</span><b>Arrêter</b>" : "<span>🔊</span><b>Écouter</b>";
+  if ($("v-sesion").hidden) return;
+  $("b-escuchar").innerHTML = hablando() ? "<span>⏹</span><b>Arrêter</b>" : "<span>🔊</span><b>Écouter</b>";
 }, 300);
 
 async function pintarMensaje(rol, texto, voz, imagenPath) {
@@ -1135,16 +1178,19 @@ if ("speechSynthesis" in window) {
   elegirVoz();
   speechSynthesis.addEventListener("voiceschanged", elegirVoz);
 }
-function hablar(texto) {
-  if (!("speechSynthesis" in window)) return aviso("Ce navigateur ne peut pas lire à voix haute.");
-  speechSynthesis.cancel();
-  if (!vozElegida) elegirVoz();
-  const limpio = texto
-    .replace(/[*_#>`]/g, "")
+function limpiarVoz(texto) {
+  return texto
+    .replace(/[*_#>`~]/g, "")
     .replace(/\p{Extended_Pictographic}|️/gu, "")
     .replace(/\s*→\s*/g, ", ")
     .replace(/\s+/g, " ")
     .trim();
+}
+function hablar(texto) {
+  if (!("speechSynthesis" in window)) return aviso("Ce navigateur ne peut pas lire à voix haute.");
+  speechSynthesis.cancel();
+  if (!vozElegida) elegirVoz();
+  const limpio = limpiarVoz(texto);
   // Frase por frase: las pausas entre frases suenan más humanas que un bloque largo.
   for (const frase of limpio.match(/[^.!?…]+[.!?…]*/g) || [limpio]) {
     const u = new SpeechSynthesisUtterance(frase.trim());
@@ -1164,7 +1210,7 @@ $("b-voz").onclick = () => {
   if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escucha) return escucha.stop();
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  callar();
   let dicho = "";
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
