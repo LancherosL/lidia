@@ -435,15 +435,23 @@ header{background:linear-gradient(to bottom,rgba(28,28,30,.55),transparent);}
 .carte.v3 .act.actif svg .qp{fill:var(--relleno);}
 .carte.v3 .act.parle{background:var(--relleno);border-color:var(--relleno);}
 /* ver más: hoja que sube */
-.c-velo{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s;}
+.c-velo{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s;cursor:pointer;}
 .c-hoja{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:72dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--hoja);
   border-radius:26px 26px 0 0;padding:10px 22px calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
   box-shadow:0 -10px 40px rgba(0,0,0,.5);color:var(--tinta3);}
 .carte.hoja-on .c-velo{opacity:1;pointer-events:auto;}
 .carte.hoja-on .c-hoja{transform:none;}
-.c-asa{display:block;width:60px;height:22px;margin:0 auto 6px;position:relative;}
-.c-asa::before{content:"";position:absolute;left:9px;right:9px;top:8px;height:5px;border-radius:3px;background:#55525A;}
+/* barra de arriba de la hoja: siempre a la vista; se arrastra hacia abajo para cerrar */
+.c-hoja-top{position:sticky;top:-10px;z-index:2;margin:-10px -22px 6px;padding:10px 12px 4px 22px;background:var(--hoja);
+  display:flex;align-items:center;touch-action:none;cursor:grab;}
+.c-asa{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:120px;height:30px;}
+.c-asa::before{content:"";position:absolute;left:38px;right:38px;top:6px;height:5px;border-radius:3px;background:#77737C;}
+.c-hoja-top h3{flex:1;margin:22px 0 0;}
+.c-cerrar{flex:0 0 44px;width:44px;height:44px;margin-top:12px;border-radius:50%;display:grid;place-items:center;background:rgba(244,242,238,.12);}
+.c-cerrar svg{width:22px;height:22px;stroke:var(--tinta3);stroke-width:2.4;stroke-linecap:round;fill:none;}
+.c-hoja.arrastre{transition:none;}
 .c-hoja h3{margin:0 0 10px;font-size:19px;}
+.c-hoja .c-hoja-top h3{margin:22px 0 8px;}
 .c-trad{margin:0 0 12px;font-size:17px;color:var(--tinta3);}
 .c-expl{margin:0 0 14px;padding-left:20px;color:var(--suave3);font-size:17px;line-height:1.45;}
 .c-expl li{margin-bottom:8px;}
@@ -2264,8 +2272,8 @@ async function crearCarte(p){
     '</div>'+
     '<div class="c-velo"></div>'+
     '<section class="c-hoja" aria-label="Ver más">'+
-      '<button class="c-asa" aria-label="Cerrar"></button>'+
-      '<h3>Más despacio</h3>'+
+      '<div class="c-hoja-top"><span class="c-asa" aria-hidden="true"></span><h3>Más despacio</h3>'+
+        '<button class="c-cerrar" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+
       (p.fr_trad&&!dictee?'<p class="c-trad">«'+esc(p.fr_trad)+'»</p>':'')+
       (expl.length?'<ul class="c-expl">'+expl.map(v=>'<li>'+v+'</li>').join('')+'</ul>':'')+
       otraFr+fuente+
@@ -2280,11 +2288,18 @@ async function crearCarte(p){
 
   const hoja=el.querySelector('.c-hoja');
   const abrirHoja=()=>el.classList.add('hoja-on');
-  const cerrarHoja=()=>el.classList.remove('hoja-on');
+  const cerrarHoja=()=>{el.classList.remove('hoja-on');hoja.style.transform='';};
   el.querySelector('.c-mas').addEventListener('click',abrirHoja);
-  el.querySelector('.c-velo').addEventListener('click',cerrarHoja);
-  el.querySelector('.c-asa').addEventListener('click',cerrarHoja);
+  el.querySelector('.c-velo').addEventListener('click',e=>{e.stopPropagation();cerrarHoja();});
+  el.querySelector('.c-cerrar').addEventListener('click',e=>{e.stopPropagation();cerrarHoja();});
   hoja.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
+  /* deslizar hacia abajo desde la barrita de arriba cierra la hoja; desde el texto, solo se mueve el texto */
+  const top=hoja.querySelector('.c-hoja-top');
+  let y0=null,dy=0;
+  top.addEventListener('pointerdown',e=>{if(e.target.closest('.c-cerrar'))return;y0=e.clientY;dy=0;hoja.classList.add('arrastre');try{top.setPointerCapture(e.pointerId);}catch(_){}});
+  top.addEventListener('pointermove',e=>{if(y0===null)return;dy=Math.max(0,e.clientY-y0);hoja.style.transform='translateY('+dy+'px)';});
+  const soltar=()=>{if(y0===null)return;y0=null;hoja.classList.remove('arrastre');if(dy>60)cerrarHoja();else hoja.style.transform='';};
+  top.addEventListener('pointerup',soltar);top.addEventListener('pointercancel',soltar);
 
   /* animación de entrada */
   el.style.opacity='0';el.style.transform='translateY(20px)';
