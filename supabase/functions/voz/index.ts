@@ -6,6 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 const MODELO = "eleven_v4";
 const VOZ = "EXAVITQu4vr4xnSDxMaL"; // Sarah
 const VELOCIDAD = 0.95;
+const VELOCIDAD_LENTA = 0.75; // dictado y shadowing: «Lentement»
 const MAX_CARACTERES = 600;
 
 const CORS = {
@@ -37,11 +38,12 @@ Deno.serve(async (req) => {
   const { data: usuaria } = await admin.auth.getUser(token);
   if (!usuaria?.user) return json({ error: "Sin sesión" }, 401);
 
-  let texto = "", directo = false;
+  let texto = "", directo = false, velocidad = VELOCIDAD;
   try {
     const cuerpo = await req.json();
     texto = String(cuerpo.texto ?? "").replace(/\s+/g, " ").trim();
     directo = cuerpo.directo === true;
+    if (cuerpo.lento === true) velocidad = VELOCIDAD_LENTA;
   } catch {
     return json({ error: "JSON inválido" }, 400);
   }
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
   if (texto.length > MAX_CARACTERES) texto = texto.slice(0, MAX_CARACTERES);
 
   // Misma frase con la misma voz = mismo archivo.
-  const ruta = `cache/${await sha256(`${MODELO}|${VOZ}|${VELOCIDAD}|${texto}`)}.mp3`;
+  const ruta = `cache/${await sha256(`${MODELO}|${VOZ}|${velocidad}|${texto}`)}.mp3`;
   const firmar = () => admin.storage.from("voz").createSignedUrl(ruta, 3600);
   const yaEsta = await firmar();
   if (yaEsta.data?.signedUrl) return json({ url: yaEsta.data.signedUrl, cache: true });
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOZ}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": claveEleven, "Content-Type": "application/json" },
-    body: JSON.stringify({ text: texto, model_id: MODELO, language_code: "fr", voice_settings: { speed: VELOCIDAD } }),
+    body: JSON.stringify({ text: texto, model_id: MODELO, language_code: "fr", voice_settings: { speed: velocidad } }),
   });
   if (!r.ok) {
     let detalle = `ElevenLabs ${r.status}`;

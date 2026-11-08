@@ -246,6 +246,47 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .amb-material input { min-height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--tarjeta); font-weight: 400; }
 .amb-revision { margin-top: 12px; font-size: 15px; font-weight: 600; }
 .amb-revision span { display: inline-block; margin: 6px 6px 0 0; padding: 4px 10px; border-radius: 99px; font-weight: 400; background: var(--tarjeta); border: 1px solid var(--borde); }
+/* Fuera de Conversation, la acción principal es la actividad del bloque; Écouter y Parler quedan pequeños. */
+.btn.actividad { width: 100%; min-height: 64px; margin-bottom: 10px; border-radius: 20px; font-size: 18px; }
+.btn.actividad[hidden] { display: none; }
+#v-sesion:not([data-bloque="conversacion"]) .voz .btn, #v-sesion.con-ejercicio .voz .btn { min-height: 50px; flex-direction: row; gap: 8px; font-size: 16px; border-radius: 16px; }
+#v-sesion:not([data-bloque="conversacion"]) .voz .btn span, #v-sesion.con-ejercicio .voz .btn span { font-size: 20px; }
+#v-sesion:not([data-bloque="conversacion"]) .voz, #v-sesion.con-ejercicio .voz { grid-template-columns: 1fr 1fr; }
+/* Ejercicios: una actividad a la vez, dentro del último mensaje de Lidia. */
+.ej { margin-top: 12px; padding: 16px 18px; border-radius: var(--radio); background: var(--tarjeta); border: 2px solid color-mix(in srgb, var(--amb, var(--violeta)) 55%, transparent); box-shadow: var(--sombra); }
+.ej-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ej-cab b { font-size: 16px; color: var(--amb, var(--violeta)); }
+.ej-cab span { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-suave); }
+.ej-puntos { display: flex; gap: 5px; margin: 8px 0 4px; }
+.ej-puntos i { flex: 1; height: 6px; border-radius: 99px; background: var(--borde); }
+.ej-puntos i.si { background: var(--verde); }
+.ej-puntos i.no { background: var(--rojo); }
+.ej-puntos i.ahora { background: var(--amb, var(--violeta)); }
+.ej-consigne { margin: 10px 0 6px; color: var(--tinta-suave); font-size: 15px; }
+.ej-texto { margin: 0 0 12px; font-size: 20px; line-height: 1.5; font-weight: 500; }
+.ej-texto .hueco { display: inline-block; min-width: 70px; border-bottom: 3px solid var(--amb, var(--violeta)); }
+.ej-opciones { display: grid; gap: 8px; }
+.ej-opciones button { min-height: 52px; padding: 8px 14px; border-radius: 14px; border: 1px solid var(--borde); background: var(--fondo); font-size: 17px; text-align: left; color: var(--tinta); }
+.ej-opciones button.si { border-color: var(--verde); background: color-mix(in srgb, var(--verde) 16%, var(--tarjeta)); }
+.ej-opciones button.no { border-color: var(--rojo); background: color-mix(in srgb, var(--rojo) 14%, var(--tarjeta)); }
+.ej input, .ej textarea { width: 100%; min-height: 52px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--borde); background: var(--fondo); color: var(--tinta); font-size: 18px; line-height: 1.4; }
+.ej textarea.largo { min-height: 220px; }
+.ej-cuenta { margin-top: 6px; font-size: 14px; color: var(--tinta-suave); text-align: right; }
+.ej-fichas { display: flex; flex-wrap: wrap; gap: 8px; min-height: 52px; padding: 8px; border-radius: 14px; border: 1px dashed var(--borde); }
+.ej-fichas + .ej-fichas { margin-top: 10px; border-style: solid; background: var(--fondo); }
+.ej-fichas button { min-height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--tarjeta); font-size: 17px; color: var(--tinta); }
+.ej-audio { display: flex; gap: 8px; margin-bottom: 12px; }
+.ej-audio .btn { flex: 1; min-height: 50px; }
+.ej-acciones { display: flex; gap: 8px; margin-top: 12px; }
+.ej-acciones .btn { flex: 1; min-height: 54px; }
+.ej-acciones .btn[hidden] { display: none; }
+.ej-retro { margin-top: 12px; padding: 12px 14px; border-radius: 14px; font-size: 16px; line-height: 1.45; }
+.ej-retro[hidden] { display: none; }
+.ej-retro.si { background: color-mix(in srgb, var(--verde) 14%, var(--tarjeta)); }
+.ej-retro.no { background: color-mix(in srgb, var(--ambar) 16%, var(--tarjeta)); }
+.ej-retro .falta { color: var(--rojo); text-decoration: underline; }
+.ej-fin { font-size: 18px; font-weight: 600; text-align: center; }
+.ej-hecho { margin-top: 8px; font-size: 14px; color: var(--tinta-suave); }
 /* Cambio de bloque dentro del chat: un separador con el icono del bloque. */
 .msg.aviso.bloque { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; margin: 10px 0 2px; font-weight: 700; font-size: 14px; color: var(--tinta-suave); }
 .msg.aviso.bloque::before, .msg.aviso.bloque::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
@@ -554,6 +595,7 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
             <button class="btn" id="b-reanudar" type="button">▶ Reprendre</button>
           </div>
           <div class="grabando" id="s-grabando" hidden><i></i><span id="s-grabando-t">Je t'écoute… touche Parler pour arrêter</span></div>
+          <button class="btn actividad" id="b-actividad" type="button" hidden></button>
           <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
           <div class="entrada" id="s-entrada">
             <div class="caja">
@@ -924,6 +966,8 @@ function pintarAmbiente(f) {
   $("s-amb-material").hidden = f.id !== "oral";
   $("s-material").value = leerLocal(`lidia-material-${hoy()}`) || "";
   $("s-amb-revision").hidden = true;
+  $("b-voz").classList.toggle("sec", f.id !== "conversacion");
+  pintarActividad();
   if (f.id === "gramatica") itemsHoy().then((items) => {
     if (!items.length || $("v-sesion").dataset.bloque !== "gramatica") return;
     $("s-amb-revision").innerHTML = `🔁 ${items.length} à réviser aujourd'hui<br>${items.slice(0, 6).map((it) => `<span>${escapar(it.correcto)}</span>`).join("")}`;
@@ -1002,8 +1046,14 @@ const TIPOS_BLOQUE = {
   plus: { etiqueta: "Voir plus", icono: "➕" },
   texto: { etiqueta: "Lidia", icono: "✦" },
 };
+// Los ejercicios llegan al final del mensaje como «[[exercices]] [json]».
+function ejerciciosDe(texto) {
+  const m = /\[\[exercices\]\]\s*(\[[\s\S]*\])\s*$/.exec(texto || "");
+  try { return m ? JSON.parse(m[1]) : []; } catch { return []; }
+}
+function sinEjercicios(texto) { return (texto || "").replace(/\n*\[\[exercices\]\][\s\S]*$/, ""); }
 function partir(texto) {
-  const partes = (texto || "").split(/(?:^|\n+)\[\[(pregunta|exemple|correction|defi|bravo|plus)\]\]\s*/);
+  const partes = sinEjercicios(texto).split(/(?:^|\n+)\[\[(pregunta|exemple|correction|defi|bravo|plus)\]\]\s*/);
   const bloques = [];
   if (partes[0].trim()) bloques.push({ tipo: "texto", texto: partes[0].trim() });
   for (let i = 1; i < partes.length; i += 2) bloques.push({ tipo: partes[i], texto: partes[i + 1].trim() });
@@ -1109,12 +1159,12 @@ function trozosVoz(texto) {
   const resto = frases.join("").trim();
   return resto ? [primera, resto] : [primera];
 }
-async function pedirVoz(texto) {
+async function pedirVoz(texto, lento = false) {
   const { data } = await sb.auth.getSession();
   const r = await fetch(`${SUPABASE_URL}/functions/v1/voz`, {
     method: "POST",
     headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ texto, directo: true }),
+    body: JSON.stringify({ texto, directo: true, lento }),
   });
   if (!r.ok) throw new Error("voz");
   if ((r.headers.get("Content-Type") || "").startsWith("audio/")) return URL.createObjectURL(await r.blob());
@@ -1131,12 +1181,12 @@ function tocar(url) {
     audioLidia.play().catch(falla);
   });
 }
-async function hablarLidia(texto) {
+async function hablarLidia(texto, lento = false) {
   callar();
   const mio = turnoVoz;
   cargandoVoz = true;
   const trozos = trozosVoz(limpiarVoz(texto));
-  const pedidos = trozos.map(pedirVoz);
+  const pedidos = trozos.map((t) => pedirVoz(t, lento));
   pedidos.forEach((p) => p.catch(() => {}));
   let i = 0;
   try {
@@ -1167,17 +1217,18 @@ setInterval(() => {
 
 async function pintarMensaje(rol, texto, voz, imagenPath) {
   const div = document.createElement("div");
-  const esArranque = rol === "laura" && /^\((Nouvelle phase|Fin de la session) : .*\)$/.test(texto || "");
+  const esArranque = rol === "laura" && AVISO.test(texto || "");
   div.className = `msg ${esArranque ? "aviso bloque" : rol}`;
   let html = "";
   if (imagenPath) {
     const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
     if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Photo du texte">`;
   }
-  const faseTexto = esArranque && FASES.find((f) => texto.includes(f.nombre));
-  html += esArranque ? (faseTexto ? `${faseTexto.icono} ${escapar(faseTexto.titulo)}` : "🏁 Clôture") : rol === "lidia" ? htmlBloques(texto) : `<div class="dicho-t">${escapar(texto).replace(/\n/g, "<br>")}</div>`;
+  html += esArranque ? escapar(etiquetaAviso(texto)) : rol === "lidia" ? htmlBloques(texto) : `<div class="dicho-t">${escapar(texto).replace(/\n/g, "<br>")}</div>`;
   div.innerHTML = html;
   if (rol === "laura" && !esArranque) div.onclick = () => div.classList.toggle("abierto");
+  // Un mensaje nuevo cierra los ejercicios que quedaban abiertos.
+  desmontarEjercicios();
   if (rol === "lidia") {
     for (const m of $("s-chat").querySelectorAll(".msg.lidia.ultimo")) m.classList.remove("ultimo");
     div.classList.add("ultimo");
@@ -1191,9 +1242,229 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
   }
   $("s-chat").appendChild(div);
   if (rol === "lidia") plegar(div);
+  if (rol === "lidia" && ejerciciosDe(texto).length) montarEjercicios(div, ejerciciosDe(texto));
   const t = div.querySelector(".dicho-t");
   if (t) div.classList.toggle("largo", t.scrollHeight > t.clientHeight + 2);
   alFinal();
+}
+
+// ── Ejercicios por bloque ──
+// Lidia manda una serie en `ejercicios`; la app la muestra una a una, la corrige sola
+// y al final le manda a Lidia los resultados para que corrija los fallos y siga.
+const AVISO = /^\((Nouvelle phase|Fin de la session|Exercices?|Résultats des exercices) : [\s\S]*\)$/;
+function etiquetaAviso(texto) {
+  const f = FASES.find((x) => texto.includes(x.nombre));
+  if (texto.startsWith("(Nouvelle phase")) return f ? `${f.icono} ${f.titulo}` : texto.slice(1, -1);
+  if (texto.startsWith("(Fin de la session")) return "🏁 Clôture";
+  if (texto.startsWith("(Résultats")) return `✅ Résultats : ${(/(\d+\/\d+)/.exec(texto) || [""])[0]}`;
+  return "🧩 Exercices demandés";
+}
+// Lo que pide el botón de actividad de cada bloque (Conversation no tiene: ahí se habla).
+const ACTIVIDADES = {
+  oral: { boton: "🎧 Exercices d'écoute : répéter et dictée", pedido: "(Exercices : shadowing et dictée avec mon matériel)" },
+  gramatica: { boton: "🧩 Exercices de grammaire et révision", pedido: "(Exercices : grammaire et révision du jour)" },
+  escritura: { boton: "✍️ Un sujet de rédaction", pedido: "(Exercice : rédaction)" },
+};
+const NOMBRE_EJ = { choix: "Choisis", trou: "Complète", transformer: "Transforme", ordre: "Remets en ordre", repeter: "Répète", dictee: "Dictée", rediger: "Rédaction" };
+$("b-actividad").onclick = () => {
+  abrirVoz();
+  const a = ACTIVIDADES[FASES[estado.faseIdx].id];
+  if (!a) return;
+  if (estado.enviando) return aviso("Attends que Lidia ait fini.");
+  if (!estado.corriendo) continuar();
+  enviar(a.pedido);
+};
+function pintarActividad() {
+  const a = ACTIVIDADES[FASES[estado.faseIdx].id];
+  $("b-actividad").hidden = !a || Boolean(estado.ej) || estado.sesion?.fase_actual === "terminada";
+  if (a) $("b-actividad").textContent = a.boton;
+  $("v-sesion").classList.toggle("con-ejercicio", Boolean(estado.ej));
+}
+
+function normalizar(t) {
+  return (t || "").normalize("NFC").toLowerCase().replace(/[’`]/g, "'")
+    .replace(/[.,!?;:«»"“”()…\-–—]/g, " ").replace(/\s+/g, " ").trim();
+}
+function esCorrecta(respuesta, dada) {
+  return (respuesta || "").split("|").some((r) => normalizar(r) === normalizar(dada));
+}
+// Para repetir: qué parte de la frase se reconoce en lo que dijo (en orden), de 0 a 100.
+function parecido(objetivo, dicho) {
+  const a = normalizar(objetivo).split(" "), b = normalizar(dicho).split(" ");
+  const t = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    t[i][j] = a[i - 1] === b[j - 1] ? t[i - 1][j - 1] + 1 : Math.max(t[i - 1][j], t[i][j - 1]);
+  // Palabras de la frase que faltaron, para marcarlas.
+  const faltan = new Set();
+  let i = a.length, j = b.length;
+  while (i > 0) {
+    if (j > 0 && a[i - 1] === b[j - 1]) { i--; j--; }
+    else if (j > 0 && t[i][j - 1] >= t[i - 1][j]) j--;
+    else { faltan.add(i - 1); i--; }
+  }
+  return { nota: Math.round(t[a.length][b.length] / a.length * 100), faltan, palabras: a };
+}
+function barajar(lista) {
+  const l = [...lista];
+  for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; }
+  if (l.length > 2 && l.join(" ") === lista.join(" ")) return barajar(lista);
+  return l;
+}
+
+function montarEjercicios(div, lista) {
+  const caja = document.createElement("div");
+  caja.className = "ej";
+  div.appendChild(caja);
+  estado.ej = { lista, i: 0, resultados: [], caja };
+  pintarActividad();
+  pintarEjercicio();
+}
+function desmontarEjercicios() {
+  if (!estado.ej) return;
+  const { caja, resultados, lista } = estado.ej;
+  caja.outerHTML = `<div class="ej-hecho">🧩 ${resultados.length}/${lista.length} exercices faits</div>`;
+  estado.ej = null;
+  pintarActividad();
+}
+function pintarEjercicio() {
+  const e = estado.ej;
+  const ej = e.lista[e.i];
+  const puntos = e.lista.map((_, k) => `<i class="${k < e.resultados.length ? (e.resultados[k].ok ? "si" : "no") : k === e.i ? "ahora" : ""}"></i>`).join("");
+  let cuerpo = "";
+  // El hueco «___» se protege del markdown y después se pinta como una raya.
+  const textoHueco = markdown(ej.texto.replace(/_{2,}/g, "HUECOXYZ")).replace(/HUECOXYZ/g, '<span class="hueco"></span>');
+  if (ej.tipo === "choix") {
+    cuerpo = `<div class="ej-texto">${textoHueco}</div><div class="ej-opciones">${ej.opciones.map((o, k) => `<button type="button" data-k="${k}">${escapar(o)}</button>`).join("")}</div>`;
+  } else if (ej.tipo === "trou" || ej.tipo === "transformer") {
+    cuerpo = `<div class="ej-texto">${textoHueco}</div><input id="ej-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" lang="fr" placeholder="${ej.tipo === "trou" ? "Ce qui va dans le trou…" : "La phrase transformée…"}">`;
+  } else if (ej.tipo === "ordre") {
+    cuerpo = `<div class="ej-fichas" id="ej-sueltas">${barajar(ej.texto.split(/\s+/)).map((p) => `<button type="button">${escapar(p)}</button>`).join("")}</div><div class="ej-fichas" id="ej-orden"></div>`;
+  } else if (ej.tipo === "dictee") {
+    cuerpo = `<div class="ej-audio"><button class="btn sec" type="button" data-oir="normal">🔊 Écouter</button><button class="btn sec" type="button" data-oir="lento">🐢 Lentement</button></div><textarea id="ej-in" rows="2" lang="fr" spellcheck="false" placeholder="Écris ce que tu entends…"></textarea>`;
+  } else if (ej.tipo === "repeter") {
+    cuerpo = `<div class="ej-texto">${escapar(ej.texto)}</div><div class="ej-audio"><button class="btn sec" type="button" data-oir="normal">🔊 Écouter</button><button class="btn sec" type="button" data-oir="lento">🐢 Lentement</button></div><button class="btn ancho" id="ej-grabar" type="button">🎙 Je répète</button>`;
+  } else if (ej.tipo === "rediger") {
+    cuerpo = `${ej.texto ? `<div class="ej-texto">${markdown(ej.texto)}</div>` : ""}<textarea id="ej-in" class="largo" lang="fr" placeholder="Écris ton texte ici…"></textarea><div class="ej-cuenta" id="ej-cuenta">0 mot</div>`;
+  }
+  const verificar = ["trou", "transformer", "ordre", "dictee"].includes(ej.tipo);
+  e.caja.innerHTML = `
+    <div class="ej-cab"><b>${FASES[estado.faseIdx].icono} Exercice ${e.i + 1}/${e.lista.length}</b><span>${NOMBRE_EJ[ej.tipo]}</span></div>
+    <div class="ej-puntos">${puntos}</div>
+    <p class="ej-consigne">${escapar(ej.consigne)}</p>
+    ${cuerpo}
+    <div class="ej-retro" id="ej-retro" hidden></div>
+    <div class="ej-acciones">
+      ${verificar ? `<button class="btn" id="ej-verificar" type="button">Vérifier</button>` : ""}
+      ${ej.tipo === "rediger" ? `<button class="btn" id="ej-enviar" type="button">Envoyer à Lidia</button>` : ""}
+      <button class="btn${ej.tipo === "repeter" ? " sec" : ""}" id="ej-siguiente" type="button" ${ej.tipo === "repeter" ? "" : "hidden"}>${e.i + 1 < e.lista.length ? "Suivant →" : "Voir mon résultat"}</button>
+    </div>`;
+  const $e = (sel) => e.caja.querySelector(sel);
+  e.caja.querySelectorAll("[data-oir]").forEach((b) => (b.onclick = () => { abrirVoz(); hablarLidia(ej.texto, b.dataset.oir === "lento"); }));
+  if ($e("#ej-siguiente")) $e("#ej-siguiente").onclick = siguienteEjercicio;
+  if (ej.tipo === "choix") {
+    e.caja.querySelectorAll(".ej-opciones button").forEach((b) => (b.onclick = () => {
+      const dada = ej.opciones[b.dataset.k];
+      const ok = esCorrecta(ej.respuesta, dada);
+      e.caja.querySelectorAll(".ej-opciones button").forEach((x) => {
+        x.disabled = true;
+        if (esCorrecta(ej.respuesta, ej.opciones[x.dataset.k])) x.classList.add("si");
+      });
+      if (!ok) b.classList.add("no");
+      corregido(ok, dada);
+    }));
+  }
+  if (ej.tipo === "ordre") {
+    const mover = (b) => { (b.parentElement.id === "ej-sueltas" ? $e("#ej-orden") : $e("#ej-sueltas")).appendChild(b); };
+    e.caja.querySelectorAll(".ej-fichas button").forEach((b) => (b.onclick = () => mover(b)));
+  }
+  if (verificar) {
+    const leer = () => ej.tipo === "ordre" ? [...$e("#ej-orden").children].map((b) => b.textContent).join(" ") : $e("#ej-in").value;
+    $e("#ej-verificar").onclick = () => {
+      const dada = leer().trim();
+      if (!dada) return aviso("Réponds d'abord.");
+      corregido(esCorrecta(ej.respuesta, dada), dada);
+    };
+    $e("#ej-in")?.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); $e("#ej-verificar").click(); } });
+  }
+  if (ej.tipo === "repeter") $e("#ej-grabar").onclick = () => repetirAlMicro(ej);
+  if (ej.tipo === "rediger") {
+    const contar = () => { const n = ($e("#ej-in").value.match(/\S+/g) || []).length; $e("#ej-cuenta").textContent = `${n} mot${n > 1 ? "s" : ""}`; };
+    $e("#ej-in").addEventListener("input", contar);
+    $e("#ej-enviar").onclick = () => {
+      const t = $e("#ej-in").value.trim();
+      if (!t) return aviso("Écris ton texte d'abord.");
+      e.resultados.push({ ej, ok: true, dada: t });
+      enviarResultados(t);
+    };
+  }
+  $e("#ej-in")?.focus({ preventScroll: true });
+}
+function corregido(ok, dada) {
+  const e = estado.ej, ej = e.lista[e.i];
+  e.resultados[e.i] = { ej, ok, dada };
+  const r = e.caja.querySelector("#ej-retro");
+  const primera = (ej.respuesta || "").split("|")[0];
+  r.className = `ej-retro ${ok ? "si" : "no"}`;
+  r.innerHTML = `${ok ? "✓ <b>Exact!</b>" : `✗ Réponse : <b>${escapar(primera)}</b>`}${ej.explicacion ? `<br>${markdown(ej.explicacion)}` : ""}`;
+  r.hidden = false;
+  e.caja.querySelector("#ej-verificar")?.setAttribute("hidden", "");
+  e.caja.querySelectorAll("input, textarea").forEach((x) => (x.disabled = true));
+  e.caja.querySelector("#ej-siguiente").hidden = false;
+  e.caja.querySelector("#ej-siguiente").focus({ preventScroll: true });
+}
+// Repetir: se graba, Scribe transcribe y se compara palabra por palabra. 80 % o más cuenta como logrado.
+async function repetirAlMicro(ej) {
+  const e = estado.ej, b = e.caja.querySelector("#ej-grabar");
+  if (e.grabacion) {
+    const g = e.grabacion;
+    e.grabacion = null;
+    b.disabled = true;
+    b.textContent = "Je t'écoute… un instant";
+    grabando(false);
+    const audio = await cerrarGrabadora(g);
+    let dicho = "";
+    try { if (audio && audio.size > 1500) dicho = await transcribir(audio); } catch {}
+    if (estado.ej !== e) return;
+    b.disabled = false;
+    b.textContent = "🎙 Encore une fois";
+    if (!dicho) return aviso("Je n'ai rien entendu. Réessaie.");
+    const p = parecido(ej.texto, dicho);
+    const previo = e.resultados[e.i];
+    const mejor = Math.max(p.nota, previo?.nota || 0);
+    e.resultados[e.i] = { ej, ok: mejor >= 80, dada: dicho, nota: mejor };
+    const r = e.caja.querySelector("#ej-retro");
+    r.className = `ej-retro ${p.nota >= 80 ? "si" : "no"}`;
+    r.innerHTML = `<b>${p.nota} %</b> ${p.nota >= 80 ? "✓ Bien dit!" : "· Écoute encore et répète."}<br>${p.palabras.map((w, k) => p.faltan.has(k) ? `<span class="falta">${escapar(w)}</span>` : escapar(w)).join(" ")}<br><small>J'ai entendu : « ${escapar(dicho)} »</small>`;
+    r.hidden = false;
+    e.caja.querySelector("#ej-siguiente").hidden = false;
+    return;
+  }
+  abrirVoz();
+  callar();
+  const g = await abrirGrabadora();
+  if (!g) return aviso("Je n'ai pas accès au micro.");
+  e.grabacion = g;
+  grabando(true, "Je t'écoute… touche « J'ai fini » pour arrêter");
+  b.textContent = "⏺ J'ai fini";
+}
+function siguienteEjercicio() {
+  const e = estado.ej;
+  if (!e) return;
+  if (!e.resultados[e.i]) e.resultados[e.i] = { ej: e.lista[e.i], ok: false, dada: "" };
+  if (e.i + 1 < e.lista.length) { e.i++; pintarEjercicio(); return; }
+  enviarResultados();
+}
+// Al terminar la serie: el resultado en pantalla y a Lidia, para que corrija los fallos y marque el repaso.
+function enviarResultados(textoRedaccion) {
+  const e = estado.ej;
+  const hechos = e.resultados.filter(Boolean);
+  const bien = hechos.filter((r) => r.ok).length;
+  const lineas = hechos.filter((r) => r.ej.tipo !== "rediger").map((r, k) =>
+    `${k + 1}. ${r.ok ? "✓" : "✗"} [${r.ej.tipo}] ${r.ej.texto} — attendu : ${r.ej.respuesta}${r.ok ? "" : ` — Laura : ${r.dada || "(rien)"}`}${r.nota != null ? ` — ${r.nota} %` : ""}${r.ej.item_id ? ` (item_id ${r.ej.item_id})` : ""}`);
+  const n = hechos.filter((r) => r.ej.tipo !== "rediger").length;
+  e.caja.innerHTML = `<div class="ej-fin">${n ? `Résultat : ${bien - (textoRedaccion ? 1 : 0)}/${n} 🎯` : "Texte envoyé ✍️"}</div>`;
+  if (n) enviar(`(Résultats des exercices : ${bien - (textoRedaccion ? 1 : 0)}/${n})\n${lineas.join("\n")}`);
+  if (textoRedaccion) enviar(textoRedaccion);
 }
 
 // ── Clôture ──

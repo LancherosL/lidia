@@ -18,17 +18,22 @@ const CORS = {
 };
 
 const TIPOS_BLOQUE = ["pregunta", "exemple", "correction", "defi", "bravo", "plus"];
+// Ejercicios que la app muestra como actividad (ver lidia-prompt.md, «Ejercicios por bloque»).
+const TIPOS_EJERCICIO = ["choix", "trou", "transformer", "ordre", "repeter", "dictee", "rediger"];
 
 // Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
-function aTexto(bloques: { tipo: string; texto: string }[]): string {
-  return bloques.map((b) => `[[${b.tipo}]] ${b.texto.trim()}`).join("\n\n");
+// Los ejercicios van al final, en una sola línea «[[exercices]] [json]».
+function aTexto(bloques: { tipo: string; texto: string }[], ejercicios: unknown[] = []): string {
+  const partes = bloques.map((b) => `[[${b.tipo}]] ${b.texto.trim()}`);
+  if (ejercicios.length) partes.push(`[[exercices]] ${JSON.stringify(ejercicios)}`);
+  return partes.join("\n\n");
 }
 
 // Forma exacta del JSON que devuelve Lidia (ver lidia-prompt.md).
 const ESQUEMA_RESPUESTA = {
   type: "object",
   additionalProperties: false,
-  required: ["bloques", "voz", "nuevos_items", "resultados_items", "resumen_sesion", "resultado_cierre"],
+  required: ["bloques", "ejercicios", "voz", "nuevos_items", "resultados_items", "resumen_sesion", "resultado_cierre"],
   properties: {
     // El mensaje partido por tipo: la app pinta cada tipo con su color, etiqueta e icono.
     bloques: {
@@ -40,6 +45,23 @@ const ESQUEMA_RESPUESTA = {
         properties: {
           tipo: { type: "string", enum: TIPOS_BLOQUE },
           texto: { type: "string" },
+        },
+      },
+    },
+    ejercicios: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["tipo", "consigne", "texto", "opciones", "respuesta", "explicacion", "item_id"],
+        properties: {
+          tipo: { type: "string", enum: TIPOS_EJERCICIO },
+          consigne: { type: "string" },
+          texto: { type: "string" },
+          opciones: { type: "array", items: { type: "string" } },
+          respuesta: { type: "string" },
+          explicacion: { type: "string" },
+          item_id: { type: ["string", "null"] },
         },
       },
     },
@@ -253,7 +275,7 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "Lidia no devolvió JSON válido" }, 502);
   }
-  lidia.mensaje = aTexto(lidia.bloques);
+  lidia.mensaje = aTexto(lidia.bloques, lidia.ejercicios ?? []);
 
   // Guardar: mensajes, ítems nuevos, repaso de ítems y estado de la sesión.
   await db.from("mensajes").insert([
