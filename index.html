@@ -162,9 +162,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .panel .tarjeta + * { margin-top: 12px; }
 .solo-pc { display: none; }
 .cifras.dos { grid-template-columns: 1fr 1fr; margin-top: 0; }
-.dicho { margin: 14px 4px 0; font-size: 14px; color: var(--tinta-suave); font-style: italic; overflow-wrap: anywhere; }
-.tarjetas { display: grid; gap: 10px; margin-top: 14px; }
-.pensando { padding: 18px; border-radius: var(--radio); background: var(--tarjeta); border: 1px solid var(--borde); color: var(--tinta-suave); font-style: italic; }
+.pensando { padding: 12px 16px; border-radius: 18px; border-bottom-left-radius: 6px; background: var(--tarjeta); border: 1px solid var(--borde); color: var(--tinta-suave); font-style: italic; }
 
 /* Tarjetas de Lidia por tipo: siempre el mismo color, la misma etiqueta y el mismo icono. */
 .bq {
@@ -193,32 +191,55 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 details.bq.plus { --c: var(--tinta-suave); background: var(--tarjeta); }
 details.bq.plus summary { font-weight: 700; color: var(--tinta-suave); cursor: pointer; }
 details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
+/* En el chat: los mensajes viejos de Lidia, en pequeño; el último, en grande. */
 .msg.lidia .bq { padding: 8px 12px; border-radius: 12px; }
 .msg.lidia .bq + .bq { margin-top: 6px; }
-.msg.lidia .bq-t { font-size: 15px; max-height: none; }
+.msg.lidia .bq-e { font-size: 11.5px; margin-bottom: 2px; }
+.msg.lidia:not(.ultimo) .bq .bq-t { font-size: 15px; font-weight: 400; max-height: none; }
 .msg.lidia .bq-mas { display: none; }
+.msg.lidia.ultimo { width: 100%; max-width: 100%; }
+.msg.lidia.ultimo .bq { padding: 14px 16px 14px 18px; border-radius: var(--radio); }
+.msg.lidia.ultimo .bq + .bq { margin-top: 10px; }
+.msg.lidia.ultimo .bq-e { font-size: 13px; margin-bottom: 4px; }
+.msg.lidia.ultimo .bq-t { font-size: 18px; max-height: calc(3 * 1.6em); }
+.msg.lidia.ultimo .bq.pregunta .bq-t { font-size: 20px; font-weight: 500; }
+.msg.lidia.ultimo .bq.abierto .bq-t { max-height: none; }
+.msg.lidia.ultimo .bq-mas { display: block; }
+.msg.lidia.ultimo .bq-mas[hidden] { display: none; }
+.msg.lidia.ultimo .escuchar { display: none; }
 
-/* Écouter y Parler: siempre a la vista; Parler es la acción principal. */
-.voz {
-  position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: 1fr 2fr; gap: 10px;
-  margin-top: 14px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--fondo) 80%, transparent);
+/* La caja y Écouter / Parler: siempre a la vista abajo; Parler es la acción principal. */
+.pie {
+  position: sticky; bottom: 0; z-index: 3; margin-top: 8px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fondo) 85%, transparent);
 }
+.voz { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
 .voz .btn { min-height: 68px; flex-direction: column; gap: 2px; font-size: 16px; border-radius: 20px; }
 .voz .btn span { font-size: 26px; line-height: 1; }
 #b-voz { font-size: 18px; }
 #b-voz.activo { background: var(--rojo); }
+#b-voz.activo span, .grabando i { animation: latido 1.2s ease-in-out infinite; }
+@keyframes latido { 50% { opacity: .35; } }
+.grabando { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; color: var(--rojo); }
+.grabando[hidden] { display: none; }
+.grabando i { width: 12px; height: 12px; border-radius: 50%; background: var(--rojo); flex: none; }
+.icono-btn.es { font-size: 13px; font-weight: 800; letter-spacing: .02em; color: var(--violeta); }
+.icono-btn.es.activo { color: #fff; }
+.entrada textarea.grabando-caja { border-color: var(--rojo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rojo) 20%, transparent); }
 .icono-btn.auto[aria-pressed="false"] { opacity: .55; }
 .btn.siguiente { width: 100%; margin-top: 4px; }
-.historial { margin-top: 18px; }
-.historial summary { padding: 10px 0; color: var(--violeta); font-weight: 600; cursor: pointer; }
-.chat { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 14px; }
+.chat { display: flex; flex-direction: column; gap: 12px; margin: 14px 0 0; }
 .msg { max-width: 88%; padding: 10px 14px; border-radius: 18px; overflow-wrap: anywhere; }
 .msg p { margin: 0 0 8px; }
 .msg p:last-child, .msg ul:last-child { margin-bottom: 0; }
 .msg ul { margin: 0 0 8px; padding-left: 20px; }
-.msg.lidia { align-self: flex-start; background: var(--tarjeta); border: 1px solid var(--borde); border-bottom-left-radius: 6px; }
+.msg.lidia { align-self: flex-start; }
 .msg.laura { align-self: flex-end; background: var(--relleno); color: #fff; border-bottom-right-radius: 6px; }
+/* Lo que dijo Laura: 3 líneas a la vista; un toque lo abre entero. */
+.msg.laura .dicho-t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.msg.laura.abierto .dicho-t { display: block; }
+.msg.laura.largo { cursor: pointer; }
+.msg.lidia { background: none; border: 0; padding: 0; }
 .msg.aviso { align-self: center; background: none; color: var(--tinta-suave); font-size: 13px; padding: 2px 8px; }
 .msg img { display: block; max-width: 100%; border-radius: 12px; margin-bottom: 6px; }
 .msg .escuchar { margin-top: 8px; min-height: 36px; border: 0; background: none; color: var(--violeta); font-weight: 600; padding: 0; font-size: 15px; }
@@ -227,7 +248,7 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
 .entrada { padding: 12px 0; }
 .entrada .caja { display: flex; gap: 8px; align-items: flex-end; }
 .entrada textarea {
-  flex: 1; min-width: 0; min-height: 48px; max-height: 160px; resize: none; padding: 10px 14px;
+  flex: 1; min-width: 0; min-height: 48px; max-height: 128px; resize: none; padding: 10px 14px;
   border-radius: 16px; border: 1px solid var(--borde); background: var(--tarjeta); line-height: 1.4;
 }
 .icono-btn.activo, .btn.activo { background: var(--rojo); color: #fff; border-color: transparent; }
@@ -276,6 +297,8 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
   .app { max-width: 860px; padding-left: 32px; padding-right: 32px; }
   .bq-t { font-size: 19px; }
   .bq.pregunta .bq-t { font-size: 21px; }
+  .msg.lidia.ultimo .bq-t { font-size: 19px; }
+  .msg.lidia.ultimo .bq.pregunta .bq-t { font-size: 21px; }
 }
 @media (min-width: 1024px) {
   .app { max-width: 1180px; padding: 28px 40px 48px; }
@@ -298,9 +321,10 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
   .sesion-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
   .panel { order: 2; position: sticky; top: 24px; }
   .solo-pc { display: block; }
-  .voz { position: static; background: none; padding-bottom: 0; }
   .bq-t { font-size: 20px; }
   .bq.pregunta .bq-t { font-size: 22px; }
+  .msg.lidia.ultimo .bq-t { font-size: 20px; }
+  .msg.lidia.ultimo .bq.pregunta .bq-t { font-size: 22px; }
   /* Ma banque y Clôture */
   .items { grid-template-columns: 1fr 1fr; }
   #v-libreria .buscar, #v-libreria .seg { max-width: 640px; }
@@ -477,27 +501,26 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
         </div>
       </aside>
       <div class="conversa">
-        <div class="dicho" id="s-dicho" hidden></div>
-        <div class="tarjetas" id="s-actual" lang="fr"></div>
-        <div class="voz">
-          <button class="btn sec" id="b-escuchar" type="button"><span>🔊</span><b>Écouter</b></button>
-          <button class="btn" id="b-voz" type="button"><span>🎙</span><b>Parler</b></button>
-        </div>
-        <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
-        <div class="entrada" id="s-entrada">
-          <div class="caja">
-            <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
-            <textarea id="s-texto" rows="1" placeholder="Ou écris ta réponse…" lang="fr"></textarea>
-            <button class="icono-btn" id="b-enviar" aria-label="Envoyer" type="button">↑</button>
+        <div class="chat" id="s-chat" lang="fr"></div>
+        <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
+        <div class="pie">
+          <div class="grabando" id="s-grabando" hidden><i></i><span id="s-grabando-t">Je t'écoute… touche Parler pour arrêter</span></div>
+          <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
+          <div class="entrada" id="s-entrada">
+            <div class="caja">
+              <button class="icono-btn" id="b-foto" aria-label="Envoyer une photo" type="button">📷</button>
+              <button class="icono-btn es" id="b-es" aria-label="Dire un mot en espagnol" title="Dire un mot en espagnol" type="button">ES</button>
+              <textarea id="s-texto" rows="1" placeholder="Ou écris ta réponse…" lang="fr"></textarea>
+              <button class="icono-btn" id="b-enviar" aria-label="Envoyer" type="button">↑</button>
+            </div>
+            <input id="s-archivo" type="file" accept="image/*" hidden>
           </div>
-          <input id="s-archivo" type="file" accept="image/*" hidden>
+          <div class="voz">
+            <button class="btn sec" id="b-escuchar" type="button"><span>🔊</span><b>Écouter</b></button>
+            <button class="btn" id="b-voz" type="button"><span>🎙</span><b>Parler</b></button>
+          </div>
         </div>
         <button class="btn sec siguiente" id="b-siguiente" type="button">Bloc suivant →</button>
-        <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
-        <details class="historial">
-          <summary>Voir toute la conversation</summary>
-          <div class="chat" id="s-chat"></div>
-        </details>
       </div>
     </div>
   </section>
@@ -782,9 +805,7 @@ async function abrirSesion() {
   const { data: msgs } = await sb.from("mensajes").select("*").eq("sesion_id", s.id).order("creado");
   for (const m of msgs ?? []) await pintarMensaje(m.rol, m.contenido, null, m.imagen_url);
   if (!msgs?.some((m) => m.rol === "lidia")) ponerActual("");
-  const ultimaLaura = [...(msgs ?? [])].reverse().find((m) => m.rol === "laura" && !/^\((Nouvelle phase|Fin de la session) : .*\)$/.test(m.contenido || ""));
-  $("s-dicho").hidden = !ultimaLaura;
-  if (ultimaLaura) $("s-dicho").textContent = `Toi : ${ultimaLaura.contenido}`;
+  alFinal();
   cargarPanel(s);
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
@@ -919,16 +940,25 @@ function plegar(contenedor) {
   }
 }
 
-// Lo último de Lidia, en tarjetas por tipo: una cosa a la vez.
+// La sesión es un chat: lo último de Lidia sale en grande, al final, y es lo que repite Écouter.
 function ponerActual(texto, voz) {
+  quitarPensando();
   estado.actual = { texto, voz };
-  $("s-actual").innerHTML = texto ? htmlBloques(texto) : "";
-  plegar($("s-actual"));
   $("b-escuchar").disabled = !texto;
 }
 function pensando(texto) {
-  $("s-actual").innerHTML = `<div class="pensando">${texto}</div>`;
+  quitarPensando();
+  const d = document.createElement("div");
+  d.className = "msg lidia pensando";
+  d.textContent = texto;
+  $("s-chat").appendChild(d);
   $("b-escuchar").disabled = true;
+  alFinal();
+}
+function quitarPensando() { $("s-chat").querySelector(".pensando")?.remove(); }
+// Baja hasta lo último de la conversación.
+function alFinal() {
+  requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }));
 }
 
 // ── Voz primero ──
@@ -1056,9 +1086,12 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
     const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
     if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Photo du texte">`;
   }
-  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? htmlBloques(texto) : escapar(texto).replace(/\n/g, "<br>");
+  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? htmlBloques(texto) : `<div class="dicho-t">${escapar(texto).replace(/\n/g, "<br>")}</div>`;
   div.innerHTML = html;
+  if (rol === "laura" && !esArranque) div.onclick = () => div.classList.toggle("abierto");
   if (rol === "lidia") {
+    for (const m of $("s-chat").querySelectorAll(".msg.lidia.ultimo")) m.classList.remove("ultimo");
+    div.classList.add("ultimo");
     const b = document.createElement("button");
     b.className = "escuchar";
     b.type = "button";
@@ -1068,6 +1101,10 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
     ponerActual(texto, voz);
   }
   $("s-chat").appendChild(div);
+  if (rol === "lidia") plegar(div);
+  const t = div.querySelector(".dicho-t");
+  if (t) div.classList.toggle("largo", t.scrollHeight > t.clientHeight + 2);
+  alFinal();
 }
 
 // ── Clôture ──
@@ -1127,11 +1164,6 @@ async function enviarYa(texto, fotoPath) {
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
-  // Lo que Laura dijo se muestra después, en pequeño.
-  if (!/^\((Nouvelle phase|Fin de la session) : .*\)$/.test(texto)) {
-    $("s-dicho").textContent = `Toi : ${fotoPath ? "📷 " : ""}${texto}`;
-    $("s-dicho").hidden = false;
-  }
   const anterior = estado.actual;
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
@@ -1158,6 +1190,8 @@ async function enviarYa(texto, fotoPath) {
 
 $("b-enviar").onclick = () => {
   abrirVoz();
+  // Si el micro sigue abierto, se cierra sin escribir nada más en la caja.
+  for (const r of [escucha, escuchaEs]) if (r) { r.onresult = null; r.stop(); }
   const t = $("s-texto").value.trim();
   if (!t) return;
   $("s-texto").value = "";
@@ -1167,7 +1201,7 @@ $("b-enviar").onclick = () => {
 $("s-texto").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); $("b-enviar").click(); }
 });
-function ajustarAlto() { const t = $("s-texto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 160) + "px"; }
+function ajustarAlto() { const t = $("s-texto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 128) + "px"; }
 $("s-texto").addEventListener("input", ajustarAlto);
 
 // ── Foto: se reduce a 1600 px y se sube a textos/<usuaria>/<sesión>/ ──
@@ -1245,34 +1279,83 @@ let escucha = null;
 function arreglarNombres(t) { return t.replace(/\bAnna\b/g, "Ana"); }
 // Parler: lo que Laura dice se escribe en vivo en la caja; al tocar otra vez se para,
 // y ella revisa, corrige si hace falta y envía con ↑.
-$("b-voz").onclick = () => {
-  abrirVoz();
-  if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
-  if (escucha) return escucha.stop();
-  if (estado.enviando) return aviso("Attends que Lidia ait fini.");
+function grabando(si, texto) {
+  $("s-grabando").hidden = !si;
+  if (texto) $("s-grabando-t").textContent = texto;
+  $("s-texto").classList.toggle("grabando-caja", si);
+}
+function escribirEnCaja(t) {
+  const caja = $("s-texto");
+  caja.value = t;
+  ajustarAlto();
+  caja.scrollTop = caja.scrollHeight;
+}
+function escucharFrances() {
   callar();
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
   escucha.interimResults = true;
   escucha.continuous = true;
-  escucha.maxAlternatives = 1;
   const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
-  escucha.onresult = (e) => {
-    $("s-texto").value = base + arreglarNombres(Array.from(e.results).map((r) => r[0].transcript.trim()).join(" "));
-    ajustarAlto();
-  };
+  escucha.onresult = (e) => escribirEnCaja(base + arreglarNombres(Array.from(e.results).map((r) => r[0].transcript.trim()).join(" ")));
   escucha.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
   escucha.onend = () => {
     escucha = null;
     $("b-voz").classList.remove("activo");
     $("b-voz").innerHTML = "<span>🎙</span><b>Parler</b>";
-    if (!$("s-texto").value.trim()) aviso("Je n'ai rien entendu. Réessaie.");
+    if (!escuchaEs) grabando(false);
   };
   $("b-voz").classList.add("activo");
-  $("b-voz").innerHTML = "<span>⏺</span><b>Je t'écoute… touche pour arrêter</b>";
+  $("b-voz").innerHTML = "<span>⏺</span><b>Touche pour arrêter</b>";
+  grabando(true, "Je t'écoute… touche Parler pour arrêter");
   // Un momento para que el parlante se calle: si el micro oye a Lidia, entiende mal.
   const esta = escucha;
   setTimeout(() => { if (escucha === esta) try { esta.start(); } catch {} }, 250);
+}
+$("b-voz").onclick = () => {
+  abrirVoz();
+  if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
+  if (escuchaEs) return;
+  if (escucha) return escucha.stop();
+  if (estado.enviando) return aviso("Attends que Lidia ait fini.");
+  escucharFrances();
+};
+
+// ES: una palabra que Laura no sabe en francés, dicha en español. El dictado francés la deforma,
+// así que se escucha aparte en español y va a la caja como [espagnol : …]; Lidia la traduce y la guarda.
+let escuchaEs = null;
+$("b-es").onclick = async () => {
+  abrirVoz();
+  if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
+  if (escuchaEs) return escuchaEs.stop();
+  const seguia = Boolean(escucha);
+  if (escucha) {
+    const fin = new Promise((listo) => escucha.addEventListener("end", listo, { once: true }));
+    escucha.stop();
+    await fin;
+  }
+  callar();
+  const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
+  let palabra = "";
+  escuchaEs = new Reconocimiento();
+  escuchaEs.lang = "es-CO";
+  escuchaEs.interimResults = true;
+  escuchaEs.continuous = false;
+  escuchaEs.onresult = (e) => {
+    palabra = Array.from(e.results).map((r) => r[0].transcript.trim()).join(" ");
+    escribirEnCaja(`${base}[espagnol : ${palabra}]`);
+  };
+  escuchaEs.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
+  escuchaEs.onend = () => {
+    escuchaEs = null;
+    $("b-es").classList.remove("activo");
+    grabando(false);
+    if (!palabra) escribirEnCaja(base.trim());
+    if (seguia) escucharFrances();
+  };
+  $("b-es").classList.add("activo");
+  grabando(true, "Dis le mot en espagnol…");
+  try { escuchaEs.start(); } catch { escuchaEs.onend(); }
 };
 
 // ── Ma banque ──
