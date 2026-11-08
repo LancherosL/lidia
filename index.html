@@ -158,7 +158,7 @@ body.con-pestanas .app { padding-bottom: calc(96px + env(safe-area-inset-bottom)
 .bloques div.actual { color: var(--violeta); }
 .bloques i { display: block; height: 8px; margin-bottom: 6px; border-radius: 99px; background: var(--borde); overflow: hidden; }
 .bloques i u { display: block; height: 100%; background: var(--violeta); }
-.fase-desc { display: block; margin-top: 10px; color: var(--tinta-suave); }
+.fase-desc { display: none; } /* lo explica el ambiente del bloque */
 .panel .tarjeta + * { margin-top: 12px; }
 .solo-pc { display: none; }
 .cifras.dos { grid-template-columns: 1fr 1fr; margin-top: 0; }
@@ -211,8 +211,44 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
 /* La caja y Écouter / Parler: siempre a la vista abajo; Parler es la acción principal. */
 .pie {
   position: sticky; bottom: 0; z-index: 3; margin-top: 8px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--fondo) 85%, transparent);
+  background: linear-gradient(to top, var(--fondo-amb, var(--fondo)) 85%, transparent);
 }
+.pie.pausado .entrada, .pie.pausado .voz, .pie.pausado .grabando, .pie.pausado .subir { display: none; }
+.en-pausa { display: grid; gap: 10px; padding: 16px; border-radius: var(--radio); background: var(--tarjeta); border: 1px solid var(--borde); text-align: center; }
+.en-pausa[hidden] { display: none; }
+.en-pausa p { margin: 0; font-weight: 600; }
+.en-pausa .btn { min-height: 60px; font-size: 18px; }
+/* Ambiente de cada bloque: un fondo propio, su icono, qué se hace y por qué funciona. */
+#v-sesion { --amb: var(--violeta); }
+#v-sesion[data-bloque="oral"] { --amb: var(--teal); }
+#v-sesion[data-bloque="gramatica"] { --amb: var(--dorado); }
+#v-sesion[data-bloque="escritura"] { --amb: var(--oral); }
+body[data-bloque="conversacion"] { --amb-body: var(--violeta); }
+body[data-bloque="oral"] { --amb-body: var(--teal); }
+body[data-bloque="gramatica"] { --amb-body: var(--dorado); }
+body[data-bloque="escritura"] { --amb-body: var(--oral); }
+body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta)) 7%, var(--fondo)); background: var(--fondo-amb); transition: background .4s; }
+#v-sesion > .barra { position: sticky; top: 0; z-index: 4; margin: 0 -4px 8px; padding: 6px 4px; background: var(--fondo-amb, var(--fondo)); }
+.ambiente {
+  margin-top: 4px; padding: 16px 18px; border-radius: var(--radio);
+  background: color-mix(in srgb, var(--amb) 14%, var(--tarjeta)); border: 1px solid color-mix(in srgb, var(--amb) 35%, transparent);
+}
+.amb-cab { display: flex; align-items: center; gap: 12px; }
+.amb-icono { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 14px; font-size: 26px; background: color-mix(in srgb, var(--amb) 22%, var(--tarjeta)); }
+.amb-cab small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--amb); }
+.amb-cab h2 { margin: 0; font-size: 21px; line-height: 1.2; }
+.amb-hace { margin: 10px 0 0; line-height: 1.45; }
+.amb-porque { margin-top: 8px; }
+.amb-porque summary { cursor: pointer; font-weight: 600; font-size: 15px; color: var(--amb); }
+.amb-porque p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--tinta-suave); }
+.amb-material { display: grid; gap: 6px; margin-top: 12px; font-size: 15px; font-weight: 600; }
+.amb-material[hidden], .amb-revision[hidden] { display: none; }
+.amb-material input { min-height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--tarjeta); font-weight: 400; }
+.amb-revision { margin-top: 12px; font-size: 15px; font-weight: 600; }
+.amb-revision span { display: inline-block; margin: 6px 6px 0 0; padding: 4px 10px; border-radius: 99px; font-weight: 400; background: var(--tarjeta); border: 1px solid var(--borde); }
+/* Cambio de bloque dentro del chat: un separador con el icono del bloque. */
+.msg.aviso.bloque { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; margin: 10px 0 2px; font-weight: 700; font-size: 14px; color: var(--tinta-suave); }
+.msg.aviso.bloque::before, .msg.aviso.bloque::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
 .voz { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
 .voz .btn { min-height: 68px; flex-direction: column; gap: 2px; font-size: 16px; border-radius: 20px; }
 .voz .btn span { font-size: 26px; line-height: 1; }
@@ -501,9 +537,22 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
         </div>
       </aside>
       <div class="conversa">
+        <div class="ambiente" id="s-ambiente">
+          <div class="amb-cab"><span class="amb-icono" id="s-amb-icono"></span><div><small id="s-amb-bloque"></small><h2 id="s-amb-titulo"></h2></div></div>
+          <p class="amb-hace" id="s-amb-hace"></p>
+          <details class="amb-porque"><summary>Pourquoi ça marche</summary><p id="s-amb-porque"></p></details>
+          <label class="amb-material" id="s-amb-material" hidden>📺 Ce que j'écoute aujourd'hui
+            <input id="s-material" type="text" placeholder="Titre du film ou de la série, l'épisode…" lang="fr">
+          </label>
+          <div class="amb-revision" id="s-amb-revision" hidden></div>
+        </div>
         <div class="chat" id="s-chat" lang="fr"></div>
         <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
         <div class="pie">
+          <div class="en-pausa" id="s-en-pausa" hidden>
+            <p>⏸ Session en pause. Le temps est arrêté.</p>
+            <button class="btn" id="b-reanudar" type="button">▶ Reprendre</button>
+          </div>
           <div class="grabando" id="s-grabando" hidden><i></i><span id="s-grabando-t">Je t'écoute… touche Parler pour arrêter</span></div>
           <button class="btn subir" id="b-foto-grande" type="button" hidden><span>📷</span>Prendre ou choisir la photo</button>
           <div class="entrada" id="s-entrada">
@@ -569,10 +618,19 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const FASES = [
   // 2 horas en 4 bloques (prompt v2). `ini` en minutos.
-  { id: "conversacion", nombre: "Conversation guidée", corto: "Conversation", ini: 0, desc: "Un sujet de ta vie, une question à la fois" },
-  { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écoute ton matériel et répète des phrases" },
-  { id: "gramatica", nombre: "Grammaire et vocabulaire", corto: "Grammaire", ini: 60, desc: "10 expressions et la révision du jour" },
-  { id: "escritura", nombre: "Écriture corrigée", corto: "Écriture", ini: 90, desc: "Un paragraphe ou un courriel réel : écris-le ou envoie la photo" },
+  // Cada bloque tiene su ambiente: icono, color de fondo, qué se hace y por qué funciona (el porqué a la vista).
+  { id: "conversacion", nombre: "Conversation guidée", corto: "Conversation", ini: 0, desc: "Un sujet de ta vie, une question à la fois",
+    icono: "💬", titulo: "Parler de ta vie", hace: "Tu réponds avec tes mots. Lidia reformule, tu répètes la bonne phrase.",
+    porque: "Produire + correction tout de suite : la bonne forme remplace l'erreur pendant que c'est frais." },
+  { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écoute ton matériel et répète des phrases",
+    icono: "🎧", titulo: "L'oreille d'abord", hace: "Tu écoutes ton film ou ta série, tu notes ce que tu ne comprends pas, tu répètes 5 phrases.",
+    porque: "Écouter du français que tu comprends presque, puis l'imiter (shadowing) : ton oreille et ta bouche apprennent le rythme du Québec." },
+  { id: "gramatica", nombre: "Grammaire et vocabulaire", corto: "Grammaire", ini: 60, desc: "10 expressions et la révision du jour",
+    icono: "🧩", titulo: "De l'exemple à la règle", hace: "Tu vois des exemples, tu trouves le patron, Lidia lui donne son nom. Puis tes révisions du jour.",
+    porque: "Sortir une réponse de ta mémoire (sans relire) et la revoir à 1, 3, 7, 21, 60 jours : c'est ce qui fait rester." },
+  { id: "escritura", nombre: "Écriture corrigée", corto: "Écriture", ini: 90, desc: "Un paragraphe ou un courriel réel : écris-le ou envoie la photo",
+    icono: "✍️", titulo: "Écrire comme au TECFÉE", hace: "Tu écris un vrai texte (à la main, puis la photo). Lidia corrige, tu réécris ce qui a raté.",
+    porque: "Écrire, recevoir la correction et réécrire : c'est le code linguistique et la rédaction du TECFÉE." },
 ];
 const BLOQUE_SEG = 30 * 60;
 const PATRONES = { como_suena: "comme ça sonne", espanol: "l'espagnol s'invite", verbo_bloque: "verbes en bloc", genero_numero: "genre et nombre", otro: "autre" };
@@ -656,6 +714,7 @@ async function enrutar() {
   // Al cambiar de pantalla, Lidia se calla; solo sigue leyendo el cierre al pasar de Session a Clôture.
   if (vista !== estado.vista && !(estado.vista === "sesion" && vista === "cierre")) callar();
   estado.vista = vista;
+  document.body.classList.toggle("en-sesion", vista === "sesion");
   if (vista !== "sesion") pausar();
   if (vista === "sesion") { mostrar("sesion"); await abrirSesion(); }
   else if (vista === "cierre") { mostrar("cierre"); await cargarCierre(); }
@@ -840,6 +899,10 @@ function pintarReloj() {
     const lleno = i < estado.faseIdx ? 100 : i > estado.faseIdx ? 0 : Math.min(100, Math.max(0, (estado.segundos - x.ini * 60) / BLOQUE_SEG * 100));
     return `<div class="${i === estado.faseIdx ? "actual" : ""}"><i><u style="width:${lleno.toFixed(1)}%"></u></i>${x.corto}</div>`;
   }).join("");
+  pintarAmbiente(f);
+  const enPausa = !estado.corriendo && estado.sesion?.fase_actual !== "terminada";
+  $("s-en-pausa").hidden = !enPausa;
+  document.querySelector("#v-sesion .pie").classList.toggle("pausado", enPausa);
   $("b-pausa").textContent = estado.corriendo ? "❚❚" : "▶";
   $("b-pausa").setAttribute("aria-label", estado.corriendo ? "Pause" : "Reprendre");
   const ultimo = estado.faseIdx === FASES.length - 1;
@@ -848,6 +911,28 @@ function pintarReloj() {
   $("b-foto-grande").hidden = !ultimo || estado.sesion?.fase_actual === "terminada";
   $("b-foto").hidden = ultimo;
 }
+// El ambiente del bloque solo se repinta cuando cambia el bloque.
+function pintarAmbiente(f) {
+  if ($("v-sesion").dataset.bloque === f.id) return;
+  $("v-sesion").dataset.bloque = f.id;
+  document.body.dataset.bloque = f.id;
+  $("s-amb-icono").textContent = f.icono;
+  $("s-amb-bloque").textContent = `Bloc ${estado.faseIdx + 1} · ${f.corto}`;
+  $("s-amb-titulo").textContent = f.titulo;
+  $("s-amb-hace").textContent = f.hace;
+  $("s-amb-porque").textContent = f.porque;
+  $("s-amb-material").hidden = f.id !== "oral";
+  $("s-material").value = leerLocal(`lidia-material-${hoy()}`) || "";
+  $("s-amb-revision").hidden = true;
+  if (f.id === "gramatica") itemsHoy().then((items) => {
+    if (!items.length || $("v-sesion").dataset.bloque !== "gramatica") return;
+    $("s-amb-revision").innerHTML = `🔁 ${items.length} à réviser aujourd'hui<br>${items.slice(0, 6).map((it) => `<span>${escapar(it.correcto)}</span>`).join("")}`;
+    $("s-amb-revision").hidden = false;
+  });
+}
+// Lo que Laura escucha hoy (película, serie): Lidia lo recibe en cada turno, así no lo olvida.
+$("s-material").addEventListener("change", () => guardarLocal(`lidia-material-${hoy()}`, $("s-material").value.trim()));
+$("b-reanudar").onclick = () => continuar();
 function mostrarTerminada(terminada) {
   $("s-entrada").hidden = terminada;
   $("b-siguiente").hidden = terminada;
@@ -865,6 +950,9 @@ function continuar() {
 function pausar() {
   if (!estado.corriendo) return;
   estado.corriendo = false;
+  // En pausa (el baño, una llamada), Lidia se calla y el micro se cierra.
+  callar();
+  if (micro) cerrarMicro();
   clearInterval(reloj);
   guardarTiempo();
   pintarReloj();
@@ -1080,13 +1168,14 @@ setInterval(() => {
 async function pintarMensaje(rol, texto, voz, imagenPath) {
   const div = document.createElement("div");
   const esArranque = rol === "laura" && /^\((Nouvelle phase|Fin de la session) : .*\)$/.test(texto || "");
-  div.className = `msg ${esArranque ? "aviso" : rol}`;
+  div.className = `msg ${esArranque ? "aviso bloque" : rol}`;
   let html = "";
   if (imagenPath) {
     const { data } = await sb.storage.from("textos").createSignedUrl(imagenPath, 3600);
     if (data) html += `<img src="${escapar(data.signedUrl)}" alt="Photo du texte">`;
   }
-  html += esArranque ? escapar(texto.slice(1, -1)) : rol === "lidia" ? htmlBloques(texto) : `<div class="dicho-t">${escapar(texto).replace(/\n/g, "<br>")}</div>`;
+  const faseTexto = esArranque && FASES.find((f) => texto.includes(f.nombre));
+  html += esArranque ? (faseTexto ? `${faseTexto.icono} ${escapar(faseTexto.titulo)}` : "🏁 Clôture") : rol === "lidia" ? htmlBloques(texto) : `<div class="dicho-t">${escapar(texto).replace(/\n/g, "<br>")}</div>`;
   div.innerHTML = html;
   if (rol === "laura" && !esArranque) div.onclick = () => div.classList.toggle("abierto");
   if (rol === "lidia") {
@@ -1168,7 +1257,8 @@ async function enviarYa(texto, fotoPath) {
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
     const { data, error } = await sb.functions.invoke("lidia", {
-      body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy() },
+      body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy(),
+        material: leerLocal(`lidia-material-${hoy()}`) || null },
     });
     if (error) {
       let detalle = error.message;
@@ -1188,10 +1278,11 @@ async function enviarYa(texto, fotoPath) {
   }
 }
 
-$("b-enviar").onclick = () => {
+$("b-enviar").onclick = async () => {
   abrirVoz();
-  // Si el micro sigue abierto, se cierra sin escribir nada más en la caja.
-  for (const r of [escucha, escuchaEs]) if (r) { r.onresult = null; r.stop(); }
+  // Si el micro sigue abierto, primero se cierra y se transcribe; después se envía.
+  if (micro) await cerrarMicro();
+  if (escuchaEs) { escuchaEs.onresult = null; escuchaEs.stop(); }
   const t = $("s-texto").value.trim();
   if (!t) return;
   $("s-texto").value = "";
@@ -1277,8 +1368,11 @@ const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognitio
 let escucha = null;
 // El dictado escribe «Anna»: es Ana (Ana Maria).
 function arreglarNombres(t) { return t.replace(/\bAnna\b/g, "Ana"); }
-// Parler: lo que Laura dice se escribe en vivo en la caja; al tocar otra vez se para,
-// y ella revisa, corrige si hace falta y envía con ↑.
+// Parler: el navegador escribe en vivo lo que Laura dice (vista previa) y, a la vez, se graba el audio.
+// Al parar, la función «oido» (ElevenLabs Scribe) lo transcribe de nuevo, mucho mejor y entendiendo
+// las palabras en español en medio del francés, y ese texto reemplaza la vista previa.
+// Laura revisa, corrige si hace falta y envía con ↑.
+let micro = null; // { base, grabadora, trozos, flujo }
 function grabando(si, texto) {
   $("s-grabando").hidden = !si;
   if (texto) $("s-grabando-t").textContent = texto;
@@ -1290,50 +1384,112 @@ function escribirEnCaja(t) {
   ajustarAlto();
   caja.scrollTop = caja.scrollHeight;
 }
-function escucharFrances() {
+function botonParler(activo) {
+  $("b-voz").classList.toggle("activo", activo);
+  $("b-voz").innerHTML = activo ? "<span>⏺</span><b>Touche pour arrêter</b>" : "<span>🎙</span><b>Parler</b>";
+}
+async function abrirGrabadora() {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return null;
+  try {
+    const flujo = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const tipo = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported?.(t));
+    const grabadora = new MediaRecorder(flujo, tipo ? { mimeType: tipo } : undefined);
+    const trozos = [];
+    grabadora.ondataavailable = (e) => { if (e.data.size) trozos.push(e.data); };
+    grabadora.start(1000);
+    return { grabadora, trozos, flujo };
+  } catch {
+    return null;
+  }
+}
+function cerrarGrabadora(g) {
+  return new Promise((listo) => {
+    if (!g) return listo(null);
+    g.grabadora.onstop = () => {
+      g.flujo.getTracks().forEach((t) => t.stop());
+      listo(new Blob(g.trozos, { type: g.grabadora.mimeType || "audio/webm" }));
+    };
+    try { g.grabadora.stop(); } catch { listo(null); }
+  });
+}
+async function transcribir(audio) {
+  const { data } = await sb.auth.getSession();
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/oido`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": audio.type.split(";")[0] },
+    body: audio,
+  });
+  if (!r.ok) throw new Error("oido");
+  return (await r.json()).texto || "";
+}
+async function abrirMicro() {
   callar();
+  const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
+  micro = { base };
+  botonParler(true);
+  grabando(true, "Je t'écoute… touche Parler pour arrêter");
+  const yo = micro;
+  const g = await abrirGrabadora();
+  if (micro !== yo) return cerrarGrabadora(g);
+  Object.assign(micro, g || {});
+  if (!Reconocimiento) return;
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
   escucha.interimResults = true;
   escucha.continuous = true;
-  const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
-  escucha.onresult = (e) => escribirEnCaja(base + arreglarNombres(Array.from(e.results).map((r) => r[0].transcript.trim()).join(" ")));
-  escucha.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
+  escucha.onresult = (e) => { if (micro === yo) escribirEnCaja(base + arreglarNombres(Array.from(e.results).map((r) => r[0].transcript.trim()).join(" "))); };
+  // Si el dictado del navegador falla y la grabación sigue, no pasa nada: Scribe transcribe al final.
+  escucha.onerror = (e) => { if (!yo.grabadora && e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
   escucha.onend = () => {
     escucha = null;
-    $("b-voz").classList.remove("activo");
-    $("b-voz").innerHTML = "<span>🎙</span><b>Parler</b>";
-    if (!escuchaEs) grabando(false);
+    if (micro === yo && !yo.grabadora) cerrarMicro();
   };
-  $("b-voz").classList.add("activo");
-  $("b-voz").innerHTML = "<span>⏺</span><b>Touche pour arrêter</b>";
-  grabando(true, "Je t'écoute… touche Parler pour arrêter");
   // Un momento para que el parlante se calle: si el micro oye a Lidia, entiende mal.
   const esta = escucha;
   setTimeout(() => { if (escucha === esta) try { esta.start(); } catch {} }, 250);
 }
+async function cerrarMicro() {
+  const yo = micro;
+  if (!yo) return;
+  micro = null;
+  if (escucha) { escucha.onresult = null; escucha.stop(); }
+  botonParler(false);
+  const audio = await cerrarGrabadora(yo.grabadora ? yo : null);
+  if (audio && audio.size > 1500) {
+    grabando(true, "Je relis ce que tu as dit…");
+    $("b-voz").disabled = $("b-enviar").disabled = true;
+    try {
+      const t = await transcribir(audio);
+      if (t) escribirEnCaja(yo.base + arreglarNombres(t));
+    } catch {
+      // Queda lo que escribió el navegador.
+    } finally {
+      $("b-voz").disabled = false;
+      $("b-enviar").disabled = estado.enviando;
+    }
+  }
+  grabando(false);
+  if (!$("s-texto").value.trim()) aviso("Je n'ai rien entendu. Réessaie.");
+}
 $("b-voz").onclick = () => {
   abrirVoz();
-  if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
+  if (!Reconocimiento && !window.MediaRecorder) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escuchaEs) return;
-  if (escucha) return escucha.stop();
+  if (micro) return cerrarMicro();
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
-  escucharFrances();
+  if (!estado.corriendo) continuar();
+  abrirMicro();
 };
 
-// ES: una palabra que Laura no sabe en francés, dicha en español. El dictado francés la deforma,
-// así que se escucha aparte en español y va a la caja como [espagnol : …]; Lidia la traduce y la guarda.
+// ES: una palabra suelta en español, dicha aparte. Va a la caja como [espagnol : …];
+// Lidia la traduce y la guarda en Mots. (Scribe ya entiende el español en medio; esto es por si acaso.)
 let escuchaEs = null;
 $("b-es").onclick = async () => {
   abrirVoz();
   if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escuchaEs) return escuchaEs.stop();
-  const seguia = Boolean(escucha);
-  if (escucha) {
-    const fin = new Promise((listo) => escucha.addEventListener("end", listo, { once: true }));
-    escucha.stop();
-    await fin;
-  }
+  const seguia = Boolean(micro);
+  if (micro) await cerrarMicro();
   callar();
   const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
   let palabra = "";
@@ -1351,7 +1507,7 @@ $("b-es").onclick = async () => {
     $("b-es").classList.remove("activo");
     grabando(false);
     if (!palabra) escribirEnCaja(base.trim());
-    if (seguia) escucharFrances();
+    if (seguia) abrirMicro();
   };
   $("b-es").classList.add("activo");
   grabando(true, "Dis le mot en espagnol…");

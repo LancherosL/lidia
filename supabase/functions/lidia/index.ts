@@ -6,7 +6,7 @@ import { PROMPT_LIDIA } from "./prompt.ts";
 
 const MODELO_CHARLA = "claude-haiku-5-5";
 const MODELO_CORRECCION = "claude-sonnet-5-5"; // fotos y simulacros
-const TURNOS_HISTORIAL = 8;
+const TURNOS_HISTORIAL = 16; // 8 turnos de Laura y 8 de Lidia
 const INTERVALOS = [1, 3, 7, 21, 60];
 const ACIERTOS_PARA_DOMINAR = 3;
 const ZONA = "America/Toronto";
@@ -166,13 +166,14 @@ Deno.serve(async (req) => {
     resumen_sesion?: string | null;
     items_hoy?: unknown[];
     simulacro?: boolean;
+    material?: string | null; // lo que Laura escucha hoy en el bloque oral
   };
   try {
     entrada = await req.json();
   } catch {
     return json({ error: "JSON inválido" }, 400);
   }
-  const { sesion_id, fase, mensaje, foto_path, resumen_sesion, items_hoy = [], simulacro = false } = entrada;
+  const { sesion_id, fase, mensaje, foto_path, resumen_sesion, items_hoy = [], simulacro = false, material = null } = entrada;
   if (!sesion_id || !fase || typeof mensaje !== "string") {
     return json({ error: "Faltan sesion_id, fase o mensaje" }, 400);
   }
@@ -208,6 +209,7 @@ Deno.serve(async (req) => {
     items_hoy,
     resumen_ayer: ayerR.data?.resumen ?? null,
     resumen_sesion: resumen_sesion ?? null,
+    material_oral: material || null,
     ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n${mensaje}`;
