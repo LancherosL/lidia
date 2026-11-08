@@ -17,13 +17,32 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const TIPOS_BLOQUE = ["pregunta", "exemple", "correction", "defi", "bravo", "plus"];
+
+// Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
+function aTexto(bloques: { tipo: string; texto: string }[]): string {
+  return bloques.map((b) => `[[${b.tipo}]] ${b.texto.trim()}`).join("\n\n");
+}
+
 // Forma exacta del JSON que devuelve Lidia (ver lidia-prompt.md).
 const ESQUEMA_RESPUESTA = {
   type: "object",
   additionalProperties: false,
-  required: ["mensaje", "voz", "nuevos_items", "resultados_items", "resumen_sesion", "resultado_cierre"],
+  required: ["bloques", "voz", "nuevos_items", "resultados_items", "resumen_sesion", "resultado_cierre"],
   properties: {
-    mensaje: { type: "string" },
+    // El mensaje partido por tipo: la app pinta cada tipo con su color, etiqueta e icono.
+    bloques: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["tipo", "texto"],
+        properties: {
+          tipo: { type: "string", enum: TIPOS_BLOQUE },
+          texto: { type: "string" },
+        },
+      },
+    },
     voz: { type: ["string", "null"] },
     nuevos_items: {
       type: "array",
@@ -232,6 +251,7 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "Lidia no devolvió JSON válido" }, 502);
   }
+  lidia.mensaje = aTexto(lidia.bloques);
 
   // Guardar: mensajes, ítems nuevos, repaso de ítems y estado de la sesión.
   await db.from("mensajes").insert([
