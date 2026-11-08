@@ -3,12 +3,14 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0.136.0";
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { PROMPT_LIDIA } from "./prompt.ts";
+import {
+  construirActividad, textoActividad, normalizarEntrada, ponerIds, ejerciciosEmitidos,
+  validarResultados, validarResultadosModelo, repasar, esAvisoSistema,
+} from "./reglas.js";
 
 const MODELO_CHARLA = "claude-haiku-5-5";
 const MODELO_CORRECCION = "claude-sonnet-5-5"; // fotos y simulacros
 const TURNOS_HISTORIAL = 16; // 8 turnos de Laura y 8 de Lidia
-const INTERVALOS = [1, 3, 7, 21, 60];
-const ACIERTOS_PARA_DOMINAR = 3;
 const ZONA = "America/Toronto";
 
 const CORS = {
@@ -143,19 +145,7 @@ function racha(fechas: string[]) {
   return { dias_seguidos, racha_congelada: congelada, hito: HITOS.includes(dias_seguidos) ? dias_seguidos : null };
 }
 
-// Repaso espaciado: acierto → siguiente intervalo; fallo → vuelve a 1 día.
-function repasar(item: Item, acierto: boolean) {
-  if (!acierto) return { intervalo: 1, aciertos_seguidos: 0, dominado: false, proxima: hoyMas(1) };
-  const i = INTERVALOS.indexOf(item.intervalo);
-  const intervalo = INTERVALOS[Math.min(i + 1, INTERVALOS.length - 1)];
-  const aciertos_seguidos = item.aciertos_seguidos + 1;
-  return {
-    intervalo,
-    aciertos_seguidos,
-    dominado: aciertos_seguidos >= ACIERTOS_PARA_DOMINAR,
-    proxima: hoyMas(intervalo),
-  };
-}
+// El repaso espaciado (1/3/7/21/60) y la validación de resultados viven en reglas.js.
 
 function aBase64(bytes: Uint8Array): string {
   let s = "";
@@ -202,21 +192,25 @@ Deno.serve(async (req) => {
     items_hoy?: unknown[];
     simulacro?: boolean;
     material?: string | null; // lo que Laura escucha hoy en el bloque oral
-    entrada?: "dictado" | "escrito"; // dictado: las tildes y letras son del reconocedor, no de Laura
+    entrada?: string; // dictated | typed | edited_after_dictation (también los viejos dictado/escrito)
     minuto_bloque?: number;
+    actividad?: { mode?: string } | null; // el cliente solo pide un modo; el resto lo decide reglas.js
+    resultados_ejercicios?: unknown; // [{exercise_id, answer, status, source}] de la serie que terminó Laura
   };
   try {
     entrada = await req.json();
   } catch {
     return json({ error: "JSON inválido" }, 400);
   }
-  const { sesion_id, fase, mensaje, foto_path, resumen_sesion, items_hoy = [], simulacro = false, material = null } = entrada;
-  const modoEntrada = entrada.entrada === "dictado" ? "dictado" : "escrito";
+  // `items_hoy` del cliente se ignora: los ítems que tocan hoy los calcula el servidor.
+  const { sesion_id, fase, mensaje, foto_path, resumen_sesion, simulacro = false, material = null } = entrada;
+  const modoEntrada = normalizarEntrada(entrada.entrada);
+  const actividad = construirActividad(fase, entrada.actividad?.mode, mensaje);
   if (!sesion_id || !fase || typeof mensaje !== "string") {
     return json({ error: "Faltan sesion_id, fase o mensaje" }, 400);
   }
 
-  const [perfilR, sesionR, ayerR, historialR, fechasR] = await Promise.all([
+  const [perfilR, sesionR, ayerR, historialR, fechasR, hoyR, emitidosR] = await Promise.all([
     db.from("perfil").select("fase_plan, tema_semana").maybeSingle(),
     db.from("sesiones").select("id, fecha").eq("id", sesion_id).maybeSingle(),
     db.from("sesiones").select("resumen").neq("id", sesion_id).not("resumen", "is", null)
@@ -224,8 +218,17 @@ Deno.serve(async (req) => {
     db.from("mensajes").select("rol, contenido").eq("sesion_id", sesion_id)
       .order("creado", { ascending: false }).limit(TURNOS_HISTORIAL),
     db.from("sesiones").select("fecha").order("fecha", { ascending: false }).limit(400),
+    db.from("banco").select("id, tipo, original, correcto, patron")
+      .lte("proxima", hoyMas(0)).eq("dominado", false).order("proxima").limit(12),
+    db.from("mensajes").select("contenido").eq("sesion_id", sesion_id).eq("rol", "lidia")
+      .like("contenido", "%[[exercices]]%").order("creado", { ascending: false }).limit(20),
   ]);
   if (!sesionR.data) return json({ error: "Sesión no encontrada" }, 404);
+  const items_hoy = hoyR.data ?? [];
+
+  // Resultados de ejercicios: la fuente de verdad son los ejercicios emitidos en esta sesión, no el texto.
+  const emitidos = ejerciciosEmitidos((emitidosR.data ?? []).map((m: { contenido: string }) => m.contenido));
+  const validacion = validarResultados(entrada.resultados_ejercicios, emitidos);
 
   // Foto opcional: se descarga del bucket con los permisos de Laura.
   let imagen: Anthropic.ImageBlockParam | null = null;
@@ -251,9 +254,14 @@ Deno.serve(async (req) => {
     minuto_bloque: typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : null,
     entrada: modoEntrada,
     modo_bloque: MODO_BLOQUE[fase] ?? null,
+    actividad,
+    resultados_aplicados: validacion.aceptados.length
+      ? validacion.aceptados.map((r) => ({ tipo: r.tipo, respuesta: r.answer, estado: r.status }))
+      : null,
     ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
-  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n${mensaje}`;
+  // La actividad va justo antes del mensaje de Laura: lo último que lee Lidia.
+  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n<actividad>\n${textoActividad(actividad)}\n</actividad>\n\n${mensaje}`;
   const historial = armarHistorial((historialR.data ?? []).reverse());
   const ultimo = historial[historial.length - 1];
   const contenidoNuevo: Anthropic.ContentBlockParam[] = imagen
@@ -294,7 +302,9 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "Lidia no devolvió JSON válido" }, 502);
   }
-  lidia.mensaje = aTexto(lidia.bloques, lidia.ejercicios ?? []);
+  // Cada ejercicio lleva un id del servidor: es lo único que la app puede devolver como resultado.
+  lidia.ejercicios = ponerIds(lidia.ejercicios ?? [], () => crypto.randomUUID());
+  lidia.mensaje = aTexto(lidia.bloques, lidia.ejercicios);
 
   // Guardar: mensajes, ítems nuevos, repaso de ítems y estado de la sesión.
   await db.from("mensajes").insert([
@@ -302,38 +312,54 @@ Deno.serve(async (req) => {
     { sesion_id, rol: "lidia", fase, contenido: lidia.mensaje },
   ]);
 
-  // Un error que ya está en el banco no se duplica: cuenta como fallo de ese ítem.
+  // Banco: primero los resultados validados de los ejercicios; después lo que propone el modelo, validado.
+  const hayIntento = !esAvisoSistema(mensaje);
+  const yaAplicados = new Set<string>();
+  const cambios: { item_id: string; status: string }[] = [];
+  for (const r of validacion.aceptados) {
+    if (r.item_id && !yaAplicados.has(r.item_id)) { yaAplicados.add(r.item_id); cambios.push({ item_id: r.item_id, status: r.status }); }
+  }
+  const idsHoy = new Set(items_hoy.map((it: { id: string }) => it.id));
+  const delModelo = validarResultadosModelo(lidia.resultados_items, idsHoy, hayIntento, yaAplicados);
+  cambios.push(...delModelo.aceptados);
+
+  // Un error que ya está en el banco no se duplica: si Laura lo volvió a cometer en un intento real, cuenta como fallo.
   if (lidia.nuevos_items.length) {
     const { data: banco } = await db.from("banco").select("id, tipo, original, correcto, intervalo, aciertos_seguidos");
     const existentes = new Map((banco ?? []).map((b: ItemBanco) => [claveItem(b), b]));
-    const yaRepasados = new Set(lidia.resultados_items.map((r: { id: string }) => r.id));
     const vistos = new Set<string>();
     const nuevos: Record<string, unknown>[] = [];
-    const fallos: ItemBanco[] = [];
     for (const it of lidia.nuevos_items) {
       const k = claveItem(it);
       if (vistos.has(k)) continue;
       vistos.add(k);
       const previo = existentes.get(k);
       if (!previo) nuevos.push({ ...it, fuente: "lidia", intervalo: 1, proxima: hoyMas(1) });
-      else if (!yaRepasados.has(previo.id)) fallos.push(previo);
+      else if (hayIntento && it.tipo === "error" && !yaAplicados.has(previo.id)) {
+        yaAplicados.add(previo.id);
+        cambios.push({ item_id: previo.id, status: "incorrect" });
+      }
     }
     if (nuevos.length) await db.from("banco").insert(nuevos);
-    await Promise.all(fallos.map((item) => db.from("banco").update(repasar(item, false)).eq("id", item.id)));
   }
 
-  if (lidia.resultados_items.length) {
-    const ids = lidia.resultados_items.map((r: { id: string }) => r.id);
-    const { data: items } = await db.from("banco").select("id, intervalo, aciertos_seguidos").in("id", ids);
-    await Promise.all((items ?? []).map((item: Item) => {
-      const r = lidia.resultados_items.find((x: { id: string }) => x.id === item.id);
-      return db.from("banco").update(repasar(item, r.acierto)).eq("id", item.id);
+  // Solo ítems que existen y son de Laura (RLS); `ambiguous` y `minor_error` no cambian el repaso.
+  if (cambios.length) {
+    const { data: items } = await db.from("banco").select("id, intervalo, aciertos_seguidos").in("id", cambios.map((c) => c.item_id));
+    const porId = new Map((items ?? []).map((it: Item) => [it.id, it]));
+    await Promise.all(cambios.map((c) => {
+      const item = porId.get(c.item_id);
+      if (!item) { validacion.rechazos.push({ exercise_id: null, motivo: `ítem ${c.item_id} no existe o no es de Laura` }); return null; }
+      const nuevo = repasar(item, c.status as "correct", hoyMas);
+      return nuevo ? db.from("banco").update(nuevo).eq("id", item.id) : null;
     }));
   }
+  const rechazos = [...validacion.rechazos, ...delModelo.rechazos];
+  if (rechazos.length) console.warn(`lidia: rechazos de validación ${JSON.stringify(rechazos)}`);
 
   const cambiosSesion: Record<string, unknown> = { fase_actual: fase, resumen: lidia.resumen_sesion };
   if (lidia.resultado_cierre !== null) cambiosSesion.resultado = lidia.resultado_cierre;
   await db.from("sesiones").update(cambiosSesion).eq("id", sesion_id);
 
-  return json({ ...lidia, modelo: respuesta.model, uso: respuesta.usage });
+  return json({ ...lidia, actividad, validacion: { aplicados: cambios, rechazos }, modelo: respuesta.model, uso: respuesta.usage });
 });

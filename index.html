@@ -243,7 +243,10 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .amb-porque summary { cursor: pointer; font-weight: 600; font-size: 15px; color: var(--amb); }
 .amb-porque p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--tinta-suave); }
 .amb-material { display: grid; gap: 6px; margin-top: 12px; font-size: 15px; font-weight: 600; }
-.amb-material[hidden], .amb-revision[hidden] { display: none; }
+.amb-material[hidden], .amb-revision[hidden], .amb-modos[hidden] { display: none; }
+.amb-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 12px; padding: 4px; border-radius: 14px; background: color-mix(in srgb, var(--amb) 10%, var(--tarjeta)); }
+.amb-modos button { min-height: 44px; border: 0; border-radius: 11px; background: none; font-size: 14px; font-weight: 600; color: var(--tinta-suave); }
+.amb-modos button[aria-pressed="true"] { background: var(--tarjeta); color: var(--amb); box-shadow: var(--sombra); }
 .amb-material input { min-height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--tarjeta); font-weight: 400; }
 .amb-revision { margin-top: 12px; font-size: 15px; font-weight: 600; }
 .amb-revision span { display: inline-block; margin: 6px 6px 0 0; padding: 4px 10px; border-radius: 99px; font-weight: 400; background: var(--tarjeta); border: 1px solid var(--borde); }
@@ -591,6 +594,10 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
             <input id="s-material" type="text" placeholder="Titre du film ou de la série, l'épisode…" lang="fr">
           </label>
           <div class="amb-revision" id="s-amb-revision" hidden></div>
+          <div class="amb-modos" id="s-amb-modos" hidden role="group" aria-label="Mode">
+            <button type="button" data-modo="libre">💬 Conversation libre</button>
+            <button type="button" data-modo="guidee">🎤 Prise de parole guidée</button>
+          </div>
         </div>
         <div class="chat" id="s-chat" lang="fr"></div>
         <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
@@ -756,10 +763,10 @@ function mostrar(vista) {
 }
 function ir(vista) { location.hash = vista; }
 async function enrutar() {
-  if (!estado.usuaria) return mostrar("login");
-  const vista = location.hash.slice(1) || "inicio";
+  const vista = estado.usuaria ? location.hash.slice(1) || "inicio" : "login";
   // Al cambiar de pantalla, Lidia se calla; solo sigue leyendo el cierre al pasar de Session a Clôture.
   if (vista !== estado.vista && !(estado.vista === "sesion" && vista === "cierre")) callar();
+  if (!estado.usuaria) { estado.vista = vista; return mostrar("login"); }
   estado.vista = vista;
   document.body.classList.toggle("en-sesion", vista === "sesion");
   if (vista !== "sesion") pausar();
@@ -972,6 +979,7 @@ function pintarAmbiente(f) {
   $("s-material").value = leerLocal(`lidia-material-${hoy()}`) || "";
   $("s-amb-revision").hidden = true;
   $("b-voz").classList.toggle("sec", f.id !== "conversacion");
+  pintarModos();
   pintarActividad();
   if (f.id === "gramatica") itemsHoy().then((items) => {
     if (!items.length || $("v-sesion").dataset.bloque !== "gramatica") return;
@@ -1002,6 +1010,7 @@ function pausar() {
   // En pausa (el baño, una llamada), Lidia se calla y el micro se cierra.
   callar();
   if (micro) cerrarMicro();
+  cortarGrabacionEjercicio();
   clearInterval(reloj);
   guardarTiempo();
   pintarReloj();
@@ -1266,10 +1275,12 @@ function etiquetaAviso(texto) {
   if (texto.startsWith("(Nouvelle phase")) return f ? `${f.icono} ${f.titulo}` : texto.slice(1, -1);
   if (texto.startsWith("(Fin de la session")) return "🏁 Clôture";
   if (texto.startsWith("(Résultats")) return `✅ Résultats : ${(/(\d+\/\d+)/.exec(texto) || [""])[0]}`;
+  if (texto.startsWith("(Exercice : prise de parole")) return "🎤 Prise de parole guidée";
   return "🧩 Exercices demandés";
 }
-// Lo que pide el botón de actividad de cada bloque (Conversation no tiene: ahí se habla).
+// Lo que pide el botón de actividad de cada bloque. En Conversation libre no hay: ahí se habla.
 const ACTIVIDADES = {
+  guidee: { boton: "🎤 Une consigne de prise de parole", pedido: "(Exercice : prise de parole guidée)" },
   oral: { boton: "🎧 Exercices d'écoute : répéter et dictée", pedido: "(Exercices : shadowing et dictée avec mon matériel)" },
   gramatica: { boton: "🧩 Exercices de grammaire et révision", pedido: "(Exercices : grammaire et révision du jour)" },
   escritura: { boton: "✍️ Un sujet de rédaction", pedido: "(Exercice : rédaction)" },
@@ -1277,19 +1288,40 @@ const ACTIVIDADES = {
 const NOMBRE_EJ = { choix: "Choisis", trou: "Complète", transformer: "Transforme", ordre: "Remets en ordre", repeter: "Répète", dictee: "Dictée", rediger: "Rédaction" };
 $("b-actividad").onclick = () => {
   abrirVoz();
-  const a = ACTIVIDADES[FASES[estado.faseIdx].id];
+  const a = ACTIVIDADES[submodo() || FASES[estado.faseIdx].id];
   if (!a) return;
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
   if (!estado.corriendo) continuar();
   enviar(a.pedido);
 };
+// Modo dentro del bloque (hoy solo Conversation: libre o guidée), guardado por día. La función lo valida.
+function submodo() {
+  return FASES[estado.faseIdx].id === "conversacion" && leerLocal(`lidia-submodo-${hoy()}`) === "guidee" ? "guidee" : null;
+}
+function pintarModos() {
+  const enConversacion = FASES[estado.faseIdx].id === "conversacion";
+  $("s-amb-modos").hidden = !enConversacion;
+  const actual = submodo() || "libre";
+  for (const b of $("s-amb-modos").children) b.setAttribute("aria-pressed", b.dataset.modo === actual);
+  $("s-amb-hace").textContent = actual === "guidee"
+    ? "Lidia te donne une consigne. Tu prépares 15 secondes, tu parles sans t'arrêter, puis elle te donne trois priorités et tu reprends."
+    : FASES[estado.faseIdx].hace;
+}
+$("s-amb-modos").onclick = (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  guardarLocal(`lidia-submodo-${hoy()}`, b.dataset.modo);
+  pintarModos();
+  pintarActividad();
+};
 function pintarActividad() {
-  const a = ACTIVIDADES[FASES[estado.faseIdx].id];
+  const a = ACTIVIDADES[submodo() || FASES[estado.faseIdx].id];
   $("b-actividad").hidden = !a || Boolean(estado.ej) || estado.sesion?.fase_actual === "terminada";
   if (a) $("b-actividad").textContent = a.boton;
   $("v-sesion").classList.toggle("con-ejercicio", Boolean(estado.ej));
 }
 
+// ── Puras: revisión de respuestas (las prueba pruebas/cliente.prueba.js; la función lidia tiene la misma en reglas.js) ──
 function normalizar(t) {
   return (t || "").normalize("NFC").toLowerCase().replace(/[’`ʼ]/g, "'").replace(/'\s+/g, "'")
     .replace(/[.,!?;:«»"“”()…\-–—]/g, " ").replace(/\s+/g, " ").trim();
@@ -1301,6 +1333,7 @@ function revisar(ej, dada) {
   const buenas = (ej.respuesta || "").split("|").map((r) => r.trim()).filter(Boolean);
   if (ej.tipo === "trou" && /_{2,}/.test(ej.texto)) buenas.push(...buenas.map((r) => ej.texto.replace(/_{2,}/, r)));
   const d = normalizar(dada);
+  if (!d) return "no";
   if (buenas.some((r) => normalizar(r) === d)) return "si";
   if (buenas.some((r) => sinTildes(normalizar(r)) === sinTildes(d))) return "tildes";
   return "no";
@@ -1343,6 +1376,7 @@ function barajar(lista) {
   if (l.length > 2 && l.join(" ") === lista.join(" ")) return barajar(lista);
   return l;
 }
+// ── Fin de las puras ──
 
 function montarEjercicios(div, lista) {
   const caja = document.createElement("div");
@@ -1354,6 +1388,7 @@ function montarEjercicios(div, lista) {
 }
 function desmontarEjercicios() {
   if (!estado.ej) return;
+  cortarGrabacionEjercicio();
   const { caja, resultados, lista } = estado.ej;
   caja.outerHTML = `<div class="ej-hecho">🧩 ${resultados.length}/${lista.length} exercices faits</div>`;
   estado.ej = null;
@@ -1488,6 +1523,17 @@ async function repetirAlMicro(ej) {
   grabando(true, "Je t'écoute… touche « J'ai fini » pour arrêter");
   b.textContent = "⏺ J'ai fini";
 }
+// Pausa o cambio de mensaje durante «repeter»: se suelta el micro sin evaluar.
+function cortarGrabacionEjercicio() {
+  const e = estado.ej;
+  if (!e?.grabacion) return;
+  const g = e.grabacion;
+  e.grabacion = null;
+  cerrarGrabadora(g);
+  grabando(false);
+  const b = e.caja.querySelector("#ej-grabar");
+  if (b) { b.disabled = false; b.textContent = "🎙 Je répète"; }
+}
 function siguienteEjercicio() {
   const e = estado.ej;
   if (!e) return;
@@ -1503,8 +1549,15 @@ function enviarResultados(textoRedaccion) {
   const lineas = hechos.filter((r) => r.ej.tipo !== "rediger").map((r, k) =>
     `${k + 1}. ${r.ok ? "✓" : "✗"} [${r.ej.tipo}] ${r.ej.texto} — attendu : ${r.ej.respuesta}${r.ok && !r.tildes ? "" : ` — Laura : ${r.dada || "(rien)"}`}${r.tildes ? " — seulement les accents" : ""}${r.nota != null ? ` — ${r.nota} %` : ""}${r.ej.item_id ? ` (item_id ${r.ej.item_id})` : ""}`);
   const n = hechos.filter((r) => r.ej.tipo !== "rediger").length;
+  // Lo que cuenta para el banco: un resultado por ejercicio, con el id que le puso la función.
+  // Los que Laura no respondió van como «ambiguous»: no castigan.
+  const resultados = e.lista.filter((ej) => ej.tipo !== "rediger" && ej.id).map((ej) => {
+    const r = e.resultados.find((x) => x && x.ej === ej);
+    const status = !r || !r.dada ? "ambiguous" : r.tildes ? "minor_error" : r.ok ? "correct" : "incorrect";
+    return { exercise_id: ej.id, answer: r?.dada || "", status, source: ej.tipo === "repeter" ? "speech_checker" : "local_checker" };
+  });
   e.caja.innerHTML = `<div class="ej-fin">${n ? `Résultat : ${bien - (textoRedaccion ? 1 : 0)}/${n} 🎯` : "Texte envoyé ✍️"}</div>`;
-  if (n) enviar(`(Résultats des exercices : ${bien - (textoRedaccion ? 1 : 0)}/${n})\n${lineas.join("\n")}`);
+  if (n) enviar(`(Résultats des exercices : ${bien - (textoRedaccion ? 1 : 0)}/${n})\n${lineas.join("\n")}`, null, { resultados });
   if (textoRedaccion) enviar(textoRedaccion);
 }
 
@@ -1556,25 +1609,32 @@ async function itemsHoy() {
 
 // Los envíos van en cola: un cambio de fase mientras Lidia responde no se pierde.
 let cola = Promise.resolve();
-function enviar(texto, fotoPath = null) {
-  cola = cola.then(() => enviarYa(texto, fotoPath));
+function enviar(texto, fotoPath = null, extra = {}) {
+  cola = cola.then(() => enviarYa(texto, fotoPath, extra));
   return cola;
 }
-async function enviarYa(texto, fotoPath) {
+// dictated: tal cual lo transcribió el micro; edited_after_dictation: Laura lo cambió a mano; typed: escrito.
+function tipoEntrada(texto, fotoPath) {
+  if (!estado.dictado || fotoPath || AVISO.test(texto)) return "typed";
+  return texto.trim() === (estado.textoDictado || "").trim() ? "dictated" : "edited_after_dictation";
+}
+async function enviarYa(texto, fotoPath, extra = {}) {
   if (!estado.sesion) return;
   estado.enviando = true;
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
   const anterior = estado.actual;
-  const fueDictado = Boolean(estado.dictado) && !fotoPath && !AVISO.test(texto);
+  const entrada = tipoEntrada(texto, fotoPath);
   if (!AVISO.test(texto)) estado.dictado = false;
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
     const { data, error } = await sb.functions.invoke("lidia", {
       body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy(),
         material: leerLocal(`lidia-material-${hoy()}`) || null,
-        entrada: fueDictado ? "dictado" : "escrito",
+        entrada,
+        actividad: { mode: submodo() },
+        resultados_ejercicios: extra.resultados ?? null,
         minuto_bloque: Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)) },
     });
     if (error) {
@@ -1595,16 +1655,23 @@ async function enviarYa(texto, fotoPath) {
   }
 }
 
+let enviandoClic = false;
 $("b-enviar").onclick = async () => {
   abrirVoz();
-  // Si el micro sigue abierto, primero se cierra y se transcribe; después se envía.
-  if (micro) await cerrarMicro();
-  if (escuchaEs) { escuchaEs.onresult = null; escuchaEs.stop(); }
-  const t = $("s-texto").value.trim();
-  if (!t) return;
-  $("s-texto").value = "";
-  ajustarAlto();
-  enviar(t);
+  if (enviandoClic) return;
+  enviandoClic = true;
+  try {
+    // Si el micro sigue abierto, primero se cierra y se transcribe; después se envía.
+    if (micro) await cerrarMicro();
+    if (escuchaEs) { escuchaEs.onresult = null; escuchaEs.stop(); }
+    const t = $("s-texto").value.trim();
+    if (!t) return;
+    $("s-texto").value = "";
+    ajustarAlto();
+    enviar(t);
+  } finally {
+    enviandoClic = false;
+  }
 };
 $("s-texto").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); $("b-enviar").click(); }
@@ -1698,6 +1765,7 @@ function grabando(si, texto) {
 function escribirEnCaja(t) {
   const caja = $("s-texto");
   caja.value = t;
+  estado.textoDictado = t;
   ajustarAlto();
   caja.scrollTop = caja.scrollHeight;
 }
@@ -1746,7 +1814,7 @@ async function abrirMicro() {
   // Lo que llegue a la caja es dictado: Lidia no corrige tildes ni letras de algo dicho.
   estado.dictado = true;
   botonParler(true);
-  grabando(true, "Je t'écoute… touche Parler pour arrêter");
+  grabando(true, submodo() === "guidee" ? "Parle sans t'arrêter. Touche Parler quand tu as fini." : "Je t'écoute… touche Parler pour arrêter");
   const yo = micro;
   const g = await abrirGrabadora();
   if (micro !== yo) return cerrarGrabadora(g);
