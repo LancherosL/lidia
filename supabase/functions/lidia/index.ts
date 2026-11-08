@@ -21,6 +21,19 @@ const TIPOS_BLOQUE = ["pregunta", "exemple", "correction", "defi", "bravo", "plu
 // Ejercicios que la app muestra como actividad (ver lidia-prompt.md, «Ejercicios por bloque»).
 const TIPOS_EJERCICIO = ["choix", "trou", "transformer", "ordre", "repeter", "dictee", "rediger"];
 
+// Lo que se hace en cada bloque. Va en cada turno, al final del contexto, para que Lidia no convierta
+// todo en conversación (ver lidia-prompt.md, «Cada bloque tiene su propio formato»).
+const MODO_BLOQUE: Record<string, string> = {
+  conversacion:
+    "CONVERSATION (30 min). Charla real sobre su vida, una pregunta a la vez. Corriges enseñando (qué dijo, forma correcta, por qué, comparación con el español). Aquí sí se habla.",
+  oral:
+    "ORAL (30 min). No es charla libre. Minutos 0-12: trabajas con su material (`material_oral`): qué vio, qué no entendió; explicas 3-4 expresiones que oyó, con su sentido y un ejemplo. Minutos 12-28: series de `ejercicios` `repeter` y `dictee` (5-6 por serie). Minutos 28-30: las 3 frases que mejor salieron.",
+  gramatica:
+    "GRAMMAIRE (30 min). PROHIBIDO pedirle que hable, que diga algo en voz alta o que repita oralmente: aquí todo es lectura, explicación y ejercicios escritos. Minutos 0-12: LECCIÓN del punto del día, enseñando como a alguien que no lo sabe: 3-4 ejemplos de su vida → le preguntas por escrito qué patrón ve → explicas la regla con su nombre (el del TECFÉE), cuándo se usa, cómo se forma paso a paso, el error típico del hispanohablante y la comparación con el español. Usa `plus` para la explicación completa. Comprueba que entendió con un `choix` o `trou`. Minutos 12-27: 2-3 series de 5-6 `ejercicios` (choix, trou, transformer, ordre), de fácil a difícil, intercalando los `items_hoy`. Minutos 27-30: repaso de lo que falló.",
+  escritura:
+    "ÉCRITURE (30 min). Minutos 0-3: un `rediger` con una tarea real. Cuando llegue el texto: corrígelo entero, error por error (lo que escribió → la forma correcta → la regla → la comparación con el español), con la lista completa en `plus`; dile qué hizo bien de verdad; pídele que reescriba solo las frases con errores. Minutos 20-30: segunda versión y cierre.",
+};
+
 // Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
 // Los ejercicios van al final, en una sola línea «[[exercices]] [json]».
 function aTexto(bloques: { tipo: string; texto: string }[], ejercicios: unknown[] = []): string {
@@ -189,6 +202,8 @@ Deno.serve(async (req) => {
     items_hoy?: unknown[];
     simulacro?: boolean;
     material?: string | null; // lo que Laura escucha hoy en el bloque oral
+    entrada?: "dictado" | "escrito"; // dictado: las tildes y letras son del reconocedor, no de Laura
+    minuto_bloque?: number;
   };
   try {
     entrada = await req.json();
@@ -196,6 +211,7 @@ Deno.serve(async (req) => {
     return json({ error: "JSON inválido" }, 400);
   }
   const { sesion_id, fase, mensaje, foto_path, resumen_sesion, items_hoy = [], simulacro = false, material = null } = entrada;
+  const modoEntrada = entrada.entrada === "dictado" ? "dictado" : "escrito";
   if (!sesion_id || !fase || typeof mensaje !== "string") {
     return json({ error: "Faltan sesion_id, fase o mensaje" }, 400);
   }
@@ -232,6 +248,9 @@ Deno.serve(async (req) => {
     resumen_ayer: ayerR.data?.resumen ?? null,
     resumen_sesion: resumen_sesion ?? null,
     material_oral: material || null,
+    minuto_bloque: typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : null,
+    entrada: modoEntrada,
+    modo_bloque: MODO_BLOQUE[fase] ?? null,
     ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n${mensaje}`;

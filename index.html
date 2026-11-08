@@ -202,6 +202,7 @@ details.bq.plus .bq-t { max-height: none; margin-top: 8px; font-size: 16px; }
 .msg.lidia.ultimo .bq + .bq { margin-top: 10px; }
 .msg.lidia.ultimo .bq-e { font-size: 13px; margin-bottom: 4px; }
 .msg.lidia.ultimo .bq-t { font-size: 18px; max-height: calc(3 * 1.6em); }
+.msg.lidia.ultimo .bq.correction .bq-t, .msg.lidia.ultimo .bq.texto .bq-t { max-height: calc(7 * 1.6em); }
 .msg.lidia.ultimo .bq.pregunta .bq-t { font-size: 20px; font-weight: 500; }
 .msg.lidia.ultimo .bq.abierto .bq-t { max-height: none; }
 .msg.lidia.ultimo .bq-mas { display: block; }
@@ -285,6 +286,10 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .ej-retro.si { background: color-mix(in srgb, var(--verde) 14%, var(--tarjeta)); }
 .ej-retro.no { background: color-mix(in srgb, var(--ambar) 16%, var(--tarjeta)); }
 .ej-retro .falta { color: var(--rojo); text-decoration: underline; }
+.ej-retro b.falta { color: var(--verde); text-decoration: underline; }
+.ej-retro s { color: var(--rojo); }
+.ej-porque { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--borde); }
+.ej-porque p { margin: 0 0 6px; }
 .ej-fin { font-size: 18px; font-weight: 600; text-align: center; }
 .ej-hecho { margin-top: 8px; font-size: 14px; color: var(--tinta-suave); }
 /* Cambio de bloque dentro del chat: un separador con el icono del bloque. */
@@ -351,8 +356,8 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .vacio { text-align: center; color: var(--tinta-suave); padding: 24px 0; }
 
 /* Produire y Clôture */
-.btn.subir { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 104px; margin-top: 14px; border-radius: 22px; font-size: 18px; }
-.btn.subir span { font-size: 32px; line-height: 1; }
+.btn.subir { display: flex; flex-direction: row; gap: 10px; width: 100%; min-height: 60px; margin: 0 0 10px; border-radius: 20px; font-size: 18px; }
+.btn.subir span { font-size: 24px; line-height: 1; }
 .cierre { text-align: center; }
 .cierre .avatar-lidia { width: 76px; height: 76px; }
 .cierre h2 { margin: 12px 0 2px; font-size: 28px; letter-spacing: -.02em; }
@@ -1030,7 +1035,11 @@ $("b-siguiente").onclick = async () => {
   if (estado.faseIdx < FASES.length - 1) return cambiarFase(estado.faseIdx + 1);
   // Al final de Écriture, Lidia hace el cierre (3 frases, 1 reto, la racha) y se pasa a Clôture.
   const antes = estado.actual?.texto;
+  $("b-siguiente").disabled = true;
+  $("b-siguiente").textContent = "Lidia prépare la clôture…";
   await enviar(FIN_SESION);
+  $("b-siguiente").disabled = false;
+  pintarReloj();
   if (estado.actual?.texto !== antes) ir("cierre");
 };
 document.addEventListener("visibilitychange", () => { if (document.hidden) guardarTiempo(); });
@@ -1251,7 +1260,7 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
 // ── Ejercicios por bloque ──
 // Lidia manda una serie en `ejercicios`; la app la muestra una a una, la corrige sola
 // y al final le manda a Lidia los resultados para que corrija los fallos y siga.
-const AVISO = /^\((Nouvelle phase|Fin de la session|Exercices?|Résultats des exercices) : [\s\S]*\)$/;
+const AVISO = /^\((Nouvelle phase|Fin de la session|Exercices?|Résultats des exercices) : /;
 function etiquetaAviso(texto) {
   const f = FASES.find((x) => texto.includes(x.nombre));
   if (texto.startsWith("(Nouvelle phase")) return f ? `${f.icono} ${f.titulo}` : texto.slice(1, -1);
@@ -1282,11 +1291,35 @@ function pintarActividad() {
 }
 
 function normalizar(t) {
-  return (t || "").normalize("NFC").toLowerCase().replace(/[’`]/g, "'")
+  return (t || "").normalize("NFC").toLowerCase().replace(/[’`ʼ]/g, "'").replace(/'\s+/g, "'")
     .replace(/[.,!?;:«»"“”()…\-–—]/g, " ").replace(/\s+/g, " ").trim();
 }
-function esCorrecta(respuesta, dada) {
-  return (respuesta || "").split("|").some((r) => normalizar(r) === normalizar(dada));
+function sinTildes(t) { return t.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+// Revisa una respuesta: "si" (exacta), "tildes" (bien salvo tildes) o "no".
+// En «trou» también vale escribir la frase completa con el hueco lleno.
+function revisar(ej, dada) {
+  const buenas = (ej.respuesta || "").split("|").map((r) => r.trim()).filter(Boolean);
+  if (ej.tipo === "trou" && /_{2,}/.test(ej.texto)) buenas.push(...buenas.map((r) => ej.texto.replace(/_{2,}/, r)));
+  const d = normalizar(dada);
+  if (buenas.some((r) => normalizar(r) === d)) return "si";
+  if (buenas.some((r) => sinTildes(normalizar(r)) === sinTildes(d))) return "tildes";
+  return "no";
+}
+function esCorrecta(respuesta, dada) { return revisar({ tipo: "", respuesta }, dada) !== "no"; }
+// Marca palabra por palabra dónde se separa lo que escribió Laura de la respuesta.
+function diferencias(esperada, dada) {
+  const a = normalizar(esperada).split(" "), b = normalizar(dada).split(" ");
+  const t = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--)
+    t[i][j] = a[i] === b[j] ? t[i + 1][j + 1] + 1 : Math.max(t[i + 1][j], t[i][j + 1]);
+  const tuya = [], buena = [];
+  let i = 0, j = 0;
+  while (i < a.length || j < b.length) {
+    if (i < a.length && j < b.length && a[i] === b[j]) { tuya.push(escapar(b[j])); buena.push(escapar(a[i])); i++; j++; }
+    else if (j < b.length && (i >= a.length || t[i][j + 1] >= t[i + 1][j])) { tuya.push(`<s>${escapar(b[j])}</s>`); j++; }
+    else { buena.push(`<b class="falta">${escapar(a[i])}</b>`); i++; }
+  }
+  return { tuya: tuya.join(" "), buena: buena.join(" ") };
 }
 // Para repetir: qué parte de la frase se reconoce en lo que dijo (en orden), de 0 a 100.
 function parecido(objetivo, dicho) {
@@ -1364,7 +1397,7 @@ function pintarEjercicio() {
   if (ej.tipo === "choix") {
     e.caja.querySelectorAll(".ej-opciones button").forEach((b) => (b.onclick = () => {
       const dada = ej.opciones[b.dataset.k];
-      const ok = esCorrecta(ej.respuesta, dada);
+      const ok = revisar(ej, dada) !== "no";
       e.caja.querySelectorAll(".ej-opciones button").forEach((x) => {
         x.disabled = true;
         if (esCorrecta(ej.respuesta, ej.opciones[x.dataset.k])) x.classList.add("si");
@@ -1382,7 +1415,7 @@ function pintarEjercicio() {
     $e("#ej-verificar").onclick = () => {
       const dada = leer().trim();
       if (!dada) return aviso("Réponds d'abord.");
-      corregido(esCorrecta(ej.respuesta, dada), dada);
+      corregido(revisar(ej, dada), dada);
     };
     $e("#ej-in")?.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); $e("#ej-verificar").click(); } });
   }
@@ -1399,13 +1432,21 @@ function pintarEjercicio() {
   }
   $e("#ej-in")?.focus({ preventScroll: true });
 }
-function corregido(ok, dada) {
+// `estado`: true/"si" exacta, "tildes" bien salvo tildes (cuenta como lograda, pero se marca), false/"no".
+function corregido(estadoRespuesta, dada) {
   const e = estado.ej, ej = e.lista[e.i];
-  e.resultados[e.i] = { ej, ok, dada };
+  const resultado = estadoRespuesta === true ? "si" : estadoRespuesta === false ? "no" : estadoRespuesta;
+  const ok = resultado !== "no";
+  e.resultados[e.i] = { ej, ok, dada, tildes: resultado === "tildes" };
   const r = e.caja.querySelector("#ej-retro");
   const primera = (ej.respuesta || "").split("|")[0];
-  r.className = `ej-retro ${ok ? "si" : "no"}`;
-  r.innerHTML = `${ok ? "✓ <b>Exact!</b>" : `✗ Réponse : <b>${escapar(primera)}</b>`}${ej.explicacion ? `<br>${markdown(ej.explicacion)}` : ""}`;
+  const completa = ej.tipo === "trou" && /_{2,}/.test(ej.texto) ? ej.texto.replace(/_{2,}/, primera) : primera;
+  const dif = diferencias(normalizar(dada).split(" ").length > 2 ? completa : primera, dada);
+  let cabeza = "✓ <b>Exact!</b>";
+  if (resultado === "tildes") cabeza = `✓ <b>Presque!</b> Attention aux accents : <b>${escapar(primera)}</b>`;
+  if (resultado === "no") cabeza = `✗ Tu as écrit : ${dif.tuya}<br>Réponse : ${dif.buena}`;
+  r.className = `ej-retro ${resultado === "si" ? "si" : "no"}`;
+  r.innerHTML = `${cabeza}${ej.explicacion ? `<div class="ej-porque">${markdown(ej.explicacion)}</div>` : ""}`;
   r.hidden = false;
   e.caja.querySelector("#ej-verificar")?.setAttribute("hidden", "");
   e.caja.querySelectorAll("input, textarea").forEach((x) => (x.disabled = true));
@@ -1460,7 +1501,7 @@ function enviarResultados(textoRedaccion) {
   const hechos = e.resultados.filter(Boolean);
   const bien = hechos.filter((r) => r.ok).length;
   const lineas = hechos.filter((r) => r.ej.tipo !== "rediger").map((r, k) =>
-    `${k + 1}. ${r.ok ? "✓" : "✗"} [${r.ej.tipo}] ${r.ej.texto} — attendu : ${r.ej.respuesta}${r.ok ? "" : ` — Laura : ${r.dada || "(rien)"}`}${r.nota != null ? ` — ${r.nota} %` : ""}${r.ej.item_id ? ` (item_id ${r.ej.item_id})` : ""}`);
+    `${k + 1}. ${r.ok ? "✓" : "✗"} [${r.ej.tipo}] ${r.ej.texto} — attendu : ${r.ej.respuesta}${r.ok && !r.tildes ? "" : ` — Laura : ${r.dada || "(rien)"}`}${r.tildes ? " — seulement les accents" : ""}${r.nota != null ? ` — ${r.nota} %` : ""}${r.ej.item_id ? ` (item_id ${r.ej.item_id})` : ""}`);
   const n = hechos.filter((r) => r.ej.tipo !== "rediger").length;
   e.caja.innerHTML = `<div class="ej-fin">${n ? `Résultat : ${bien - (textoRedaccion ? 1 : 0)}/${n} 🎯` : "Texte envoyé ✍️"}</div>`;
   if (n) enviar(`(Résultats des exercices : ${bien - (textoRedaccion ? 1 : 0)}/${n})\n${lineas.join("\n")}`);
@@ -1476,6 +1517,7 @@ async function cargarCierre() {
     estado.segundos = data.segundos || 0;
   }
   const s = estado.sesion;
+  $("c-mensaje").innerHTML = `<div class="pensando">Un instant…</div>`;
   const inicioDia = new Date(`${hoy()}T00:00:00`).toISOString();
   const [ultimo, exprs, fechas] = await Promise.all([
     sb.from("mensajes").select("contenido").eq("sesion_id", s.id).eq("rol", "lidia").order("creado", { ascending: false }).limit(1).maybeSingle(),
@@ -1525,11 +1567,15 @@ async function enviarYa(texto, fotoPath) {
   const fase = FASES[estado.faseIdx].id;
   await pintarMensaje("laura", texto, null, fotoPath);
   const anterior = estado.actual;
+  const fueDictado = Boolean(estado.dictado) && !fotoPath && !AVISO.test(texto);
+  if (!AVISO.test(texto)) estado.dictado = false;
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
     const { data, error } = await sb.functions.invoke("lidia", {
       body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy(),
-        material: leerLocal(`lidia-material-${hoy()}`) || null },
+        material: leerLocal(`lidia-material-${hoy()}`) || null,
+        entrada: fueDictado ? "dictado" : "escrito",
+        minuto_bloque: Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)) },
     });
     if (error) {
       let detalle = error.message;
@@ -1697,6 +1743,8 @@ async function abrirMicro() {
   callar();
   const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
   micro = { base };
+  // Lo que llegue a la caja es dictado: Lidia no corrige tildes ni letras de algo dicho.
+  estado.dictado = true;
   botonParler(true);
   grabando(true, "Je t'écoute… touche Parler pour arrêter");
   const yo = micro;
