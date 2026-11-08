@@ -12,6 +12,7 @@ const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Expose-Headers": "content-type",
 };
 
 function json(cuerpo: unknown, status = 200) {
@@ -36,9 +37,11 @@ Deno.serve(async (req) => {
   const { data: usuaria } = await admin.auth.getUser(token);
   if (!usuaria?.user) return json({ error: "Sin sesión" }, 401);
 
-  let texto = "";
+  let texto = "", directo = false;
   try {
-    texto = String((await req.json()).texto ?? "").replace(/\s+/g, " ").trim();
+    const cuerpo = await req.json();
+    texto = String(cuerpo.texto ?? "").replace(/\s+/g, " ").trim();
+    directo = cuerpo.directo === true;
   } catch {
     return json({ error: "JSON inválido" }, 400);
   }
@@ -62,7 +65,16 @@ Deno.serve(async (req) => {
     return json({ error: detalle }, 502);
   }
   const audio = new Uint8Array(await r.arrayBuffer());
-  const subida = await admin.storage.from("voz").upload(ruta, audio, { contentType: "audio/mpeg", upsert: true });
+  const subir = () => admin.storage.from("voz").upload(ruta, audio, { contentType: "audio/mpeg", upsert: true });
+  // Lidia pide «directo»: el audio nuevo sale ya y se guarda en caché después, sin hacerla esperar.
+  // Défilé sigue recibiendo la URL firmada.
+  if (directo) {
+    const guardar = subir().then(({ error }) => { if (error) console.error(`No pude guardar el audio: ${error.message}`); });
+    // @ts-ignore EdgeRuntime existe en Supabase
+    if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(guardar); else await guardar;
+    return new Response(audio, { headers: { ...CORS, "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });
+  }
+  const subida = await subir();
   if (subida.error) return json({ error: `No pude guardar el audio: ${subida.error.message}` }, 500);
   const firmada = await firmar();
   if (!firmada.data?.signedUrl) return json({ error: "No pude firmar el audio" }, 500);

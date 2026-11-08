@@ -984,18 +984,54 @@ function callar() {
 function hablando() {
   return cargandoVoz || (!audioLidia.paused && !audioLidia.ended) || ("speechSynthesis" in window && speechSynthesis.speaking);
 }
+// Primero la primera frase sola: sale rápido y Lidia empieza a hablar mientras se prepara el resto.
+function trozosVoz(texto) {
+  const frases = texto.match(/[^.!?…]+[.!?…]*/g) || [texto];
+  const primera = frases.shift().trim();
+  const resto = frases.join("").trim();
+  return resto ? [primera, resto] : [primera];
+}
+async function pedirVoz(texto) {
+  const { data } = await sb.auth.getSession();
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/voz`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ texto, directo: true }),
+  });
+  if (!r.ok) throw new Error("voz");
+  if ((r.headers.get("Content-Type") || "").startsWith("audio/")) return URL.createObjectURL(await r.blob());
+  const { url } = await r.json();
+  if (!url) throw new Error("voz");
+  return url;
+}
+function tocar(url) {
+  return new Promise((listo, falla) => {
+    const fin = () => { audioLidia.onended = audioLidia.onpause = null; listo(); };
+    audioLidia.onended = fin;
+    audioLidia.onpause = fin;
+    audioLidia.src = url;
+    audioLidia.play().catch(falla);
+  });
+}
 async function hablarLidia(texto) {
   callar();
   const mio = turnoVoz;
   cargandoVoz = true;
+  const trozos = trozosVoz(limpiarVoz(texto));
+  const pedidos = trozos.map(pedirVoz);
+  pedidos.forEach((p) => p.catch(() => {}));
+  let i = 0;
   try {
-    const { data, error } = await sb.functions.invoke("voz", { body: { texto: limpiarVoz(texto) } });
-    if (error || !data?.url) throw new Error("voz");
-    if (mio !== turnoVoz) return;
-    audioLidia.src = data.url;
-    await audioLidia.play();
+    for (; i < pedidos.length; i++) {
+      const url = await pedidos[i];
+      if (mio !== turnoVoz) return;
+      cargandoVoz = false;
+      await tocar(url);
+      if (mio !== turnoVoz) return;
+      cargandoVoz = i < pedidos.length - 1;
+    }
   } catch {
-    if (mio === turnoVoz) hablar(texto);
+    if (mio === turnoVoz) hablar(trozos.slice(i).join(" "));
   } finally {
     if (mio === turnoVoz) cargandoVoz = false;
   }
@@ -1207,31 +1243,36 @@ const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognitio
 let escucha = null;
 // El dictado escribe «Anna»: es Ana (Ana Maria).
 function arreglarNombres(t) { return t.replace(/\bAnna\b/g, "Ana"); }
-// Parler: un toque para hablar, otro para enviar. Lo dicho se manda solo a Lidia.
+// Parler: lo que Laura dice se escribe en vivo en la caja; al tocar otra vez se para,
+// y ella revisa, corrige si hace falta y envía con ↑.
 $("b-voz").onclick = () => {
   abrirVoz();
   if (!Reconocimiento) return aviso("Ce navigateur ne reconnaît pas la voix. Essaie Safari ou Chrome.");
   if (escucha) return escucha.stop();
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
   callar();
-  let dicho = "";
   escucha = new Reconocimiento();
   escucha.lang = "fr-CA";
   escucha.interimResults = true;
   escucha.continuous = true;
-  escucha.onresult = (e) => { dicho = Array.from(e.results).map((r) => r[0].transcript).join(" "); };
+  escucha.maxAlternatives = 1;
+  const base = $("s-texto").value.trim() ? $("s-texto").value.trim() + " " : "";
+  escucha.onresult = (e) => {
+    $("s-texto").value = base + arreglarNombres(Array.from(e.results).map((r) => r[0].transcript.trim()).join(" "));
+    ajustarAlto();
+  };
   escucha.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") aviso(`Micro : ${e.error}`); };
   escucha.onend = () => {
     escucha = null;
     $("b-voz").classList.remove("activo");
     $("b-voz").innerHTML = "<span>🎙</span><b>Parler</b>";
-    const t = arreglarNombres(dicho.trim());
-    if (t) enviar(t);
-    else aviso("Je n'ai rien entendu. Réessaie.");
+    if (!$("s-texto").value.trim()) aviso("Je n'ai rien entendu. Réessaie.");
   };
   $("b-voz").classList.add("activo");
-  $("b-voz").innerHTML = "<span>⏺</span><b>Je t'écoute… touche pour envoyer</b>";
-  escucha.start();
+  $("b-voz").innerHTML = "<span>⏺</span><b>Je t'écoute… touche pour arrêter</b>";
+  // Un momento para que el parlante se calle: si el micro oye a Lidia, entiende mal.
+  const esta = escucha;
+  setTimeout(() => { if (escucha === esta) try { esta.start(); } catch {} }, 250);
 };
 
 // ── Ma banque ──
