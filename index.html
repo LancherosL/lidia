@@ -1170,14 +1170,48 @@ function callar() {
 function hablando() {
   return cargandoVoz || (!audioLidia.paused && !audioLidia.ended) || ("speechSynthesis" in window && speechSynthesis.speaking);
 }
-// Primero la primera frase sola: sale rápido y Lidia empieza a hablar mientras se prepara el resto.
+// Una sola petición de voz por mensaje (9-nov-2026): cada petición gasta cupo gratis.
 function trozosVoz(texto) {
-  const frases = texto.match(/[^.!?…]+[.!?…]*/g) || [texto];
-  const primera = frases.shift().trim();
-  const resto = frases.join("").trim();
-  return resto ? [primera, resto] : [primera];
+  return [texto.trim()].filter(Boolean);
+}
+// Caché de voz en el teléfono (IndexedDB): una frase que ya sonó no se vuelve a pedir, así no gasta cupo.
+// Si IndexedDB no está (navegación privada), se sigue sin caché.
+const VOZ_CACHE = "azure-sylvie-1";
+let bdVoz = null;
+function abrirBdVoz() {
+  if (bdVoz) return bdVoz;
+  bdVoz = new Promise((listo) => {
+    try {
+      const pet = indexedDB.open("lidia-voz", 1);
+      pet.onupgradeneeded = () => pet.result.createObjectStore("audios");
+      pet.onsuccess = () => listo(pet.result);
+      pet.onerror = () => listo(null);
+    } catch { listo(null); }
+  });
+  return bdVoz;
+}
+async function cacheVoz(clave, blob) {
+  const bd = await abrirBdVoz();
+  if (!bd) return null;
+  return new Promise((listo) => {
+    try {
+      const tx = bd.transaction("audios", blob ? "readwrite" : "readonly");
+      const almacen = tx.objectStore("audios");
+      const pet = blob ? almacen.put(blob, clave) : almacen.get(clave);
+      pet.onsuccess = () => listo(blob ? null : pet.result || null);
+      pet.onerror = () => listo(null);
+    } catch { listo(null); }
+  });
 }
 async function pedirVoz(texto, lento = false) {
+  const clave = `${VOZ_CACHE}|${lento ? "lento" : "normal"}|${texto}`;
+  const guardado = await cacheVoz(clave);
+  if (guardado) return URL.createObjectURL(guardado);
+  const blob = await pedirVozRed(texto, lento);
+  cacheVoz(clave, blob);
+  return URL.createObjectURL(blob);
+}
+async function pedirVozRed(texto, lento) {
   const { data } = await sb.auth.getSession();
   const r = await fetch(`${SUPABASE_URL}/functions/v1/voz`, {
     method: "POST",
@@ -1185,10 +1219,12 @@ async function pedirVoz(texto, lento = false) {
     body: JSON.stringify({ texto, directo: true, lento }),
   });
   if (!r.ok) throw new Error("voz");
-  if ((r.headers.get("Content-Type") || "").startsWith("audio/")) return URL.createObjectURL(await r.blob());
+  if ((r.headers.get("Content-Type") || "").startsWith("audio/")) return await r.blob();
   const { url } = await r.json();
   if (!url) throw new Error("voz");
-  return url;
+  const audio = await fetch(url);
+  if (!audio.ok) throw new Error("voz");
+  return await audio.blob();
 }
 function tocar(url) {
   return new Promise((listo, falla) => {
