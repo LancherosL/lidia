@@ -1059,7 +1059,13 @@ function pausar() {
   pintarReloj();
 }
 // Minuto dentro del bloque actual y su tramo (hebra de Nation).
-function minutoBloque() { return Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)); }
+// Si Laura pasa de bloque antes de tiempo, el bloque empieza ese segundo (no en su minuto teórico).
+function inicioBloque() {
+  const f = FASES[estado.faseIdx];
+  const marcado = leerLocal(`lidia-inicio-${estado.sesion?.id}-${f.id}`);
+  return Math.min(typeof marcado === "number" ? marcado : f.ini * 60, f.ini * 60);
+}
+function minutoBloque() { return Math.max(0, Math.floor((estado.segundos - inicioBloque()) / 60)); }
 function tramoAhora() { return tramoActual(FASES[estado.faseIdx].id, minutoBloque()); }
 // Al pasar de tramo dentro de un bloque (p. ej. al min 20 de Conversation), Lidia lo anuncia una sola vez.
 function marcaEtapa() { return `lidia-etape-${estado.sesion?.id}`; }
@@ -1095,6 +1101,7 @@ async function cambiarFase(idx) {
   estado.sesion.fase_actual = f.id;
   await sb.from("sesiones").update({ fase_actual: f.id, segundos: estado.segundos }).eq("id", estado.sesion.id);
   guardarLocal(marcaEtapa(), `${f.id}:0`);
+  if (estado.segundos < f.ini * 60) guardarLocal(`lidia-inicio-${estado.sesion.id}-${f.id}`, estado.segundos);
   pintarReloj();
   await enviar(arranqueFase(f));
 }
@@ -1603,7 +1610,12 @@ function pintarEjercicio() {
     };
   }
   $e("#ej-in")?.focus({ preventScroll: true });
+  // Lidia no se queda callada en los ejercicios: lee la frase que hay que repetir o escribir.
+  if (ej.tipo === "repeter" || ej.tipo === "dictee") decirEj(ej.texto);
 }
+// Lo que Lidia dice durante los ejercicios (si la lectura automática está activa). Frases cortas y fijas:
+// quedan en caché y no gastan cupo dos veces.
+function decirEj(t) { if (t && leerAuto()) hablarLidia(t); }
 // `estado`: true/"si" exacta, "tildes" bien salvo tildes (cuenta como lograda, pero se marca), false/"no".
 function corregido(estadoRespuesta, dada) {
   const e = estado.ej, ej = e.lista[e.i];
@@ -1624,6 +1636,7 @@ function corregido(estadoRespuesta, dada) {
   e.caja.querySelectorAll("input, textarea").forEach((x) => (x.disabled = true));
   e.caja.querySelector("#ej-siguiente").hidden = false;
   e.caja.querySelector("#ej-siguiente").focus({ preventScroll: true });
+  decirEj(resultado === "si" ? "Exact!" : resultado === "tildes" ? `Presque! Attention aux accents. ${completa}` : `Pas tout à fait. La bonne réponse : ${completa}`);
 }
 // Repetir: se graba, Scribe transcribe y se compara palabra por palabra. 80 % o más cuenta como logrado.
 async function repetirAlMicro(ej) {
@@ -1650,6 +1663,7 @@ async function repetirAlMicro(ej) {
     r.innerHTML = `<b>${p.nota} %</b> ${p.nota >= 80 ? "✓ Bien dit!" : "· Écoute encore et répète."}<br>${p.palabras.map((w, k) => p.faltan.has(k) ? `<span class="falta">${escapar(w)}</span>` : escapar(w)).join(" ")}<br><small>J'ai entendu : « ${escapar(dicho)} »</small>`;
     r.hidden = false;
     e.caja.querySelector("#ej-siguiente").hidden = false;
+    decirEj(p.nota >= 80 ? "Bien dit!" : `Presque. Écoute encore : ${ej.texto}`);
     return;
   }
   abrirVoz();
@@ -1808,7 +1822,7 @@ async function enviarYa(texto, fotoPath, extra = {}) {
         entrada,
         actividad: { mode: submodo() },
         resultados_ejercicios: extra.resultados ?? null,
-        minuto_bloque: Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)) },
+        minuto_bloque: minutoBloque() },
       (voz) => { if (leerAuto() && voz) { dicha = voz; hablarLidia(voz); } });
     estado.resumen = data.resumen_sesion;
     await pintarMensaje("lidia", data.mensaje, data.voz);

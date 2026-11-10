@@ -150,6 +150,28 @@
     pintarHebrasSemana();
     ok("barras de la semana", !$("s-hebras").hidden && $("s-hebras").querySelectorAll("div").length === 4);
     ok("etiqueta del aviso de etapa", etiquetaAviso("(Nouvelle étape : Fluidité orale (4/3/2))") === "⏱ Fluidité orale (4/3/2)");
+
+    // 12. Lidia no se queda callada en los ejercicios: lee la frase y comenta el resultado.
+    const hablados = [];
+    const hlOrig = hablarLidia;
+    hablarLidia = (t) => { hablados.push(t); };
+    try {
+      await pintarMensaje("lidia", "[[defi]] Répète.\n\n[[exercices]] " + JSON.stringify([lista[2], lista[1]]));
+      ok("repeter: Lidia lee la frase al aparecer", hablados.at(-1) === "Il fait froid.", JSON.stringify(hablados));
+      q("#ej-siguiente").click();
+      q("#ej-in").value = "étions";
+      q("#ej-verificar").click();
+      ok("ejercicio escrito: Lidia comenta el resultado", /^Pas tout à fait\. La bonne réponse : Nous sommes partis\./.test(hablados.at(-1) || ""), hablados.at(-1));
+    } finally { hablarLidia = hlOrig; }
+
+    // 13. Bloque adelantado a mano: los tramos cuentan desde ese momento, no desde el minuto teórico.
+    estado.sesion = { id: `prueba-inicio-${Date.now()}`, fase_actual: "conversacion" };
+    estado.faseIdx = 0;
+    estado.segundos = 9 * 60;
+    sb.from = () => ({ update: () => ({ eq: async () => ({}) }) });
+    try { await cambiarFase(1); } finally { sb.from = sbFrom; }
+    estado.segundos += 16 * 60;
+    ok("bloque adelantado: min 16 de Oral = shadowing", minutoBloque() === 16 && tramoAhora().hebra === "fluidez", `${minutoBloque()} ${tramoAhora().hebra}`);
   } catch (e) {
     resultados.push(`✗ excepción: ${e.message}`);
   } finally {
