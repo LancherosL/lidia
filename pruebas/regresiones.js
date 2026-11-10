@@ -122,6 +122,17 @@
     pintarModos();
     pintarActividad();
     ok("libre: sin botón de actividad", $("b-actividad").hidden && submodo() === null);
+
+    // 10. Retomar la sesión de hoy: Lidia vuelve a decir su último mensaje.
+    const sbFrom = sb.from, decirOrig = decir;
+    let dicho = null;
+    const consulta = (datos) => { const q = { select: () => q, eq: () => q, lt: () => q, order: () => q, limit: () => q, maybeSingle: async () => ({ data: Array.isArray(datos) ? datos[0] : datos }), then: (r) => r({ data: datos }) }; return q; };
+    sb.from = (t) => t === "sesiones" ? consulta({ id: "s1", fecha: hoy(), fase_actual: "conversacion", segundos: 120, resumen: null })
+      : consulta(t === "mensajes" ? [{ rol: "lidia", contenido: "[[pregunta]] Et samedi?" }] : []);
+    decir = (t) => { dicho = t; };
+    estado.corriendo = false;
+    try { await abrirSesion(); } finally { sb.from = sbFrom; decir = decirOrig; pausar(); }
+    ok("retomar la sesión: Lidia habla", dicho === "[[pregunta]] Et samedi?", String(dicho));
   } catch (e) {
     resultados.push(`✗ excepción: ${e.message}`);
   } finally {

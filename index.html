@@ -922,6 +922,8 @@ async function abrirSesion() {
   cargarPanel(s);
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
+  // Al retomar una sesión de hoy, Lidia vuelve a decir su último mensaje (antes se quedaba callada).
+  else if (leerAuto() && msgs[msgs.length - 1].rol === "lidia" && estado.actual?.texto) decir(estado.actual.texto, estado.actual.voz);
   continuar();
 }
 
@@ -1139,6 +1141,9 @@ let vozAbierta = false;
 // Si la función falla, lee la voz del navegador.
 const audioLidia = new Audio();
 let turnoVoz = 0, cargandoVoz = false;
+// El primer toque en cualquier parte de la app desbloquea el audio (iPhone): así Lidia puede hablar
+// al abrir la sesión, aunque su mensaje llegue segundos después del toque.
+document.addEventListener("pointerdown", () => abrirVoz(), { capture: true, once: true });
 function abrirVoz() {
   if (vozAbierta) return;
   vozAbierta = true;
