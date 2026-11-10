@@ -10,11 +10,12 @@ const INSTRUCCION =
   "Transcribe exactly what is said, word for word, in the language it was said. " +
   "The speaker is a Spanish speaker learning Québec French: most of it is French, but she may say some words in Spanish " +
   "when she does not know them; write those words in Spanish, as said. Do not correct her grammar or pronunciation, " +
-  "do not translate, do not add anything. Output only the transcript.";
+  "do not translate, do not add anything. She is a woman: keep feminine agreements when that is what she says. " +
+  "When a sound is unclear, prefer the word that fits the conversation context given below. Output only the transcript.";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-contexto",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -45,13 +46,22 @@ Deno.serve(async (req) => {
   const audio = new Uint8Array(await req.arrayBuffer());
   if (!audio.length) return json({ error: "Falta el audio" }, 400);
   if (audio.length > MAX_BYTES) return json({ error: "Audio demasiado largo" }, 413);
+  // Contexto opcional (la última pregunta de Lidia, nombres conocidos): ayuda a oír bien, nunca se transcribe.
+  let contexto = "";
+  try { contexto = decodeURIComponent(req.headers.get("x-contexto") ?? "").slice(0, 600); } catch { /* sin contexto */ }
+  // Su cuaderno (perfil.memoria) trae los nombres de su vida: Gemini los reconoce mejor.
+  const { data: perfil } = await admin.from("perfil").select("memoria").eq("user_id", usuaria.user.id).maybeSingle();
+  const vida = (perfil?.memoria ?? []).join(" ").slice(0, 1500);
+  if (vida) contexto = `Facts about her life (names and places she may say): ${vida}\n${contexto}`;
+  const instruccion = contexto ? `${INSTRUCCION}\n\nConversation context (do not transcribe it): ${contexto}` : INSTRUCCION;
 
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`, {
     method: "POST",
     headers: { "x-goog-api-key": claveGemini, "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: INSTRUCCION }, { inlineData: { mimeType: tipo, data: aBase64(audio) } }] }],
-      generationConfig: { temperature: 0 },
+      contents: [{ parts: [{ text: instruccion }, { inlineData: { mimeType: tipo, data: aBase64(audio) } }] }],
+      // Razonamiento corto: con el nivel por defecto tardaba hasta 11 s; «low» tarda ~1,5 s y oye igual.
+      generationConfig: { temperature: 0, thinkingConfig: { thinkingLevel: "low" } },
     }),
   });
   const d = await r.json().catch(() => ({}));

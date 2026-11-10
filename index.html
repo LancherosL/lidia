@@ -1618,6 +1618,42 @@ function tipoEntrada(texto, fotoPath) {
   if (!estado.dictado || fotoPath || AVISO.test(texto)) return "typed";
   return texto.trim() === (estado.textoDictado || "").trim() ? "dictated" : "edited_after_dictation";
 }
+// Lidia responde en flujo (NDJSON): primero la línea «voz», apenas Claude la escribe, y al final todo.
+// Así empieza a hablar unos segundos antes. Si llega un JSON normal (error o función vieja), también sirve.
+async function llamarLidia(cuerpo, alVoz) {
+  const { data: s } = await sb.auth.getSession();
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/lidia`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${s.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ ...cuerpo, flujo: true }),
+  });
+  if (!(r.headers.get("Content-Type") || "").includes("ndjson") || !r.body) {
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.error) throw new Error(d.error || `HTTP ${r.status}`);
+    return d;
+  }
+  const lector = r.body.getReader();
+  const deco = new TextDecoder();
+  let pendiente = "", fin = null;
+  const linea = (l) => {
+    if (!l.trim()) return;
+    const o = JSON.parse(l);
+    if (o.tipo === "voz") alVoz?.(o.voz);
+    else if (o.tipo === "error") throw new Error(o.error || "erreur");
+    else if (o.tipo === "fin") fin = o;
+  };
+  for (;;) {
+    const { value, done } = await lector.read();
+    if (done) break;
+    pendiente += deco.decode(value, { stream: true });
+    const partes = pendiente.split("\n");
+    pendiente = partes.pop();
+    partes.forEach(linea);
+  }
+  linea(pendiente);
+  if (!fin) throw new Error("réponse incomplète");
+  return fin;
+}
 async function enviarYa(texto, fotoPath, extra = {}) {
   if (!estado.sesion) return;
   estado.enviando = true;
@@ -1629,22 +1665,18 @@ async function enviarYa(texto, fotoPath, extra = {}) {
   if (!AVISO.test(texto)) estado.dictado = false;
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
-    const { data, error } = await sb.functions.invoke("lidia", {
-      body: { sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy(),
+    let dicha = null;
+    const data = await llamarLidia({ sesion_id: estado.sesion.id, fase, mensaje: texto, foto_path: fotoPath, resumen_sesion: estado.resumen, items_hoy: await itemsHoy(),
         material: leerLocal(`lidia-material-${hoy()}`) || null,
         entrada,
         actividad: { mode: submodo() },
         resultados_ejercicios: extra.resultados ?? null,
         minuto_bloque: Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)) },
-    });
-    if (error) {
-      let detalle = error.message;
-      try { detalle = (await error.context.json()).error || detalle; } catch {}
-      throw new Error(detalle);
-    }
+      (voz) => { if (leerAuto() && voz) { dicha = voz; hablarLidia(voz); } });
     estado.resumen = data.resumen_sesion;
     await pintarMensaje("lidia", data.mensaje, data.voz);
-    if (leerAuto()) decir(data.mensaje, data.voz);
+    // Si la voz ya empezó con el flujo, no se corta ni se repite.
+    if (leerAuto() && dicha !== data.voz) decir(data.mensaje, data.voz);
     if (data.nuevos_items?.length) aviso(`${data.nuevos_items.length} nouveauté${data.nuevos_items.length > 1 ? "s" : ""} dans ta banque`);
   } catch (e) {
     ponerActual(anterior?.texto || "", anterior?.voz);
@@ -1797,11 +1829,17 @@ function cerrarGrabadora(g) {
     try { g.grabadora.stop(); } catch { listo(null); }
   });
 }
+// Lo que Lidia acaba de decir: ayuda a «oido» a oír bien (no se transcribe).
+function contextoOido() {
+  const ultima = (estado.actual?.voz || textoPlano(estado.actual?.texto || "")).slice(-400);
+  return ultima ? `Tutor's last message: ${ultima}` : "";
+}
 async function transcribir(audio) {
   const { data } = await sb.auth.getSession();
   const r = await fetch(`${SUPABASE_URL}/functions/v1/oido`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": audio.type.split(";")[0] },
+    headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": audio.type.split(";")[0],
+      "x-contexto": encodeURIComponent(contextoOido()) },
     body: audio,
   });
   if (!r.ok) throw new Error("oido");

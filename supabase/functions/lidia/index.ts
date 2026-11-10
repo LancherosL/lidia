@@ -11,6 +11,8 @@ import {
 const MODELO_CHARLA = "claude-haiku-5-5";
 const MODELO_CORRECCION = "claude-sonnet-5-5"; // fotos y simulacros
 const TURNOS_HISTORIAL = 16; // 8 turnos de Laura y 8 de Lidia
+const MAX_RECUERDOS = 80; // cuaderno largo (perfil.memoria): los más nuevos quedan
+const SESIONES_ANTERIORES = 3; // resúmenes de las últimas sesiones que ve Lidia
 const ZONA = "America/Toronto";
 
 const CORS = {
@@ -48,8 +50,10 @@ function aTexto(bloques: { tipo: string; texto: string }[], ejercicios: unknown[
 const ESQUEMA_RESPUESTA = {
   type: "object",
   additionalProperties: false,
-  required: ["bloques", "ejercicios", "voz", "nuevos_items", "resultados_items", "resumen_sesion", "resultado_cierre"],
+  // `voz` va primero: con la respuesta en flujo, la app empieza a hablar antes de que llegue el resto.
+  required: ["voz", "bloques", "ejercicios", "nuevos_items", "resultados_items", "resumen_sesion", "recuerdos", "resultado_cierre"],
   properties: {
+    voz: { type: ["string", "null"] },
     // El mensaje partido por tipo: la app pinta cada tipo con su color, etiqueta e icono.
     bloques: {
       type: "array",
@@ -80,7 +84,6 @@ const ESQUEMA_RESPUESTA = {
         },
       },
     },
-    voz: { type: ["string", "null"] },
     nuevos_items: {
       type: "array",
       items: {
@@ -106,6 +109,8 @@ const ESQUEMA_RESPUESTA = {
       },
     },
     resumen_sesion: { type: "string" },
+    // Hechos estables de la vida de Laura que no estaban en `cuaderno_laura` (casi siempre vacío).
+    recuerdos: { type: "array", items: { type: "string" } },
     resultado_cierre: { type: ["integer", "null"] },
   },
 };
@@ -196,6 +201,7 @@ Deno.serve(async (req) => {
     minuto_bloque?: number;
     actividad?: { mode?: string } | null; // el cliente solo pide un modo; el resto lo decide reglas.js
     resultados_ejercicios?: unknown; // [{exercise_id, answer, status, source}] de la serie que terminó Laura
+    flujo?: boolean; // true: responde en NDJSON, primero la voz y luego todo (la app empieza a hablar antes)
   };
   try {
     entrada = await req.json();
@@ -211,10 +217,10 @@ Deno.serve(async (req) => {
   }
 
   const [perfilR, sesionR, ayerR, historialR, fechasR, hoyR, emitidosR] = await Promise.all([
-    db.from("perfil").select("fase_plan, tema_semana").maybeSingle(),
+    db.from("perfil").select("user_id, fase_plan, tema_semana, memoria").maybeSingle(),
     db.from("sesiones").select("id, fecha").eq("id", sesion_id).maybeSingle(),
-    db.from("sesiones").select("resumen").neq("id", sesion_id).not("resumen", "is", null)
-      .order("creado", { ascending: false }).limit(1).maybeSingle(),
+    db.from("sesiones").select("fecha, resumen").neq("id", sesion_id).not("resumen", "is", null)
+      .order("creado", { ascending: false }).limit(SESIONES_ANTERIORES),
     db.from("mensajes").select("rol, contenido").eq("sesion_id", sesion_id)
       .order("creado", { ascending: false }).limit(TURNOS_HISTORIAL),
     db.from("sesiones").select("fecha").order("fecha", { ascending: false }).limit(400),
@@ -248,7 +254,10 @@ Deno.serve(async (req) => {
     fase_plan: perfilR.data?.fase_plan ?? 1,
     tema_semana: perfilR.data?.tema_semana ?? "Ma vie au Québec",
     items_hoy,
-    resumen_ayer: ayerR.data?.resumen ?? null,
+    // Memoria larga: hechos de su vida (no le vuelvas a preguntar lo que ya está aquí) y las últimas sesiones.
+    cuaderno_laura: perfilR.data?.memoria ?? [],
+    resumen_ayer: ayerR.data?.[0]?.resumen ?? null,
+    sesiones_anteriores: (ayerR.data ?? []).slice(1).map((r: { fecha: string; resumen: string }) => `${r.fecha}: ${r.resumen}`),
     resumen_sesion: resumen_sesion ?? null,
     material_oral: material || null,
     minuto_bloque: typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : null,
@@ -275,91 +284,151 @@ Deno.serve(async (req) => {
   }
 
   const corrige = Boolean(imagen) || simulacro;
-  let respuesta;
-  try {
-    respuesta = await anthropic.beta.messages.create({
-      model: corrige ? MODELO_CORRECCION : MODELO_CHARLA,
-      max_tokens: corrige ? 16000 : 8000,
-      system: [{ type: "text", text: PROMPT_LIDIA, cache_control: { type: "ephemeral" } }],
-      messages: historial,
-      output_config: { effort: corrige ? "medium" : "low", format: { type: "json_schema", schema: ESQUEMA_RESPUESTA } },
-      // Si un filtro de seguridad rechaza la corrección, Anthropic la reintenta con otro modelo.
-      ...(corrige ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {}),
-    } as Anthropic.Beta.MessageCreateParamsNonStreaming);
-  } catch (e) {
-    if (e instanceof Anthropic.AuthenticationError) return json({ error: "Clave de Anthropic inválida" }, 500);
-    if (e instanceof Anthropic.RateLimitError) return json({ error: "Demasiadas solicitudes, intenta en un momento" }, 429);
-    if (e instanceof Anthropic.APIError) return json({ error: `Error de Claude ${e.status}: ${e.message}` }, 502);
+  const parametros = {
+    model: corrige ? MODELO_CORRECCION : MODELO_CHARLA,
+    max_tokens: corrige ? 16000 : 8000,
+    system: [{ type: "text", text: PROMPT_LIDIA, cache_control: { type: "ephemeral" } }],
+    messages: historial,
+    output_config: { effort: corrige ? "medium" : "low", format: { type: "json_schema", schema: ESQUEMA_RESPUESTA } },
+    // Si un filtro de seguridad rechaza la corrección, Anthropic la reintenta con otro modelo.
+    ...(corrige ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {}),
+  } as Anthropic.Beta.MessageCreateParamsNonStreaming;
+
+  function errorClaude(e: unknown): [number, { error: string }] {
+    if (e instanceof Anthropic.AuthenticationError) return [500, { error: "Clave de Anthropic inválida" }];
+    if (e instanceof Anthropic.RateLimitError) return [429, { error: "Demasiadas solicitudes, intenta en un momento" }];
+    if (e instanceof Anthropic.APIError) return [502, { error: `Error de Claude ${e.status}: ${e.message}` }];
     throw e;
   }
 
-  if (respuesta.stop_reason === "refusal") return json({ error: "Claude rechazó la solicitud" }, 502);
-  if (respuesta.stop_reason === "max_tokens") return json({ error: "La respuesta de Lidia quedó cortada" }, 502);
-  const texto = respuesta.content.find((b) => b.type === "text");
-  let lidia;
-  try {
-    lidia = JSON.parse(texto && "text" in texto ? texto.text : "");
-  } catch {
-    return json({ error: "Lidia no devolvió JSON válido" }, 502);
-  }
-  // Cada ejercicio lleva un id del servidor: es lo único que la app puede devolver como resultado.
-  lidia.ejercicios = ponerIds(lidia.ejercicios ?? [], () => crypto.randomUUID());
-  lidia.mensaje = aTexto(lidia.bloques, lidia.ejercicios);
-
-  // Guardar: mensajes, ítems nuevos, repaso de ítems y estado de la sesión.
-  await db.from("mensajes").insert([
-    { sesion_id, rol: "laura", fase, contenido: mensaje, imagen_url: foto_path ?? null },
-    { sesion_id, rol: "lidia", fase, contenido: lidia.mensaje },
-  ]);
-
-  // Banco: primero los resultados validados de los ejercicios; después lo que propone el modelo, validado.
-  const hayIntento = !esAvisoSistema(mensaje);
-  const yaAplicados = new Set<string>();
-  const cambios: { item_id: string; status: string }[] = [];
-  for (const r of validacion.aceptados) {
-    if (r.item_id && !yaAplicados.has(r.item_id)) { yaAplicados.add(r.item_id); cambios.push({ item_id: r.item_id, status: r.status }); }
-  }
-  const idsHoy = new Set(items_hoy.map((it: { id: string }) => it.id));
-  const delModelo = validarResultadosModelo(lidia.resultados_items, idsHoy, hayIntento, yaAplicados);
-  cambios.push(...delModelo.aceptados);
-
-  // Un error que ya está en el banco no se duplica: si Laura lo volvió a cometer en un intento real, cuenta como fallo.
-  if (lidia.nuevos_items.length) {
-    const { data: banco } = await db.from("banco").select("id, tipo, original, correcto, intervalo, aciertos_seguidos");
-    const existentes = new Map((banco ?? []).map((b: ItemBanco) => [claveItem(b), b]));
-    const vistos = new Set<string>();
-    const nuevos: Record<string, unknown>[] = [];
-    for (const it of lidia.nuevos_items) {
-      const k = claveItem(it);
-      if (vistos.has(k)) continue;
-      vistos.add(k);
-      const previo = existentes.get(k);
-      if (!previo) nuevos.push({ ...it, fuente: "lidia", intervalo: 1, proxima: hoyMas(1) });
-      else if (hayIntento && it.tipo === "error" && !yaAplicados.has(previo.id)) {
-        yaAplicados.add(previo.id);
-        cambios.push({ item_id: previo.id, status: "incorrect" });
-      }
+  // Todo lo que pasa después de la respuesta de Claude: validar, guardar y armar lo que recibe la app.
+  async function terminar(respuesta: Anthropic.Beta.BetaMessage): Promise<[number, Record<string, unknown>]> {
+    if (respuesta.stop_reason === "refusal") return [502, { error: "Claude rechazó la solicitud" }];
+    if (respuesta.stop_reason === "max_tokens") return [502, { error: "La respuesta de Lidia quedó cortada" }];
+    const texto = respuesta.content.find((b) => b.type === "text");
+    let lidia;
+    try {
+      lidia = JSON.parse(texto && "text" in texto ? texto.text : "");
+    } catch {
+      return [502, { error: "Lidia no devolvió JSON válido" }];
     }
-    if (nuevos.length) await db.from("banco").insert(nuevos);
+    // Cada ejercicio lleva un id del servidor: es lo único que la app puede devolver como resultado.
+    lidia.ejercicios = ponerIds(lidia.ejercicios ?? [], () => crypto.randomUUID());
+    lidia.mensaje = aTexto(lidia.bloques, lidia.ejercicios);
+
+    // Guardar: mensajes, ítems nuevos, repaso de ítems y estado de la sesión.
+    await db.from("mensajes").insert([
+      { sesion_id, rol: "laura", fase, contenido: mensaje, imagen_url: foto_path ?? null },
+      { sesion_id, rol: "lidia", fase, contenido: lidia.mensaje },
+    ]);
+
+    // Banco: primero los resultados validados de los ejercicios; después lo que propone el modelo, validado.
+    const hayIntento = !esAvisoSistema(mensaje);
+    const yaAplicados = new Set<string>();
+    const cambios: { item_id: string; status: string }[] = [];
+    for (const r of validacion.aceptados) {
+      if (r.item_id && !yaAplicados.has(r.item_id)) { yaAplicados.add(r.item_id); cambios.push({ item_id: r.item_id, status: r.status }); }
+    }
+    const idsHoy = new Set(items_hoy.map((it: { id: string }) => it.id));
+    const delModelo = validarResultadosModelo(lidia.resultados_items, idsHoy, hayIntento, yaAplicados);
+    cambios.push(...delModelo.aceptados);
+
+    // Un error que ya está en el banco no se duplica: si Laura lo volvió a cometer en un intento real, cuenta como fallo.
+    if (lidia.nuevos_items.length) {
+      const { data: banco } = await db.from("banco").select("id, tipo, original, correcto, intervalo, aciertos_seguidos");
+      const existentes = new Map((banco ?? []).map((b: ItemBanco) => [claveItem(b), b]));
+      const vistos = new Set<string>();
+      const nuevos: Record<string, unknown>[] = [];
+      for (const it of lidia.nuevos_items) {
+        const k = claveItem(it);
+        if (vistos.has(k)) continue;
+        vistos.add(k);
+        const previo = existentes.get(k);
+        if (!previo) nuevos.push({ ...it, fuente: "lidia", intervalo: 1, proxima: hoyMas(1) });
+        else if (hayIntento && it.tipo === "error" && !yaAplicados.has(previo.id)) {
+          yaAplicados.add(previo.id);
+          cambios.push({ item_id: previo.id, status: "incorrect" });
+        }
+      }
+      if (nuevos.length) await db.from("banco").insert(nuevos);
+    }
+
+    // Solo ítems que existen y son de Laura (RLS); `ambiguous` y `minor_error` no cambian el repaso.
+    if (cambios.length) {
+      const { data: items } = await db.from("banco").select("id, intervalo, aciertos_seguidos").in("id", cambios.map((c) => c.item_id));
+      const porId = new Map((items ?? []).map((it: Item) => [it.id, it]));
+      await Promise.all(cambios.map((c) => {
+        const item = porId.get(c.item_id);
+        if (!item) { validacion.rechazos.push({ exercise_id: null, motivo: `ítem ${c.item_id} no existe o no es de Laura` }); return null; }
+        const nuevo = repasar(item, c.status as "correct", hoyMas);
+        return nuevo ? db.from("banco").update(nuevo).eq("id", item.id) : null;
+      }));
+    }
+    const rechazos = [...validacion.rechazos, ...delModelo.rechazos];
+    if (rechazos.length) console.warn(`lidia: rechazos de validación ${JSON.stringify(rechazos)}`);
+
+    const cambiosSesion: Record<string, unknown> = { fase_actual: fase, resumen: lidia.resumen_sesion };
+    if (lidia.resultado_cierre !== null) cambiosSesion.resultado = lidia.resultado_cierre;
+    await db.from("sesiones").update(cambiosSesion).eq("id", sesion_id);
+
+
+    // Cuaderno largo: hechos nuevos de su vida, sin repetir, con tope.
+    const nuevosRecuerdos = (Array.isArray(lidia.recuerdos) ? lidia.recuerdos : [])
+      .map((r: unknown) => String(r ?? "").trim().slice(0, 300)).filter(Boolean);
+    if (nuevosRecuerdos.length && perfilR.data?.user_id) {
+      const previos: string[] = perfilR.data.memoria ?? [];
+      const ya = new Set(previos.map((r) => r.toLowerCase()));
+      const memoria = [...previos, ...nuevosRecuerdos.filter((r: string) => !ya.has(r.toLowerCase()))].slice(-MAX_RECUERDOS);
+      await db.from("perfil").update({ memoria }).eq("user_id", perfilR.data.user_id);
+    }
+    return [200, { ...lidia, actividad, validacion: { aplicados: cambios, rechazos }, modelo: respuesta.model, uso: respuesta.usage }];
   }
 
-  // Solo ítems que existen y son de Laura (RLS); `ambiguous` y `minor_error` no cambian el repaso.
-  if (cambios.length) {
-    const { data: items } = await db.from("banco").select("id, intervalo, aciertos_seguidos").in("id", cambios.map((c) => c.item_id));
-    const porId = new Map((items ?? []).map((it: Item) => [it.id, it]));
-    await Promise.all(cambios.map((c) => {
-      const item = porId.get(c.item_id);
-      if (!item) { validacion.rechazos.push({ exercise_id: null, motivo: `ítem ${c.item_id} no existe o no es de Laura` }); return null; }
-      const nuevo = repasar(item, c.status as "correct", hoyMas);
-      return nuevo ? db.from("banco").update(nuevo).eq("id", item.id) : null;
-    }));
+  // Sin flujo: igual que antes, un solo JSON.
+  if (!entrada.flujo) {
+    let respuesta;
+    try {
+      respuesta = await anthropic.beta.messages.create(parametros);
+    } catch (e) {
+      const [st, cuerpo] = errorClaude(e);
+      return json(cuerpo, st);
+    }
+    const [st, cuerpo] = await terminar(respuesta);
+    return json(cuerpo, st);
   }
-  const rechazos = [...validacion.rechazos, ...delModelo.rechazos];
-  if (rechazos.length) console.warn(`lidia: rechazos de validación ${JSON.stringify(rechazos)}`);
 
-  const cambiosSesion: Record<string, unknown> = { fase_actual: fase, resumen: lidia.resumen_sesion };
-  if (lidia.resultado_cierre !== null) cambiosSesion.resultado = lidia.resultado_cierre;
-  await db.from("sesiones").update(cambiosSesion).eq("id", sesion_id);
-
-  return json({ ...lidia, actividad, validacion: { aplicados: cambios, rechazos }, modelo: respuesta.model, uso: respuesta.usage });
+  // Con flujo (NDJSON): una línea {"tipo":"voz"} apenas Claude termina de escribir `voz`
+  // (es el primer campo del JSON) y al final {"tipo":"fin", ...} o {"tipo":"error"}.
+  const codificador = new TextEncoder();
+  const flujo = new ReadableStream({
+    async start(control) {
+      const linea = (o: unknown) => control.enqueue(codificador.encode(JSON.stringify(o) + "\n"));
+      try {
+        const stream = anthropic.beta.messages.stream(parametros);
+        let acumulado = "";
+        let vozMandada = false;
+        for await (const ev of stream) {
+          if (vozMandada || ev.type !== "content_block_delta" || ev.delta.type !== "text_delta") continue;
+          acumulado += ev.delta.text;
+          const m = acumulado.match(/^\s*\{\s*"voz"\s*:\s*(null|"(?:[^"\\]|\\.)*")/);
+          if (m) {
+            vozMandada = true;
+            const voz = JSON.parse(m[1]);
+            if (voz) linea({ tipo: "voz", voz });
+          } else if (acumulado.length > 4000) vozMandada = true;
+        }
+        const [st, cuerpo] = await terminar(await stream.finalMessage());
+        linea(st === 200 ? { tipo: "fin", ...cuerpo } : { tipo: "error", status: st, ...cuerpo });
+      } catch (e) {
+        try {
+          const [st, cuerpo] = errorClaude(e);
+          linea({ tipo: "error", status: st, ...cuerpo });
+        } catch {
+          linea({ tipo: "error", status: 500, error: String((e as Error)?.message ?? e) });
+        }
+      }
+      control.close();
+    },
+  });
+  return new Response(flujo, { headers: { ...CORS, "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache" } });
 });
