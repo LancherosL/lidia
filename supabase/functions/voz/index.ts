@@ -7,8 +7,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const MODELO = "gemini-3.8-flash-tts";
 const VOZ_AZURE = "fr-CA-SylvieNeural";
-// Velocidad en SSML: 0,95 normal y 0,75 lento (dictado y shadowing).
-const RITMO_AZURE = { normal: "-5%", lento: "-25%" };
+// Velocidad en SSML: 0,95 normal y 0,85 lento (dictado y shadowing).
+const RITMO_AZURE = { normal: "-5%", lento: "-15%" };
 const VOZ = "Aoede";
 const MAX_CARACTERES = 600;
 
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
   // Misma frase con la misma voz y el mismo ritmo = mismo archivo (Azure en mp3, Gemini en wav).
   const ritmo = lento ? "lento" : "normal";
-  const rutaAzure = `cache/${await sha256(`azure|${VOZ_AZURE}|${ritmo}|${texto}`)}.mp3`;
+  const rutaAzure = `cache/${await sha256(`azure|${VOZ_AZURE}|${lento ? RITMO_AZURE.lento : RITMO_AZURE.normal}|${texto}`)}.mp3`;
   const rutaGemini = `cache/${await sha256(`${MODELO}|${VOZ}|${ritmo}|${texto}`)}.wav`;
   const firmar = (r: string) => admin.storage.from("voz").createSignedUrl(r, 3600);
   const azureActiva = Boolean(Deno.env.get("AZURE_SPEECH_KEY") && Deno.env.get("AZURE_SPEECH_REGION"));

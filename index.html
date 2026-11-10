@@ -1175,13 +1175,14 @@ function callar() {
 function hablando() {
   return cargandoVoz || (!audioLidia.paused && !audioLidia.ended) || ("speechSynthesis" in window && speechSynthesis.speaking);
 }
-// Una sola petición de voz por mensaje (9-nov-2026): cada petición gasta cupo gratis.
+// Frase por frase (9-nov-2026, con Azure): se piden todas a la vez y suenan en orden, así la primera
+// sale rápido. Azure cuenta caracteres, no peticiones, y cada frase queda en caché aparte.
 function trozosVoz(texto) {
-  return [texto.trim()].filter(Boolean);
+  return (texto.match(/[^.!?…]+[.!?…]*/g) || [texto]).map((f) => f.trim()).filter(Boolean);
 }
 // Caché de voz en el teléfono (IndexedDB): una frase que ya sonó no se vuelve a pedir, así no gasta cupo.
 // Si IndexedDB no está (navegación privada), se sigue sin caché.
-const VOZ_CACHE = "azure-sylvie-1";
+const VOZ_CACHE = "azure-sylvie-2"; // cambia si cambia la voz o el ritmo
 let bdVoz = null;
 function abrirBdVoz() {
   if (bdVoz) return bdVoz;
