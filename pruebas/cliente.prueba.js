@@ -51,5 +51,11 @@ let ordenada = false;
 for (let k = 0; k < 200; k++) if (barajar(["Elle", "est", "venue", "hier"]).join(" ") === "Elle est venue hier") ordenada = true;
 igual("barajar desordena", ordenada, false);
 
+// Hebras: misma tabla y mismo tramo en app y función.
+igual("misma tabla de tramos", TRAMOS, reglas.TRAMOS);
+for (const [f, m] of [["conversacion", 5], ["conversacion", 20], ["oral", 14], ["oral", 15], ["gramatica", 29], ["escritura", 25], ["escritura", 99], ["xxx", 3]])
+  igual(`mismo tramo ${f} min ${m}`, tramoActual(f, m), reglas.tramoActual(f, m));
+igual("mismos porcentajes", porcentajesHebras([{ input: 60, output: 120 }]), reglas.porcentajesHebras([{ input: 60, output: 120 }]));
+
 print(`cliente: ${total - fallos}/${total} pruebas bien`);
 if (fallos) throw new Error(`${fallos} pruebas fallaron`);

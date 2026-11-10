@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import { PROMPT_LIDIA } from "./prompt.ts";
 import {
   construirActividad, textoActividad, normalizarEntrada, ponerIds, ejerciciosEmitidos,
-  validarResultados, validarResultadosModelo, repasar, esAvisoSistema,
+  validarResultados, validarResultadosModelo, repasar, esAvisoSistema, tramoActual,
 } from "./reglas.js";
 
 const MODELO_CHARLA = "claude-haiku-5-5";
@@ -27,15 +27,16 @@ const TIPOS_EJERCICIO = ["choix", "trou", "transformer", "ordre", "repeter", "di
 
 // Lo que se hace en cada bloque. Va en cada turno, al final del contexto, para que Lidia no convierta
 // todo en conversación (ver lidia-prompt.md, «Cada bloque tiene su propio formato»).
+// Las 4 hebras de Nation van DENTRO de los bloques (9-nov-2026, opción C): cada bloque tiene tramos por minuto.
 const MODO_BLOQUE: Record<string, string> = {
   conversacion:
-    "CONVERSATION (30 min). Charla real sobre su vida, una pregunta a la vez. Corriges enseñando (qué dijo, forma correcta, por qué, comparación con el español). Aquí sí se habla.",
+    "CONVERSATION (30 min) = OUTPUT ORAL (min 0-20) + FLUIDEZ ORAL (min 20-30). Min 0-20: tema del día sobre su vida, una pregunta a la vez; producción empujada (preguntas que la obligan a decir más y mejor); corriges enseñando al final de su turno (qué dijo, forma correcta, por qué, comparación con el español) y le pides volver a decir la versión correcta. Min 20-30: fluidez con 4/3/2 sobre un tema FAMILIAR de esta semana (búscalo en `cuaderno_laura` o en los resúmenes): cuenta lo mismo en 4 minutos, luego en 3, luego en 2, con otra pregunta o interlocutor cada vez; o recontar sin notas lo ya trabajado. En ese tramo NADA de palabras nuevas ni correcciones durante: al final, una sola observación sobre fluidez (más rápido, menos pausas, mismas ideas).",
   oral:
-    "ORAL (30 min). No es charla libre. Minutos 0-12: trabajas con su material (`material_oral`): qué vio, qué no entendió; explicas 3-4 expresiones que oyó, con su sentido y un ejemplo. Minutos 12-28: series de `ejercicios` `repeter` y `dictee` (5-6 por serie). Minutos 28-30: las 3 frases que mejor salieron.",
+    "ORAL (30 min) = INPUT (min 0-15) + FLUIDEZ: SHADOWING (min 15-30). No es charla libre. Min 0-15: su material (`material_oral`) o un clip que entienda al 95 %: primero qué entendió (comprensión antes que ortografía), después 2-5 palabras o expresiones nuevas, no más, con su sentido y un ejemplo; la transcripción después de escuchar, nunca antes. Min 15-30: shadowing del MISMO clip ya escuchado: series de `ejercicios` `repeter` (primero con el texto a la vista, después sin texto) y 2-3 `dictee`. En ese tramo no introduces lengua nueva.",
   gramatica:
-    "GRAMMAIRE (30 min). PROHIBIDO pedirle que hable, que diga algo en voz alta o que repita oralmente: aquí todo es lectura, explicación y ejercicios escritos. Minutos 0-12: LECCIÓN del punto del día, enseñando como a alguien que no lo sabe: 3-4 ejemplos de su vida → le preguntas por escrito qué patrón ve → explicas la regla con su nombre (el del TECFÉE), cuándo se usa, cómo se forma paso a paso, el error típico del hispanohablante y la comparación con el español. Usa `plus` para la explicación completa. Comprueba que entendió con un `choix` o `trou`. Minutos 12-27: 2-3 series de 5-6 `ejercicios` (choix, trou, transformer, ordre), de fácil a difícil, intercalando los `items_hoy`. Minutos 27-30: repaso de lo que falló.",
+    "GRAMMAIRE (30 min) = LENGUA DELIBERADA. PROHIBIDO pedirle que hable, que diga algo en voz alta o que repita oralmente: aquí todo es lectura, explicación y ejercicios escritos. Solo lo que pesa en el TECFÉE: acuerdos (participio pasado, adjetivos, tout/tous), homófonos (a/à, ce/se, ces/ses, leur/leurs), conjugación y concordancia de tiempos, subjonctif, relativos dont/que/où, conectores, puntuación, anglicismos e impropiedades. Intercala el mismo día formas que se confunden (imparfait/passé composé, subjonctif/indicatif, dont/que/où). Laura recupera de memoria antes de ver la respuesta. Minutos 0-12: LECCIÓN del punto del día, enseñando como a alguien que no lo sabe: 3-4 ejemplos de su vida → le preguntas por escrito qué patrón ve → explicas la regla con su nombre (el del TECFÉE), cuándo se usa, cómo se forma paso a paso, el error típico del hispanohablante y la comparación con el español. Usa `plus` para la explicación completa. Comprueba que entendió con un `choix` o `trou`. Minutos 12-27: 2-3 series de 5-6 `ejercicios` (choix, trou, transformer, ordre), de fácil a difícil, intercalando los `items_hoy`. Minutos 27-30: repaso de lo que falló.",
   escritura:
-    "ÉCRITURE (30 min). Minutos 0-3: un `rediger` con una tarea real. Cuando llegue el texto: corrígelo entero, error por error (lo que escribió → la forma correcta → la regla → la comparación con el español), con la lista completa en `plus`; dile qué hizo bien de verdad; pídele que reescriba solo las frases con errores. Minutos 20-30: segunda versión y cierre.",
+    "ÉCRITURE (30 min) = OUTPUT ESCRITO (min 0-20) + FLUIDEZ ESCRITA (min 20-30). Min 0-3: un `rediger` con una tarea real (párrafo, correo o compte rendu corto) o un dictado TECFÉE. Cuando llegue el texto: corrígelo entero, error por error (lo que escribió → la forma correcta → la regla → la comparación con el español), con la lista completa en `plus`; dile qué hizo bien de verdad; pídele que reescriba solo las frases con errores. Min 20-30: «10 minutes d'écriture»: un `rediger` sobre un tema FAMILIAR, escribir 10 minutos sin parar, sin diccionario y sin corrección durante; al recibirlo, comentas solo cantidad de palabras y fluidez (máximo 1 observación de lengua). El cierre de la sesión va al final.",
 };
 
 // Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
@@ -212,6 +213,8 @@ Deno.serve(async (req) => {
   const { sesion_id, fase, mensaje, foto_path, resumen_sesion, simulacro = false, material = null } = entrada;
   const modoEntrada = normalizarEntrada(entrada.entrada);
   const actividad = construirActividad(fase, entrada.actividad?.mode, mensaje);
+  // Tramo (hebra) según el minuto del bloque; sin minuto, el primero.
+  const tramo = tramoActual(fase, typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : 0);
   if (!sesion_id || !fase || typeof mensaje !== "string") {
     return json({ error: "Faltan sesion_id, fase o mensaje" }, 400);
   }
@@ -263,6 +266,7 @@ Deno.serve(async (req) => {
     minuto_bloque: typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : null,
     entrada: modoEntrada,
     modo_bloque: MODO_BLOQUE[fase] ?? null,
+    hebra_actual: tramo,
     actividad,
     resultados_aplicados: validacion.aceptados.length
       ? validacion.aceptados.map((r) => ({ tipo: r.tipo, respuesta: r.answer, estado: r.status }))
@@ -270,7 +274,7 @@ Deno.serve(async (req) => {
     ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   // La actividad va justo antes del mensaje de Laura: lo último que lee Lidia.
-  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n<actividad>\n${textoActividad(actividad)}\n</actividad>\n\n${mensaje}`;
+  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n<actividad>\n${textoActividad(actividad, tramo)}\n</actividad>\n\n${mensaje}`;
   const historial = armarHistorial((historialR.data ?? []).reverse());
   const ultimo = historial[historial.length - 1];
   const contenidoNuevo: Anthropic.ContentBlockParam[] = imagen

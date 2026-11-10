@@ -239,6 +239,14 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .amb-cab small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--amb); }
 .amb-cab h2 { margin: 0; font-size: 21px; line-height: 1.2; }
 .amb-hace { margin: 10px 0 0; line-height: 1.45; }
+.amb-hebra { display: inline-flex; gap: 6px; align-items: center; margin-top: 10px; padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--amb); background: color-mix(in srgb, var(--amb) 12%, var(--tarjeta)); }
+.amb-hebra:empty { display: none; }
+.hebras-sem h3 { margin: 0 0 8px; font-size: 14px; }
+.hebras-sem div { display: grid; grid-template-columns: 6.5em 1fr 3em; gap: 8px; align-items: center; font-size: 14px; margin: 4px 0; }
+.hebras-sem i { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--violeta) 15%, var(--tarjeta)); overflow: hidden; }
+.hebras-sem u { display: block; height: 100%; background: var(--violeta); }
+.hebras-sem .fuera { color: var(--violeta); font-weight: 700; }
+.hebras-sem small { color: var(--suave, inherit); opacity: .8; }
 .amb-porque { margin-top: 8px; }
 .amb-porque summary { cursor: pointer; font-weight: 600; font-size: 15px; color: var(--amb); }
 .amb-porque p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--tinta-suave); }
@@ -582,12 +590,14 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
             <div class="tarjeta cifra"><b id="s-racha">–</b><span>jours d'affilée</span></div>
             <div class="tarjeta cifra"><b id="s-errores">–</b><span>erreurs à travailler</span></div>
           </div>
+          <div class="tarjeta hebras-sem" id="s-hebras" hidden></div>
           <div class="bq defi" id="s-reto" hidden><div class="bq-e"><span>🎯</span>Défi du jour</div><div class="bq-t" id="s-reto-t" lang="fr"></div></div>
         </div>
       </aside>
       <div class="conversa">
         <div class="ambiente" id="s-ambiente">
           <div class="amb-cab"><span class="amb-icono" id="s-amb-icono"></span><div><small id="s-amb-bloque"></small><h2 id="s-amb-titulo"></h2></div></div>
+          <div class="amb-hebra" id="s-amb-hebra" aria-live="polite"></div>
           <p class="amb-hace" id="s-amb-hace"></p>
           <details class="amb-porque"><summary>Pourquoi ça marche</summary><p id="s-amb-porque"></p></details>
           <label class="amb-material" id="s-amb-material" hidden>📺 Ce que j'écoute aujourd'hui
@@ -910,6 +920,7 @@ async function abrirSesion() {
   estado.sesion = s;
   estado.resumen = s.resumen;
   estado.segundos = s.segundos || 0;
+  estado.hebras = { input: 0, output: 0, lengua: 0, fluidez: 0, ...(s.hebras || {}) };
   estado.faseIdx = Math.max(0, FASES.findIndex((f) => f.id === s.fase_actual));
   const terminada = s.fase_actual === "terminada";
   mostrarTerminada(terminada);
@@ -920,11 +931,35 @@ async function abrirSesion() {
   if (!msgs?.some((m) => m.rol === "lidia")) ponerActual("");
   alFinal();
   cargarPanel(s);
+  cargarHebrasSemana(s);
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
   // Al retomar una sesión de hoy, Lidia vuelve a decir su último mensaje (antes se quedaba callada).
   else if (leerAuto() && msgs[msgs.length - 1].rol === "lidia" && estado.actual?.texto) decir(estado.actual.texto, estado.actual.voz);
   continuar();
+}
+
+// Las 4 hebras de la semana (lunes a domingo): cada una debería quedar entre 20 y 30 % del tiempo.
+const ICONO_HEBRA = { input: "🎧", output: "🗣️", lengua: "🧩", fluidez: "⚡" };
+const NOMBRE_HEBRA = { input: "Input", output: "Output", lengua: "Langue", fluidez: "Fluidité" };
+function lunes() {
+  const d = new Date(`${hoy()}T12:00:00`);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.toLocaleDateString("en-CA");
+}
+async function cargarHebrasSemana(s) {
+  const { data } = await sb.from("sesiones").select("hebras").gte("fecha", lunes()).neq("id", s.id);
+  estado.hebrasSemana = (data ?? []).map((x) => x.hebras || {});
+  pintarHebrasSemana();
+}
+function pintarHebrasSemana() {
+  if (!estado.hebrasSemana || !estado.hebras) return;
+  const r = porcentajesHebras([...estado.hebrasSemana, estado.hebras]);
+  $("s-hebras").hidden = !r.total;
+  if (!r.total) return;
+  $("s-hebras").innerHTML = `<h3>Cette semaine · 4 volets</h3>` + HEBRAS.map((k) =>
+    `<div class="${r.fueraDeRango.includes(k) ? "fuera" : ""}"><span>${ICONO_HEBRA[k]} ${NOMBRE_HEBRA[k]}</span><i><u style="width:${r.pct[k]}%"></u></i><b>${r.pct[k]} %</b></div>`).join("") +
+    `<small>Objectif : 20 à 30 % chacun.</small>`;
 }
 
 // Panel de computador: racha, errores vivos y el reto que dejó Lidia en la sesión anterior.
@@ -956,6 +991,12 @@ function pintarReloj() {
     return `<div class="${i === estado.faseIdx ? "actual" : ""}"><i><u style="width:${lleno.toFixed(1)}%"></u></i>${x.corto}</div>`;
   }).join("");
   pintarAmbiente(f);
+  if (estado.sesion) {
+    const t = tramoAhora();
+    const lleva = Math.min(t.hasta - t.desde, Math.max(0, minutoBloque() - t.desde));
+    $("s-amb-hebra").textContent = `${ICONO_HEBRA[t.hebra]} ${t.nombre} · ${lleva}/${t.hasta - t.desde} min`;
+  }
+  if (estado.segundos % 15 === 0) pintarHebrasSemana();
   const enPausa = !estado.corriendo && estado.sesion?.fase_actual !== "terminada";
   $("s-en-pausa").hidden = !enPausa;
   document.querySelector("#v-sesion .pie").classList.toggle("pausado", enPausa);
@@ -1017,18 +1058,34 @@ function pausar() {
   guardarTiempo();
   pintarReloj();
 }
+// Minuto dentro del bloque actual y su tramo (hebra de Nation).
+function minutoBloque() { return Math.max(0, Math.floor((estado.segundos - FASES[estado.faseIdx].ini * 60) / 60)); }
+function tramoAhora() { return tramoActual(FASES[estado.faseIdx].id, minutoBloque()); }
+// Al pasar de tramo dentro de un bloque (p. ej. al min 20 de Conversation), Lidia lo anuncia una sola vez.
+function marcaEtapa() { return `lidia-etape-${estado.sesion?.id}`; }
+function revisarEtapa() {
+  const t = tramoAhora();
+  const clave = `${FASES[estado.faseIdx].id}:${t.indice}`;
+  if (leerLocal(marcaEtapa()) === clave) return;
+  if (t.indice === 0) return guardarLocal(marcaEtapa(), clave);
+  guardarLocal(marcaEtapa(), clave);
+  enviar(`(Nouvelle étape : ${t.nombre})`);
+}
 function tic() {
   estado.segundos++;
+  const h = tramoAhora().hebra;
+  if (estado.hebras) estado.hebras[h] = (estado.hebras[h] || 0) + 1;
   // El cronómetro avanza de fase solo; también se puede avanzar a mano.
   const porTiempo = FASES.reduce((idx, f, i) => (estado.segundos >= f.ini * 60 ? i : idx), 0);
   if (porTiempo > estado.faseIdx) cambiarFase(porTiempo);
   if (estado.segundos - ultimoGuardado >= 15) guardarTiempo();
+  revisarEtapa();
   pintarReloj();
 }
 function guardarTiempo() {
   if (!estado.sesion) return;
   ultimoGuardado = estado.segundos;
-  sb.from("sesiones").update({ segundos: estado.segundos }).eq("id", estado.sesion.id).then();
+  sb.from("sesiones").update({ segundos: estado.segundos, ...(estado.hebras ? { hebras: estado.hebras } : {}) }).eq("id", estado.sesion.id).then();
 }
 function arranqueFase(f) { return `(Nouvelle phase : ${f.nombre})`; }
 const FIN_SESION = "(Fin de la session : fais la clôture)";
@@ -1037,6 +1094,7 @@ async function cambiarFase(idx) {
   const f = FASES[idx];
   estado.sesion.fase_actual = f.id;
   await sb.from("sesiones").update({ fase_actual: f.id, segundos: estado.segundos }).eq("id", estado.sesion.id);
+  guardarLocal(marcaEtapa(), `${f.id}:0`);
   pintarReloj();
   await enviar(arranqueFase(f));
 }
@@ -1311,11 +1369,12 @@ async function pintarMensaje(rol, texto, voz, imagenPath) {
 // ── Ejercicios por bloque ──
 // Lidia manda una serie en `ejercicios`; la app la muestra una a una, la corrige sola
 // y al final le manda a Lidia los resultados para que corrija los fallos y siga.
-const AVISO = /^\((Nouvelle phase|Fin de la session|Exercices?|Résultats des exercices) : /;
+const AVISO = /^\((Nouvelle phase|Nouvelle étape|Fin de la session|Exercices?|Résultats des exercices) : /;
 function etiquetaAviso(texto) {
   const f = FASES.find((x) => texto.includes(x.nombre));
   if (texto.startsWith("(Nouvelle phase")) return f ? `${f.icono} ${f.titulo}` : texto.slice(1, -1);
   if (texto.startsWith("(Fin de la session")) return "🏁 Clôture";
+  if (texto.startsWith("(Nouvelle étape")) return `⏱ ${texto.slice(18, -1)}`;
   if (texto.startsWith("(Résultats")) return `✅ Résultats : ${(/(\d+\/\d+)/.exec(texto) || [""])[0]}`;
   if (texto.startsWith("(Exercice : prise de parole")) return "🎤 Prise de parole guidée";
   return "🧩 Exercices demandés";
@@ -1417,6 +1476,42 @@ function barajar(lista) {
   for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; }
   if (l.length > 2 && l.join(" ") === lista.join(" ")) return barajar(lista);
   return l;
+}
+// Las 4 hebras dentro de los bloques (misma tabla que reglas.js): tramo según el minuto del bloque.
+const TRAMOS = {
+  conversacion: [
+    { hasta: 20, hebra: "output", nombre: "Output oral" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité orale (4/3/2)" },
+  ],
+  oral: [
+    { hasta: 15, hebra: "input", nombre: "Input : écouter et comprendre" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité : shadowing" },
+  ],
+  gramatica: [{ hasta: 30, hebra: "lengua", nombre: "Langue : la forme du jour" }],
+  escritura: [
+    { hasta: 20, hebra: "output", nombre: "Output écrit" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité écrite (10 minutes)" },
+  ],
+};
+const HEBRAS = ["input", "output", "lengua", "fluidez"];
+function tramoActual(fase, minuto) {
+  const tramos = TRAMOS[fase] ?? TRAMOS.conversacion;
+  const m = Math.max(0, Number(minuto) || 0);
+  let desde = 0;
+  for (let i = 0; i < tramos.length; i++) {
+    if (m < tramos[i].hasta) return { ...tramos[i], desde, indice: i };
+    desde = tramos[i].hasta;
+  }
+  const i = tramos.length - 1;
+  return { ...tramos[i], desde: i ? tramos[i - 1].hasta : 0, indice: i };
+}
+function porcentajesHebras(lista) {
+  const suma = { input: 0, output: 0, lengua: 0, fluidez: 0 };
+  for (const h of lista || []) for (const k of HEBRAS) suma[k] += Math.max(0, Number(h?.[k]) || 0);
+  const total = HEBRAS.reduce((n, k) => n + suma[k], 0);
+  const pct = {};
+  for (const k of HEBRAS) pct[k] = total ? Math.round(suma[k] / total * 100) : 0;
+  return { segundos: suma, total, pct, fueraDeRango: total ? HEBRAS.filter((k) => pct[k] < 20 || pct[k] > 30) : [] };
 }
 // ── Fin de las puras ──
 

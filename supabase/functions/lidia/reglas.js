@@ -90,8 +90,52 @@ export function construirActividad(fase, pedido, mensaje = "") {
 }
 
 /** El texto corto que va justo antes del mensaje de Laura (recencia). */
-export function textoActividad(a) {
-  return `ACTIVIDAD ACTUAL\nÁrea: ${a.area}\nModo: ${a.mode}\nObjetivo: ${a.objectif}\nEvidencia buscada: ${a.evidence}\nCorrección: ${a.correction}`;
+export function textoActividad(a, tramo = null) {
+  const t = `ACTIVIDAD ACTUAL\nÁrea: ${a.area}\nModo: ${a.mode}\nObjetivo: ${a.objectif}\nEvidencia buscada: ${a.evidence}\nCorrección: ${a.correction}`;
+  return tramo ? `${t}\nHebra ahora: ${tramo.hebra} — ${tramo.nombre} (minutos ${tramo.desde}-${tramo.hasta} del bloque)` : t;
+}
+
+// ── Las 4 hebras de Nation dentro de los 4 bloques (9-nov-2026, opción C de Laura) ──
+// No hay bloques nuevos: cada bloque tiene tramos con su hebra. `hasta` es el minuto del bloque donde termina el tramo.
+// La misma tabla está en index.html (las pruebas comprueban que coinciden).
+export const TRAMOS = {
+  conversacion: [
+    { hasta: 20, hebra: "output", nombre: "Output oral" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité orale (4/3/2)" },
+  ],
+  oral: [
+    { hasta: 15, hebra: "input", nombre: "Input : écouter et comprendre" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité : shadowing" },
+  ],
+  gramatica: [{ hasta: 30, hebra: "lengua", nombre: "Langue : la forme du jour" }],
+  escritura: [
+    { hasta: 20, hebra: "output", nombre: "Output écrit" },
+    { hasta: 30, hebra: "fluidez", nombre: "Fluidité écrite (10 minutes)" },
+  ],
+};
+export const HEBRAS = ["input", "output", "lengua", "fluidez"];
+
+/** El tramo en el que está Laura: {hebra, nombre, desde, hasta, indice}. Fuera de rango, el último tramo. */
+export function tramoActual(fase, minuto) {
+  const tramos = TRAMOS[fase] ?? TRAMOS.conversacion;
+  const m = Math.max(0, Number(minuto) || 0);
+  let desde = 0;
+  for (let i = 0; i < tramos.length; i++) {
+    if (m < tramos[i].hasta) return { ...tramos[i], desde, indice: i };
+    desde = tramos[i].hasta;
+  }
+  const i = tramos.length - 1;
+  return { ...tramos[i], desde: i ? tramos[i - 1].hasta : 0, indice: i };
+}
+
+/** % del tiempo por hebra a partir de una lista de {input, output, lengua, fluidez} en segundos. */
+export function porcentajesHebras(lista) {
+  const suma = { input: 0, output: 0, lengua: 0, fluidez: 0 };
+  for (const h of lista || []) for (const k of HEBRAS) suma[k] += Math.max(0, Number(h?.[k]) || 0);
+  const total = HEBRAS.reduce((n, k) => n + suma[k], 0);
+  const pct = {};
+  for (const k of HEBRAS) pct[k] = total ? Math.round(suma[k] / total * 100) : 0;
+  return { segundos: suma, total, pct, fueraDeRango: total ? HEBRAS.filter((k) => pct[k] < 20 || pct[k] > 30) : [] };
 }
 
 /** dictated | typed | edited_after_dictation (acepta los valores viejos dictado/escrito). */
@@ -222,5 +266,5 @@ export function repasar(item, resultado, hoyMas) {
 
 /** Mensajes de la app que no son un intento de Laura. */
 export function esAvisoSistema(mensaje) {
-  return /^\((Nouvelle phase|Fin de la session|Exercices?|Résultats des exercices) : /.test(mensaje || "");
+  return /^\((Nouvelle phase|Nouvelle étape|Fin de la session|Exercices?|Résultats des exercices) : /.test(mensaje || "");
 }

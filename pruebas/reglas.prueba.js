@@ -1,7 +1,7 @@
 // Pruebas de supabase/functions/lidia/reglas.js. Se corren con pruebas/correr.sh (JavaScriptCore de macOS).
 import {
   construirActividad, normalizarEntrada, revisar, parecido, ponerIds, ejerciciosEmitidos,
-  validarResultados, validarResultadosModelo, repasar, esAvisoSistema,
+  validarResultados, validarResultadosModelo, repasar, esAvisoSistema, tramoActual, porcentajesHebras, textoActividad,
 } from "../supabase/functions/lidia/reglas.js";
 
 let fallos = 0, total = 0;
@@ -93,6 +93,22 @@ igual("solo tildes no toca el banco", repasar({ intervalo: 21, aciertos_seguidos
 // Avisos del sistema no son intentos
 igual("aviso de resultados", esAvisoSistema("(Résultats des exercices : 2/3)\n1. ✓"), true);
 igual("frase de Laura", esAvisoSistema("Je suis allée au parc"), false);
+
+// Hebras dentro de los bloques (opción C)
+igual("conversación min 0 = output oral", tramoActual("conversacion", 0).hebra, "output");
+igual("conversación min 20 = fluidez", [tramoActual("conversacion", 20).hebra, tramoActual("conversacion", 20).desde], ["fluidez", 20]);
+igual("oral min 14 = input", tramoActual("oral", 14).hebra, "input");
+igual("oral min 15 = shadowing", tramoActual("oral", 15).hebra, "fluidez");
+igual("gramática siempre lengua", tramoActual("gramatica", 29).hebra, "lengua");
+igual("escritura min 19 = output escrito", tramoActual("escritura", 19.9).nombre, "Output écrit");
+igual("escritura pasado el bloque = último tramo", tramoActual("escritura", 45).hebra, "fluidez");
+igual("minuto inválido = 0", tramoActual("oral", "x").hebra, "input");
+const sem = porcentajesHebras([{ input: 900, output: 1200, lengua: 1800, fluidez: 2100 }, { input: 900, output: 1200, lengua: 0, fluidez: 0 }]);
+igual("porcentajes semanales", sem.pct, { input: 22, output: 30, lengua: 22, fluidez: 26 });
+igual("hebras fuera de 20-30 %", porcentajesHebras([{ lengua: 100 }]).fueraDeRango, ["input", "output", "lengua", "fluidez"]);
+igual("sin datos: nada fuera de rango", porcentajesHebras([]).fueraDeRango, []);
+igual("la hebra va en la actividad", /Hebra ahora: fluidez/.test(textoActividad(construirActividad("oral"), tramoActual("oral", 20))), true);
+igual("aviso de etapa no es intento", esAvisoSistema("(Nouvelle étape : Fluidité orale (4/3/2))"), true);
 
 print(`reglas: ${total - fallos}/${total} pruebas bien`);
 if (fallos) throw new Error(`${fallos} pruebas fallaron`);

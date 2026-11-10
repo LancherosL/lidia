@@ -133,6 +133,23 @@
     estado.corriendo = false;
     try { await abrirSesion(); } finally { sb.from = sbFrom; decir = decirOrig; pausar(); }
     ok("retomar la sesión: Lidia habla", dicho === "[[pregunta]] Et samedi?", String(dicho));
+
+    // 11. Hebras dentro del bloque: al min 20 de Conversation se anuncia la fluidez una sola vez y se cuentan los segundos.
+    enviados.length = 0;
+    estado.sesion = { id: `prueba-hebras-${Date.now()}`, fase_actual: "conversacion" };
+    estado.faseIdx = 0;
+    estado.hebras = { input: 0, output: 0, lengua: 0, fluidez: 0 };
+    estado.hebrasSemana = [{ input: 900, lengua: 900 }];
+    estado.segundos = 19 * 60 + 57;
+    tic(); tic(); tic();
+    ok("min 20: aviso de etapa de fluidez", enviados.length === 1 && /^\(Nouvelle étape : Fluidité orale/.test(enviados[0].t), JSON.stringify(enviados.map((e) => e.t)));
+    tic();
+    ok("el aviso de etapa no se repite", enviados.length === 1);
+    ok("segundos por hebra", estado.hebras.output === 2 && estado.hebras.fluidez === 2, JSON.stringify(estado.hebras));
+    ok("chip de la hebra", /Fluidité orale/.test($("s-amb-hebra").textContent), $("s-amb-hebra").textContent);
+    pintarHebrasSemana();
+    ok("barras de la semana", !$("s-hebras").hidden && $("s-hebras").querySelectorAll("div").length === 4);
+    ok("etiqueta del aviso de etapa", etiquetaAviso("(Nouvelle étape : Fluidité orale (4/3/2))") === "⏱ Fluidité orale (4/3/2)");
   } catch (e) {
     resultados.push(`✗ excepción: ${e.message}`);
   } finally {
