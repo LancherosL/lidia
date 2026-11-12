@@ -1,5 +1,5 @@
 // Service worker de Lidia: guarda la app para abrirla rápido; los datos siempre van a la red.
-const CACHE = "lidia-v1";
+const CACHE = "lidia-v2";
 const ARCHIVOS = ["./", "index.html", "manifest.json", "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -18,7 +18,9 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    // «no-cache»: siempre pregunta al servidor si hay versión nueva (GitHub Pages guarda 10 min en caché).
+    // (Una navegación no acepta opciones nuevas: se pide de nuevo por su URL.)
+    (e.request.mode === "navigate" ? fetch(e.request.url, { cache: "no-cache" }) : fetch(e.request, { cache: "no-cache" }))
       .then((r) => {
         const copia = r.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copia));

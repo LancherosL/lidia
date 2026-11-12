@@ -1150,11 +1150,16 @@ const TIPOS_BLOQUE = {
   texto: { etiqueta: "Lidia", icono: "✦" },
 };
 // Los ejercicios llegan al final del mensaje como «[[exercices]] [json]».
+// Tolerante: busca la lista JSON después de la marca aunque haya espacios o texto alrededor.
 function ejerciciosDe(texto) {
-  const m = /\[\[exercices\]\]\s*(\[[\s\S]*\])\s*$/.exec(texto || "");
-  try { return m ? JSON.parse(m[1]) : []; } catch { return []; }
+  const t = texto || "", i = t.indexOf("[[exercices]]");
+  if (i < 0) return [];
+  const desde = t.indexOf("[", i + 13), hasta = t.lastIndexOf("]");
+  if (desde < 0 || hasta <= desde) return [];
+  try { const l = JSON.parse(t.slice(desde, hasta + 1)); return Array.isArray(l) ? l : []; } catch { return []; }
 }
-function sinEjercicios(texto) { return (texto || "").replace(/\n*\[\[exercices\]\][\s\S]*$/, ""); }
+// Nunca se muestra el JSON de los ejercicios como texto.
+function sinEjercicios(texto) { return (texto || "").replace(/\s*\[\[exercices\]\][\s\S]*$/, ""); }
 function partir(texto) {
   const partes = sinEjercicios(texto).split(/(?:^|\n+)\[\[(pregunta|exemple|correction|defi|bravo|plus)\]\]\s*/);
   const bloques = [];
@@ -1227,6 +1232,24 @@ let turnoVoz = 0, cargandoVoz = false;
 // El primer toque en cualquier parte de la app desbloquea el audio (iPhone): así Lidia puede hablar
 // al abrir la sesión, aunque su mensaje llegue segundos después del toque.
 document.addEventListener("pointerdown", () => abrirVoz(), { capture: true, once: true });
+// ── Versión: la app instalada se actualiza sola ──
+// Al volver a la app (o cada 10 min), mira si hay una versión publicada más nueva y recarga
+// cuando no se está grabando ni esperando a Lidia (la sesión está guardada en la nube y en el teléfono).
+const VERSION_APP = "2026-11-11-d";
+async function revisarVersion() {
+  try {
+    const r = await fetch(`index.html?v=${Date.now()}`, { cache: "no-store" });
+    const nueva = /const VERSION_APP = "([^"]+)"/.exec(await r.text())?.[1];
+    if (!nueva || nueva === VERSION_APP) return;
+    if (micro || estado.enviando || estado.ej?.grabacion) return setTimeout(revisarVersion, 30000);
+    if (estado.corriendo) guardarTiempo();
+    aviso("Nouvelle version de Lidia : je recharge…");
+    setTimeout(() => location.reload(), 1200);
+  } catch { /* sin red: se sigue con la versión actual */ }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) revisarVersion(); });
+setInterval(revisarVersion, 10 * 60 * 1000);
+setTimeout(revisarVersion, 5000);
 function abrirVoz() {
   if (vozAbierta) return;
   vozAbierta = true;
