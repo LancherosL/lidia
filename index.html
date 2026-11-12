@@ -686,8 +686,8 @@ const FASES = [
   { id: "conversacion", nombre: "Conversation guidée", corto: "Conversation", ini: 0, desc: "Un sujet de ta vie, une question à la fois",
     icono: "💬", titulo: "Parler de ta vie", hace: "Tu réponds avec tes mots. Lidia reformule, tu répètes la bonne phrase.",
     porque: "Produire + correction tout de suite : la bonne forme remplace l'erreur pendant que c'est frais." },
-  { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écoute ton matériel et répète des phrases",
-    icono: "🎧", titulo: "L'oreille d'abord", hace: "Tu écoutes ton film ou ta série, tu notes ce que tu ne comprends pas, tu répètes 5 phrases.",
+  { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écouter et comprendre, puis répéter",
+    icono: "🎧", titulo: "L'oreille d'abord", hace: "Ici, tu écoutes plus que tu ne parles. Lidia te lit un court audio (ou tu écoutes ton film) : tu dis ce que tu as compris, puis tu répètes ses phrases (shadowing).",
     porque: "Écouter du français que tu comprends presque, puis l'imiter (shadowing) : ton oreille et ta bouche apprennent le rythme du Québec." },
   { id: "gramatica", nombre: "Grammaire et vocabulaire", corto: "Grammaire", ini: 60, desc: "10 expressions et la révision du jour",
     icono: "🧩", titulo: "De l'exemple à la règle", hace: "Tu vois des exemples, tu trouves le patron, Lidia lui donne son nom. Puis tes révisions du jour.",
@@ -1031,7 +1031,7 @@ function pintarAmbiente(f) {
   });
 }
 // Lo que Laura escucha hoy (película, serie): Lidia lo recibe en cada turno, así no lo olvida.
-$("s-material").addEventListener("change", () => guardarLocal(`lidia-material-${hoy()}`, $("s-material").value.trim()));
+$("s-material").addEventListener("change", () => { guardarLocal(`lidia-material-${hoy()}`, $("s-material").value.trim()); pintarActividad(); });
 $("b-reanudar").onclick = () => continuar();
 function mostrarTerminada(terminada) {
   $("s-entrada").hidden = terminada;
@@ -1389,14 +1389,22 @@ function etiquetaAviso(texto) {
 // Lo que pide el botón de actividad de cada bloque. En Conversation libre no hay: ahí se habla.
 const ACTIVIDADES = {
   guidee: { boton: "🎤 Une consigne de prise de parole", pedido: "(Exercice : prise de parole guidée)" },
-  oral: { boton: "🎧 Exercices d'écoute : répéter et dictée", pedido: "(Exercices : shadowing et dictée avec mon matériel)" },
+  oral: { boton: "🎧 Exercices d'écoute : répéter et dictée", pedido: "(Exercices : shadowing et dictée avec mon matériel)",
+    // Sin película ni serie anotada, Lidia da su propio audio corto (no vuelve a pedir material).
+    sinMaterial: { boton: "🎧 Un audio de Lidia : écouter, comprendre, répéter", pedido: "(Exercices : écoute d'un audio de Lidia, puis shadowing)" } },
   gramatica: { boton: "🧩 Exercices de grammaire et révision", pedido: "(Exercices : grammaire et révision du jour)" },
   escritura: { boton: "✍️ Un sujet de rédaction", pedido: "(Exercice : rédaction)" },
 };
+// La actividad del bloque; en Oral, si no hay material anotado, la versión «audio de Lidia».
+function actividadActual() {
+  const a = ACTIVIDADES[submodo() || FASES[estado.faseIdx].id];
+  if (a?.sinMaterial && !(leerLocal(`lidia-material-${hoy()}`) || "").trim()) return a.sinMaterial;
+  return a;
+}
 const NOMBRE_EJ = { choix: "Choisis", trou: "Complète", transformer: "Transforme", ordre: "Remets en ordre", repeter: "Répète", dictee: "Dictée", rediger: "Rédaction" };
 $("b-actividad").onclick = () => {
   abrirVoz();
-  const a = ACTIVIDADES[submodo() || FASES[estado.faseIdx].id];
+  const a = actividadActual();
   if (!a) return;
   if (estado.enviando) return aviso("Attends que Lidia ait fini.");
   if (!estado.corriendo) continuar();
@@ -1423,7 +1431,7 @@ $("s-amb-modos").onclick = (e) => {
   pintarActividad();
 };
 function pintarActividad() {
-  const a = ACTIVIDADES[submodo() || FASES[estado.faseIdx].id];
+  const a = actividadActual();
   $("b-actividad").hidden = !a || Boolean(estado.ej) || estado.sesion?.fase_actual === "terminada";
   if (a) $("b-actividad").textContent = a.boton;
   $("v-sesion").classList.toggle("con-ejercicio", Boolean(estado.ej));
@@ -1985,7 +1993,35 @@ function contextoOido() {
   const ultima = (estado.actual?.voz || textoPlano(estado.actual?.texto || "")).slice(-400);
   return ultima ? `Tutor's last message: ${ultima}` : "";
 }
-async function transcribir(audio) {
+// El audio grabado (webm o mp4) se pasa a WAV 16 kHz mono: es lo único que entiende Azure, el respaldo
+// gratis de «oido» cuando se agota Gemini. Si el navegador no puede, se manda tal cual.
+async function aWav16k(blob) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+    ctx.close?.();
+    const hz = 16000;
+    const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration * hz)), hz);
+    const src = off.createBufferSource();
+    src.buffer = buf;
+    src.connect(off.destination);
+    src.start();
+    const d = (await off.startRendering()).getChannelData(0);
+    const wav = new DataView(new ArrayBuffer(44 + d.length * 2));
+    const txt = (o, t) => [...t].forEach((c, i) => wav.setUint8(o + i, c.charCodeAt(0)));
+    txt(0, "RIFF"); wav.setUint32(4, 36 + d.length * 2, true); txt(8, "WAVE"); txt(12, "fmt ");
+    wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+    wav.setUint32(24, hz, true); wav.setUint32(28, hz * 2, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true);
+    txt(36, "data"); wav.setUint32(40, d.length * 2, true);
+    for (let i = 0; i < d.length; i++) wav.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 0x7fff, true);
+    return new Blob([wav.buffer], { type: "audio/wav" });
+  } catch {
+    return blob;
+  }
+}
+async function transcribir(original) {
+  const audio = await aWav16k(original);
   const { data } = await sb.auth.getSession();
   const r = await fetch(`${SUPABASE_URL}/functions/v1/oido`, {
     method: "POST",
