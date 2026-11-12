@@ -32,7 +32,7 @@ const MODO_BLOQUE: Record<string, string> = {
   conversacion:
     "CONVERSATION (30 min) = OUTPUT ORAL (min 0-20) + FLUIDEZ ORAL (min 20-30). Min 0-20: tema del día sobre su vida, una pregunta a la vez; producción empujada (preguntas que la obligan a decir más y mejor); corriges enseñando al final de su turno (qué dijo, forma correcta, por qué, comparación con el español) y le pides volver a decir la versión correcta. Min 20-30: fluidez con 4/3/2 sobre un tema FAMILIAR de esta semana (búscalo en `cuaderno_laura` o en los resúmenes): cuenta lo mismo en 4 minutos, luego en 3, luego en 2, con otra pregunta o interlocutor cada vez; o recontar sin notas lo ya trabajado. En ese tramo NADA de palabras nuevas ni correcciones durante: al final, una sola observación sobre fluidez (más rápido, menos pausas, mismas ideas).",
   oral:
-    "ORAL (30 min) = INPUT (min 0-15) + FLUIDEZ: SHADOWING (min 15-30). Aquí Laura escucha más de lo que habla: NO es conversación. Si `material_oral` está vacío, NO le pidas material (ni una sola vez): TÚ das el input. Min 0-15: escribe un audio corto original (60-100 palabras, francés de Quebec de todos los días, sobre un tema de su vida o de `cuaderno_laura`, que entienda al 95 %: 2-5 palabras nuevas como máximo). Ese texto completo va en `voz` (la app lo lee con la voz de Lidia; aquí `voz` puede tener hasta 100 palabras); en `bloques`: un `defi` de 1 línea («Écoute sans lire, puis dis-moi ce que tu as compris»), la transcripción completa en un `plus` (plegado: Laura la lee DESPUÉS de escuchar) y una sola `pregunta` de comprensión global. Después, 2-3 preguntas de comprensión, una por turno (quién, qué, por qué), y explicas las 2-5 palabras nuevas con un ejemplo; la ortografía no cuenta aquí. Si hay `material_oral`, trabaja con él igual (qué entendió, 2-5 expresiones). Min 15-30, o cuando pida «(Exercices : …)» después del audio: shadowing del MISMO audio: series de `ejercicios` `repeter` con frases de ese audio (primero con el texto a la vista, después sin texto) y 2-3 `dictee` de ese audio. En ese tramo no introduces lengua nueva.",
+    "ORAL (30 min) = INPUT (min 0-15) + FLUIDEZ: SHADOWING (min 15-30). Aquí Laura escucha más de lo que habla: NO es conversación. El material es `texto_del_dia` (los 52 textos de Laura, en rotación): NUNCA pidas otro material ni digas que no hay. `material_oral` (si existe) es solo un extra. Protocolo, un paso por turno: 1) Primera escucha SIN texto: en `voz` va `texto_del_dia.texto_fr` completo y EXACTO, sin cambiar una palabra; en `bloques`, un `defi` de 1 línea con el tema del día («Écoute sans lire : …») y una `pregunta` global; todavía no muestres el texto. 2) Cuando Laura responda: segunda escucha CON texto: el texto completo en un `plus` y otra vez el texto exacto en `voz`. 3) Las 3 `preguntas` del día, una por turno; la comprensión cuenta, la ortografía no. Min 15-30, o cuando pida «(Exercices : …)»: shadowing con `ejercicios` `repeter` de las 5 `frases_shadowing` EXACTAS (la app las lee normal y lento) y 1-2 `dictee` con frases del texto. Al terminar el shadowing, guarda las 5 `expresiones` en `nuevos_items` (tipo `expresion`; `correcto` = la parte en francés, `nota` = la traducción). Nunca inventes cifras, títulos ni datos que no estén en el texto; si citas la fuente, usa `fuente_url`. Si `texto_del_dia.vuelta` es 2 o más: sube el nivel (preguntas sin mirar el texto y un mini debate: su opinión con 2 argumentos).",
   gramatica:
     "GRAMMAIRE (30 min) = LENGUA DELIBERADA. PROHIBIDO pedirle que hable, que diga algo en voz alta o que repita oralmente: aquí todo es lectura, explicación y ejercicios escritos. Solo lo que pesa en el TECFÉE: acuerdos (participio pasado, adjetivos, tout/tous), homófonos (a/à, ce/se, ces/ses, leur/leurs), conjugación y concordancia de tiempos, subjonctif, relativos dont/que/où, conectores, puntuación, anglicismos e impropiedades. Intercala el mismo día formas que se confunden (imparfait/passé composé, subjonctif/indicatif, dont/que/où). Laura recupera de memoria antes de ver la respuesta. Minutos 0-12: LECCIÓN del punto del día, enseñando como a alguien que no lo sabe: 3-4 ejemplos de su vida → le preguntas por escrito qué patrón ve → explicas la regla con su nombre (el del TECFÉE), cuándo se usa, cómo se forma paso a paso, el error típico del hispanohablante y la comparación con el español. Usa `plus` para la explicación completa. Comprueba que entendió con un `choix` o `trou`. Minutos 12-27: 2-3 series de 5-6 `ejercicios` (choix, trou, transformer, ordre), de fácil a difícil, intercalando los `items_hoy`. Minutos 27-30: repaso de lo que falló.",
   escritura:
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
 
   const [perfilR, sesionR, ayerR, historialR, fechasR, hoyR, emitidosR] = await Promise.all([
     db.from("perfil").select("user_id, fase_plan, tema_semana, memoria").maybeSingle(),
-    db.from("sesiones").select("id, fecha").eq("id", sesion_id).maybeSingle(),
+    db.from("sesiones").select("id, fecha, texto_n").eq("id", sesion_id).maybeSingle(),
     db.from("sesiones").select("fecha, resumen").neq("id", sesion_id).not("resumen", "is", null)
       .order("creado", { ascending: false }).limit(SESIONES_ANTERIORES),
     db.from("mensajes").select("rol, contenido").eq("sesion_id", sesion_id)
@@ -234,6 +234,26 @@ Deno.serve(async (req) => {
   ]);
   if (!sesionR.data) return json({ error: "Sesión no encontrada" }, 404);
   const items_hoy = hoyR.data ?? [];
+
+  // Texto del día del Oral (tabla textos_oral, 52 días en rotación). Cada sesión toma el siguiente número
+  // la primera vez que entra al Oral; después del día 52 vuelve al 1 (segunda vuelta, más nivel).
+  let texto_del_dia: Record<string, unknown> | null = null;
+  if (fase === "oral") {
+    let n = sesionR.data.texto_n as number | null;
+    if (!n) {
+      const { data: ultimo } = await db.from("sesiones").select("texto_n").neq("id", sesion_id).not("texto_n", "is", null)
+        .order("texto_n", { ascending: false }).limit(1).maybeSingle();
+      n = (ultimo?.texto_n ?? 0) + 1;
+      await db.from("sesiones").update({ texto_n: n }).eq("id", sesion_id);
+    }
+    const { data: textos } = await db.from("textos_oral")
+      .select("dia, tema, eje, nivel, texto_fr, frases_shadowing, preguntas, expresiones, fuente_url").order("dia");
+    if (textos?.length) {
+      const total = textos.length;
+      const t = textos[(n - 1) % total]; // si falta un día, el orden sigue con el siguiente que exista
+      texto_del_dia = { ...t, vuelta: Math.ceil(n / total) };
+    }
+  }
 
   // Resultados de ejercicios: la fuente de verdad son los ejercicios emitidos en esta sesión, no el texto.
   const emitidos = ejerciciosEmitidos((emitidosR.data ?? []).map((m: { contenido: string }) => m.contenido));
@@ -263,6 +283,7 @@ Deno.serve(async (req) => {
     sesiones_anteriores: (ayerR.data ?? []).slice(1).map((r: { fecha: string; resumen: string }) => `${r.fecha}: ${r.resumen}`),
     resumen_sesion: resumen_sesion ?? null,
     material_oral: material || null,
+    texto_del_dia,
     minuto_bloque: typeof entrada.minuto_bloque === "number" ? entrada.minuto_bloque : null,
     entrada: modoEntrada,
     modo_bloque: MODO_BLOQUE[fase] ?? null,

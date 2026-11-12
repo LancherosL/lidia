@@ -687,7 +687,7 @@ const FASES = [
     icono: "💬", titulo: "Parler de ta vie", hace: "Tu réponds avec tes mots. Lidia reformule, tu répètes la bonne phrase.",
     porque: "Produire + correction tout de suite : la bonne forme remplace l'erreur pendant que c'est frais." },
   { id: "oral", nombre: "Compréhension orale et shadowing", corto: "Oral", ini: 30, desc: "Écouter et comprendre, puis répéter",
-    icono: "🎧", titulo: "L'oreille d'abord", hace: "Ici, tu écoutes plus que tu ne parles. Lidia te lit un court audio (ou tu écoutes ton film) : tu dis ce que tu as compris, puis tu répètes ses phrases (shadowing).",
+    icono: "🎧", titulo: "L'oreille d'abord", hace: "Ici, tu écoutes plus que tu ne parles. Lidia te lit le texte du jour : d'abord sans le voir, puis avec le texte. Tu réponds à 3 questions, puis tu répètes 5 phrases (shadowing).",
     porque: "Écouter du français que tu comprends presque, puis l'imiter (shadowing) : ton oreille et ta bouche apprennent le rythme du Québec." },
   { id: "gramatica", nombre: "Grammaire et vocabulaire", corto: "Grammaire", ini: 60, desc: "10 expressions et la révision du jour",
     icono: "🧩", titulo: "De l'exemple à la règle", hace: "Tu vois des exemples, tu trouves le patron, Lidia lui donne son nom. Puis tes révisions du jour.",
@@ -1389,9 +1389,8 @@ function etiquetaAviso(texto) {
 // Lo que pide el botón de actividad de cada bloque. En Conversation libre no hay: ahí se habla.
 const ACTIVIDADES = {
   guidee: { boton: "🎤 Une consigne de prise de parole", pedido: "(Exercice : prise de parole guidée)" },
-  oral: { boton: "🎧 Exercices d'écoute : répéter et dictée", pedido: "(Exercices : shadowing et dictée avec mon matériel)",
-    // Sin película ni serie anotada, Lidia da su propio audio corto (no vuelve a pedir material).
-    sinMaterial: { boton: "🎧 Un audio de Lidia : écouter, comprendre, répéter", pedido: "(Exercices : écoute d'un audio de Lidia, puis shadowing)" } },
+  // El material del Oral es el texto del día (tabla textos_oral, 52 días en rotación): siempre hay.
+  oral: { boton: "🎧 Shadowing du texte du jour : répéter et dictée", pedido: "(Exercices : shadowing et dictée du texte du jour)" },
   gramatica: { boton: "🧩 Exercices de grammaire et révision", pedido: "(Exercices : grammaire et révision du jour)" },
   escritura: { boton: "✍️ Un sujet de rédaction", pedido: "(Exercice : rédaction)" },
 };
