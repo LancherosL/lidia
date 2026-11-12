@@ -135,6 +135,26 @@ button { cursor: pointer; }
 .cifra span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.25; color: var(--tinta-suave); }
 .apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .otra-app { display: flex; align-items: center; gap: 10px; padding: 12px; color: inherit; text-decoration: none; }
+.diag-acceso { margin-top: 12px; border: 2px solid var(--violeta); }
+.diag { max-width: 760px; margin: 0 auto; padding: 0 16px 40px; }
+.diag .tarjeta { padding: 18px; margin-bottom: 14px; }
+.diag h2 { margin: 0 0 8px; font-size: 22px; }
+.diag .d-paso { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--violeta); }
+.diag p { line-height: 1.5; }
+.diag .d-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.diag .d-botones .btn { flex: 1 1 180px; }
+.diag .d-q { margin-top: 14px; }
+.diag .d-q b { display: block; margin-bottom: 8px; }
+.diag .d-op { display: grid; gap: 8px; }
+.diag .d-op button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 2px solid color-mix(in srgb, var(--violeta) 25%, var(--tarjeta)); background: var(--tarjeta); color: inherit; font: inherit; cursor: pointer; }
+.diag .d-op button.elegida { border-color: var(--violeta); background: color-mix(in srgb, var(--violeta) 12%, var(--tarjeta)); font-weight: 700; }
+.diag textarea { width: 100%; min-height: 220px; box-sizing: border-box; padding: 12px; border-radius: 12px; border: 2px solid color-mix(in srgb, var(--violeta) 25%, var(--tarjeta)); background: var(--tarjeta); color: inherit; font: inherit; line-height: 1.5; }
+.diag .d-trans { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--violeta) 8%, var(--tarjeta)); }
+.diag .d-nivel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.diag .d-nivel div { text-align: center; padding: 12px 6px; border-radius: 14px; background: color-mix(in srgb, var(--violeta) 10%, var(--tarjeta)); }
+.diag .d-nivel b { display: block; font-size: 28px; color: var(--violeta); }
+.diag .d-nivel small { font-size: 13px; }
+.diag li { margin: 6px 0; line-height: 1.45; }
 .otra-app img, .otra-app .ic { width: 40px; height: 40px; border-radius: 11px; flex: none; }
 .otra-app .ic { display: grid; place-items: center; font-size: 20px; background: color-mix(in srgb, var(--violeta) var(--tinte), var(--tarjeta)); }
 .otra-app b { display: block; font-size: 16px; line-height: 1.2; }
@@ -565,6 +585,7 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
       <div class="tarjeta cifra"><b id="i-errores">–</b><span>erreurs à travailler</span></div>
       <div class="tarjeta cifra"><b id="i-repaso">–</b><span id="i-repaso-t">prochaine révision</span></div>
     </div>
+    <a class="tarjeta otra-app diag-acceso" href="#diagnostic" id="i-diag"><span class="ic">📏</span><span><b id="i-diag-t">Diagnostic de niveau</b><small id="i-diag-s">20 minutes · écoute, oral, écrit</small></span></a>
     <div class="seccion">Mes autres apps</div>
     <div class="apps">
       <a class="tarjeta otra-app" href="defile/" target="_blank" rel="noopener"><img src="defile/icon-180.png" alt=""><span><b>Défilé</b><small>Fil de capsules</small></span></a>
@@ -580,6 +601,15 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
       </div>
     </div>
     </div>
+  </section>
+
+  <!-- Diagnostic de niveau (Paso 0 del plan: escucha, oral y escrito) -->
+  <section id="v-diag" hidden>
+    <div class="barra">
+      <button class="icono-btn" data-ir="inicio" aria-label="Retour" type="button">←</button>
+      <h1>Diagnostic</h1>
+    </div>
+    <div class="diag" id="d-cuerpo" lang="fr"></div>
   </section>
 
   <!-- Session -->
@@ -779,7 +809,7 @@ aplicarTema(leerTema());
 
 // ── Navegación ──
 function mostrar(vista) {
-  for (const v of ["login", "inicio", "sesion", "cierre", "libreria"]) $(`v-${v}`).hidden = v !== vista;
+  for (const v of ["login", "inicio", "sesion", "cierre", "libreria", "diag"]) $(`v-${v}`).hidden = v !== vista;
   // Las pestañas se ven en Accueil y Ma banque; en Session se esconden para que solo esté la clase.
   const conPestanas = vista === "inicio" || vista === "libreria";
   $("pestanas").hidden = !conPestanas;
@@ -799,6 +829,7 @@ async function enrutar() {
   if (vista === "sesion") { mostrar("sesion"); await abrirSesion(); }
   else if (vista === "cierre") { mostrar("cierre"); await cargarCierre(); }
   else if (vista === "libreria") { mostrar("libreria"); await cargarBanco(); }
+  else if (vista === "diagnostic") { mostrar("diag"); pintarDiag(); }
   else { mostrar("inicio"); await cargarInicio(); }
 }
 document.addEventListener("click", (e) => {
@@ -890,6 +921,7 @@ async function cargarInicio() {
   ]);
   if (sesiones.error) return;
   estado.perfil = perfil.data;
+  pintarAccesoDiag();
   const lista = sesiones.data ?? [];
   const total = lista.reduce((a, s) => a + (s.segundos || 0), 0);
   const d = {
@@ -1235,7 +1267,7 @@ document.addEventListener("pointerdown", () => abrirVoz(), { capture: true, once
 // ── Versión: la app instalada se actualiza sola ──
 // Al volver a la app (o cada 10 min), mira si hay una versión publicada más nueva y recarga
 // cuando no se está grabando ni esperando a Lidia (la sesión está guardada en la nube y en el teléfono).
-const VERSION_APP = "2026-11-11-d";
+const VERSION_APP = "2026-11-11-e";
 async function revisarVersion() {
   try {
     const r = await fetch(`index.html?v=${Date.now()}`, { cache: "no-store" });
@@ -1557,6 +1589,158 @@ function accionOral(a) {
     if (estado.enviando) return aviso("Attends que Lidia ait fini.");
     enviar(ACTIVIDADES.oral.pedido);
   }
+}
+
+// ── Diagnostic de niveau (Paso 0 del plan: 20 min) ──
+// Escucha (3 audios graduados A2 → B1 → B2/C1, 2 preguntas cada uno), oral (4 consignas graduadas, grabadas
+// y transcritas) y escrito (un correo de 100-150 palabras). Lidia lo evalúa con Sonnet y guarda el nivel en perfil.nivel.
+const DIAG_ESCUCHA = [
+  { nivel: "A2", texto: "Ce matin, Julie a pris l'autobus pour aller au travail. Il faisait très froid, alors elle a mis son manteau d'hiver et ses bottes. Au bureau, elle a bu un café avec sa collègue Marie. À midi, elles ont mangé une soupe au restaurant du coin.",
+    preguntas: [
+      { q: "Comment Julie est-elle allée au travail ?", op: ["En autobus", "En voiture", "À pied"], ok: 0 },
+      { q: "Qu'est-ce qu'elles ont mangé à midi ?", op: ["Une salade", "Une soupe", "Un sandwich"], ok: 1 },
+    ] },
+  { nivel: "B1", texto: "Dans notre municipalité, la bibliothèque va être agrandie. Selon la mairesse, les inscriptions ont beaucoup augmenté ces dernières années, surtout chez les familles avec de jeunes enfants. Les travaux commenceront au printemps et dureront environ un an. Pendant ce temps, un local temporaire sera ouvert près de l'hôtel de ville, pour que personne ne perde l'accès aux livres.",
+    preguntas: [
+      { q: "Pourquoi agrandit-on la bibliothèque ?", op: ["Parce que le bâtiment est trop vieux", "Parce qu'il y a beaucoup plus d'inscriptions", "Parce que la mairesse l'a promis aux enfants"], ok: 1 },
+      { q: "Qu'est-ce qui se passera pendant les travaux ?", op: ["La bibliothèque fermera complètement", "Les livres seront seulement en ligne", "Un local temporaire sera ouvert"], ok: 2 },
+    ] },
+  { nivel: "B2/C1", texto: "Si plusieurs spécialistes saluent la gratuité des transports en commun comme une mesure à la fois sociale et écologique, d'autres estiment qu'elle risque de détourner des fonds qui seraient plus utiles à l'amélioration du service. Selon eux, ce qui retient les automobilistes, ce n'est pas tant le prix du billet que la fréquence irrégulière des autobus. Autrement dit, un service gratuit mais peu fiable ne convaincrait guère ceux qui hésitent encore.",
+    preguntas: [
+      { q: "Selon les critiques, qu'est-ce qui retient surtout les automobilistes ?", op: ["Le prix du billet", "La fréquence irrégulière des autobus", "La pollution en ville"], ok: 1 },
+      { q: "Que veut dire « ne convaincrait guère » ?", op: ["Convaincrait très peu", "Convaincrait tout le monde", "Convaincrait plus tard"], ok: 0 },
+    ] },
+];
+const DIAG_ORAL = [
+  { nivel: "A2", consigne: "Présente-toi : où tu habites, avec qui, et comment se passe une journée normale pour toi.", tiempo: "1 minute" },
+  { nivel: "B1", consigne: "Raconte une situation difficile que tu as vécue au Québec et comment tu l'as réglée.", tiempo: "2 minutes" },
+  { nivel: "B2", consigne: "Selon toi, quels sont les avantages et les inconvénients de vivre dans un pays où l'on ne parle pas sa langue maternelle ? Donne des exemples.", tiempo: "2 minutes" },
+  { nivel: "C1", consigne: "Une amie pense que les garderies devraient être gratuites pour toutes les familles. Es-tu d'accord ? Défends ta position avec deux arguments et réponds à une objection.", tiempo: "2 à 3 minutes" },
+];
+const DIAG_ESCRITO = "Écris un courriel à la direction de la garderie de ton quartier : tu veux savoir s'il reste une place pour un enfant de 3 ans à partir de janvier. Présente-toi, explique la situation et pose deux questions. (100 à 150 mots, sans dictionnaire)";
+function estadoDiag() { return { paso: 0, i: 0, escucha: {}, oral: {}, escrito: "", inicio: Date.now(), ...(leerLocal("lidia-diag") || {}) }; }
+function guardarDiag(d) { guardarLocal("lidia-diag", d); pintarDiag(); }
+let grabDiag = null;
+function pintarAccesoDiag() {
+  const n = estado.perfil?.nivel;
+  if (!n) return;
+  $("i-diag-t").textContent = `Mon niveau : ${n.global}`;
+  $("i-diag-s").textContent = `Compréhension ${n.comprension?.nivel} · oral ${n.oral?.nivel} · écrit ${n.escrito?.nivel} · refaire le diagnostic`;
+}
+function pintarDiag() {
+  const d = estadoDiag(), c = $("d-cuerpo");
+  let h = "";
+  if (d.paso === 0) {
+    h = `<div class="tarjeta"><span class="d-paso">Diagnostic · 20 minutes</span><h2>Où en est ton français ?</h2>
+      <p>Trois parties, sans dictionnaire : <b>écoute</b> (3 audios, du plus facile au plus difficile), <b>oral</b> (4 questions, tu réponds au micro) et <b>écrit</b> (un courriel court). Ce n'est pas un examen : ça sert à ce que Lidia choisisse le bon niveau pour toi. Si une partie est trop difficile, réponds ce que tu peux.</p>
+      <div class="d-botones"><button class="btn" data-d="empezar" type="button">Commencer</button></div></div>`;
+  } else if (d.paso === 1) {
+    const a = DIAG_ESCUCHA[d.i], r = d.escucha[d.i] || { oidas: 0, resp: [] };
+    h = `<div class="tarjeta"><span class="d-paso">1 · Écoute ${d.i + 1}/3</span><h2>Écoute, puis réponds</h2>
+      <p>Tu peux écouter deux fois. Le texte ne s'affiche pas.</p>
+      <div class="d-botones"><button class="btn" data-d="oir" type="button" ${r.oidas >= 2 ? "disabled" : ""}>▶ Écouter (${2 - r.oidas} restante${2 - r.oidas > 1 ? "s" : ""})</button></div>
+      ${r.oidas ? a.preguntas.map((p, k) => `<div class="d-q"><b>${escapar(p.q)}</b><div class="d-op">${p.op.map((o, j) => `<button type="button" data-d="op" data-k="${k}" data-j="${j}" class="${r.resp[k] === j ? "elegida" : ""}">${escapar(o)}</button>`).join("")}</div></div>`).join("") : ""}
+      <div class="d-botones"><button class="btn sec" data-d="sig-escucha" type="button" ${r.resp.filter((x) => x !== undefined && x !== null).length < 2 ? "disabled" : ""}>Suivant →</button></div></div>`;
+  } else if (d.paso === 2) {
+    const o = DIAG_ORAL[d.i], r = d.oral[d.i];
+    h = `<div class="tarjeta"><span class="d-paso">2 · Oral ${d.i + 1}/4 · environ ${o.tiempo}</span><h2>${escapar(o.consigne)}</h2>
+      <p>Touche « Enregistrer », parle sans t'arrêter, puis touche « J'ai fini ». Si un mot te manque, dis-le en espagnol.</p>
+      <div class="d-botones"><button class="btn" data-d="grabar" type="button">${grabDiag ? "⏺ J'ai fini" : r ? "🎙 Recommencer" : "🎙 Enregistrer"}</button></div>
+      ${r ? `<div class="d-trans"><small>J'ai entendu :</small><br>${escapar(r.transcripcion)}</div>` : ""}
+      <div class="d-botones"><button class="btn sec" data-d="sig-oral" type="button" ${r && !grabDiag ? "" : "disabled"}>Suivant →</button>
+        <button class="btn sec" data-d="saltar-oral" type="button" ${grabDiag ? "disabled" : ""}>C'est trop difficile, je passe</button></div></div>`;
+  } else if (d.paso === 3) {
+    const n = (d.escrito.match(/\S+/g) || []).length;
+    h = `<div class="tarjeta"><span class="d-paso">3 · Écrit · environ 10 minutes</span><h2>${escapar(DIAG_ESCRITO)}</h2>
+      <textarea id="d-texto" lang="fr" spellcheck="false" placeholder="Madame, Monsieur,…">${escapar(d.escrito)}</textarea>
+      <p><small id="d-cuenta">${n} mot${n > 1 ? "s" : ""}</small></p>
+      <div class="d-botones"><button class="btn" data-d="enviar" type="button">Envoyer à Lidia</button></div></div>`;
+  } else if (d.paso === 4) {
+    h = `<div class="tarjeta"><span class="d-paso">Évaluation</span><h2>Lidia lit tes réponses…</h2><p>Ça prend environ une minute.</p></div>`;
+  } else if (d.paso === 5 && d.resultado) {
+    const r = d.resultado;
+    h = `<div class="tarjeta"><span class="d-paso">Résultat · ${escapar(r.global)}</span><h2>Ton niveau aujourd'hui</h2>
+      <div class="d-nivel"><div><b>${escapar(r.comprension.nivel)}</b><small>Compréhension</small></div><div><b>${escapar(r.oral.nivel)}</b><small>Oral</small></div><div><b>${escapar(r.escrito.nivel)}</b><small>Écrit</small></div></div>
+      <p>${escapar(r.mensaje)}</p>
+      <div class="d-botones"><button class="btn sec" data-d="oir-res" type="button">🔊 Écouter</button></div></div>
+      <div class="tarjeta"><h2>Tes forces</h2><ul>${r.fortalezas.map((f) => `<li>${escapar(f)}</li>`).join("")}</ul></div>
+      <div class="tarjeta"><h2>Tes 3 priorités</h2><ul>${r.prioridades.map((p) => `<li><b>${escapar(p.tema)}</b> — ${escapar(p.ejemplo)}<br><small>${escapar(p.por_que)}</small></li>`).join("")}</ul></div>
+      <div class="tarjeta"><h2>Pourquoi ces niveaux</h2><ul><li><b>Compréhension :</b> ${escapar(r.comprension.justificacion)}</li><li><b>Oral :</b> ${escapar(r.oral.justificacion)}</li><li><b>Écrit :</b> ${escapar(r.escrito.justificacion)}</li></ul>
+      <p><b>Ce que Lidia change :</b> ${escapar(r.recomendacion)}</p>
+      <div class="d-botones"><button class="btn" data-ir="inicio" type="button">Terminer</button><button class="btn sec" data-d="rehacer" type="button">Refaire le diagnostic</button></div></div>`;
+  } else { guardarLocal("lidia-diag", null); return pintarDiag(); }
+  c.innerHTML = h;
+  c.querySelectorAll("[data-d]").forEach((b) => (b.onclick = () => accionDiag(b.dataset.d, b)));
+  const ta = $("d-texto");
+  if (ta) ta.oninput = () => { const x = estadoDiag(); x.escrito = ta.value; guardarLocal("lidia-diag", x); const n = (ta.value.match(/\S+/g) || []).length; $("d-cuenta").textContent = `${n} mot${n > 1 ? "s" : ""}`; };
+}
+async function accionDiag(a, b) {
+  abrirVoz();
+  const d = estadoDiag();
+  if (a === "empezar") return guardarDiag({ ...estadoDiag(), paso: 1, i: 0, inicio: Date.now() });
+  if (a === "oir") {
+    const r = d.escucha[d.i] || { oidas: 0, resp: [] };
+    r.oidas++; d.escucha[d.i] = r; guardarDiag(d);
+    return hablarLidia(DIAG_ESCUCHA[d.i].texto);
+  }
+  if (a === "op") { const r = d.escucha[d.i]; r.resp[+b.dataset.k] = +b.dataset.j; return guardarDiag(d); }
+  if (a === "sig-escucha") { callar(); return guardarDiag(d.i < 2 ? { ...d, i: d.i + 1 } : { ...d, paso: 2, i: 0 }); }
+  if (a === "grabar") {
+    if (!grabDiag) {
+      callar();
+      grabDiag = await abrirGrabadora();
+      if (!grabDiag) return aviso("Je n'ai pas accès au micro.");
+      grabDiag.desde = Date.now();
+      return pintarDiag();
+    }
+    const g = grabDiag; grabDiag = null;
+    b.disabled = true; b.textContent = "Je t'écoute… un instant";
+    const audio = await cerrarGrabadora(g);
+    let t = "";
+    try { if (audio && audio.size > 1500) t = await transcribir(audio); } catch {}
+    if (!t) { pintarDiag(); return aviso("Je n'ai rien entendu. Réessaie."); }
+    d.oral[d.i] = { transcripcion: t, segundos: Math.round((Date.now() - g.desde) / 1000) };
+    return guardarDiag(d);
+  }
+  if (a === "saltar-oral") d.oral[d.i] = { transcripcion: "(Laura a passé cette question : trop difficile.)", segundos: 0 };
+  if (a === "sig-oral" || a === "saltar-oral") return guardarDiag(d.i < 3 ? { ...d, i: d.i + 1 } : { ...d, paso: 3, i: 0 });
+  if (a === "enviar") {
+    const texto = ($("d-texto").value || "").trim();
+    if ((texto.match(/\S+/g) || []).length < 20) return aviso("Écris au moins quelques phrases (20 mots).");
+    d.escrito = texto; d.paso = 4; guardarDiag(d);
+    try {
+      const resultado = await evaluarDiag(d);
+      guardarDiag({ ...estadoDiag(), paso: 5, resultado });
+      if (estado.perfil) estado.perfil.nivel = resultado;
+      if (leerAuto()) hablarLidia(resultado.mensaje);
+    } catch (e) {
+      aviso(`Lidia n'a pas pu évaluer : ${e.message}`);
+      guardarDiag({ ...estadoDiag(), paso: 3 });
+    }
+    return;
+  }
+  if (a === "oir-res") return hablarLidia(d.resultado.mensaje);
+  if (a === "rehacer") { guardarLocal("lidia-diag", null); return pintarDiag(); }
+}
+async function evaluarDiag(d) {
+  const respuestas = {
+    escucha: DIAG_ESCUCHA.map((a, i) => ({
+      nivel: a.nivel, escuchas: d.escucha[i]?.oidas || 0,
+      preguntas: a.preguntas.map((p, k) => ({ pregunta: p.q, correcta: p.op[p.ok], eligio: p.op[d.escucha[i]?.resp?.[k]] ?? null, acierto: d.escucha[i]?.resp?.[k] === p.ok })),
+    })),
+    oral: DIAG_ORAL.map((o, i) => ({ nivel: o.nivel, consigne: o.consigne, transcripcion: d.oral[i]?.transcripcion || "", segundos: d.oral[i]?.segundos || 0 })),
+    escrito: { consigne: DIAG_ESCRITO, texto: d.escrito, palabras: (d.escrito.match(/\S+/g) || []).length },
+    minutos: Math.round((Date.now() - (d.inicio || Date.now())) / 60000),
+  };
+  const { data: s } = await sb.auth.getSession();
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/lidia`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${s.session?.access_token}`, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ diagnostico: respuestas }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+  return j.resultado;
 }
 
 // ── Puras: revisión de respuestas (las prueba pruebas/cliente.prueba.js; la función lidia tiene la misma en reglas.js) ──

@@ -116,6 +116,40 @@ const ESQUEMA_RESPUESTA = {
   },
 };
 
+// ── Diagnóstico de nivel (Paso 0 del plan, 11-nov-2026) ──
+const NIVELES = ["A1", "A2", "A2+", "B1", "B1+", "B2", "B2+", "C1", "C1+", "C2"];
+const NIVEL_DESTREZA = {
+  type: "object", additionalProperties: false, required: ["nivel", "justificacion"],
+  properties: { nivel: { type: "string", enum: NIVELES }, justificacion: { type: "string" } },
+};
+const ESQUEMA_DIAGNOSTICO = {
+  type: "object",
+  additionalProperties: false,
+  required: ["comprension", "oral", "escrito", "global", "fortalezas", "prioridades", "recomendacion", "mensaje"],
+  properties: {
+    comprension: NIVEL_DESTREZA,
+    oral: NIVEL_DESTREZA,
+    escrito: NIVEL_DESTREZA,
+    global: { type: "string", enum: NIVELES },
+    fortalezas: { type: "array", items: { type: "string" } },
+    prioridades: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false, required: ["tema", "ejemplo", "por_que"],
+        properties: { tema: { type: "string" }, ejemplo: { type: "string" }, por_que: { type: "string" } },
+      },
+    },
+    recomendacion: { type: "string" },
+    mensaje: { type: "string" },
+  },
+};
+const PROMPT_DIAGNOSTICO = `Eres evaluadora certificada de francés (DELF/DALF, CECR) y conoces el TECFÉE de Quebec. Evalúas el diagnóstico de Laura, colombiana hispanohablante que vive en Saint-Eustache (Quebec) y aprende francés québécois. Recibes un JSON con:
+- escucha: 3 audios graduados (A2, B1, B2/C1), 2 preguntas de opción múltiple cada uno, con sus aciertos y cuántas veces escuchó.
+- oral: 4 consignas graduadas (A2, B1, B2, C1) con la transcripción AUTOMÁTICA de lo que dijo y los segundos. La transcripción la hizo una máquina: no cuentes tildes, puntuación ni letras raras; sí cuentan la gramática, el vocabulario, la coherencia, el alcance y cuánto produce. Si saltó una consigna, eso indica su techo.
+- escrito: un correo a una garderie, tecleado (aquí sí cuentan la ortografía, los acuerdos, la puntuación y el registro formal, con criterios del TECFÉE).
+Reglas: nivela por destreza según el CECR, con honestidad y sin inflar. Con poca evidencia, elige el nivel más bajo defendible y dilo en la justificación. Comprensión: el nivel más alto en el que acertó las 2 preguntas (con 1/2, el nivel intermedio, por ejemplo B1+ si acertó B1 entero y la mitad de B2/C1). Usa los signos + (A2+, B1+, B2+, C1+) cuando esté entre dos niveles.
+Devuelve: justificaciones en español (2-3 frases, citando lo que dijo o escribió); 2-3 fortalezas reales; las 3 prioridades más rentables, cada una con un ejemplo exacto de su producción y el porqué; recomendacion: qué debe ajustar Lidia en sus clases (nivel de los textos del Oral, foco de Gramática, exigencia en Conversación y Écriture), en 2-3 frases; mensaje: 3-4 frases en francés québécois, cálido y directo, para Laura, con su nivel y un primer objetivo concreto.`;
+
 type Item = { id: string; intervalo: number; aciertos_seguidos: number };
 type ItemBanco = Item & { tipo: string; original: string | null; correcto: string };
 
@@ -209,6 +243,32 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: "JSON inválido" }, 400);
   }
+  // Diagnóstico de nivel: rama aparte (Sonnet), guarda el resultado y el nivel en perfil.nivel.
+  if ((entrada as { diagnostico?: unknown }).diagnostico) {
+    const respuestas = (entrada as { diagnostico: unknown }).diagnostico;
+    const { data: perfil } = await db.from("perfil").select("user_id").maybeSingle();
+    if (!perfil?.user_id) return json({ error: "Sin sesión" }, 401);
+    let resp;
+    try {
+      resp = await anthropic.beta.messages.create({
+        model: MODELO_CORRECCION,
+        max_tokens: 6000,
+        system: PROMPT_DIAGNOSTICO,
+        messages: [{ role: "user", content: JSON.stringify(respuestas).slice(0, 60000) }],
+        output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA_DIAGNOSTICO } },
+      } as Anthropic.Beta.MessageCreateParamsNonStreaming);
+    } catch (e) {
+      if (e instanceof Anthropic.APIError) return json({ error: `Error de Claude ${e.status}: ${e.message}` }, 502);
+      throw e;
+    }
+    const bloque = resp.content.find((b) => b.type === "text");
+    let resultado;
+    try { resultado = JSON.parse(bloque && "text" in bloque ? bloque.text : ""); } catch { return json({ error: "Evaluación ilegible" }, 502); }
+    resultado.fecha = hoyMas(0);
+    await db.from("diagnosticos").insert({ respuestas, resultado });
+    await db.from("perfil").update({ nivel: resultado }).eq("user_id", perfil.user_id);
+    return json({ resultado });
+  }
   // `items_hoy` del cliente se ignora: los ítems que tocan hoy los calcula el servidor.
   const { sesion_id, fase, mensaje, foto_path, resumen_sesion, simulacro = false, material = null } = entrada;
   const modoEntrada = normalizarEntrada(entrada.entrada);
@@ -220,7 +280,7 @@ Deno.serve(async (req) => {
   }
 
   const [perfilR, sesionR, ayerR, historialR, fechasR, hoyR, emitidosR] = await Promise.all([
-    db.from("perfil").select("user_id, fase_plan, tema_semana, memoria").maybeSingle(),
+    db.from("perfil").select("user_id, fase_plan, tema_semana, memoria, nivel").maybeSingle(),
     db.from("sesiones").select("id, fecha, texto_n").eq("id", sesion_id).maybeSingle(),
     db.from("sesiones").select("fecha, resumen").neq("id", sesion_id).not("resumen", "is", null)
       .order("creado", { ascending: false }).limit(SESIONES_ANTERIORES),
@@ -279,6 +339,18 @@ Deno.serve(async (req) => {
     items_hoy,
     // Memoria larga: hechos de su vida (no le vuelvas a preguntar lo que ya está aquí) y las últimas sesiones.
     cuaderno_laura: perfilR.data?.memoria ?? [],
+    // Nivel medido en el diagnóstico (o null si no lo ha hecho). Ajusta la dificultad con esto, no a ojo:
+    // input un poco por encima de `comprension` (i+1), exigencia de producción un poco por encima de `oral`/`escrito`,
+    // y trabaja sus `prioridades`.
+    nivel_laura: perfilR.data?.nivel
+      ? {
+        comprension: perfilR.data.nivel.comprension?.nivel, oral: perfilR.data.nivel.oral?.nivel,
+        escrito: perfilR.data.nivel.escrito?.nivel, global: perfilR.data.nivel.global, fecha: perfilR.data.nivel.fecha,
+        prioridades: (perfilR.data.nivel.prioridades ?? []).map((p: { tema: string }) => p.tema),
+        recomendacion: perfilR.data.nivel.recomendacion,
+        como_ajustar: "Input un poco por encima de `comprension` (i+1); exige producción un poco por encima de `oral` y `escrito`; trabaja sus `prioridades`. No vuelvas a evaluar su nivel a ojo.",
+      }
+      : null,
     resumen_ayer: ayerR.data?.[0]?.resumen ?? null,
     sesiones_anteriores: (ayerR.data ?? []).slice(1).map((r: { fecha: string; resumen: string }) => `${r.fecha}: ${r.resumen}`),
     resumen_sesion: resumen_sesion ?? null,
