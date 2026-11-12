@@ -257,6 +257,21 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
 .amb-modos button[aria-pressed="true"] { background: var(--tarjeta); color: var(--amb); box-shadow: var(--sombra); }
 .amb-material input { min-height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--borde); background: var(--tarjeta); font-weight: 400; }
 .amb-revision { margin-top: 12px; font-size: 15px; font-weight: 600; }
+/* Oral: tarjeta del texto del día con 4 pasos (escuchar sin texto, con texto, comprender, repetir) */
+.oral { background: var(--tarjeta); border: 2px solid var(--amb); border-radius: 20px; padding: 18px; margin: 0 0 16px; }
+.oral .o-cab small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--amb); }
+.oral .o-cab h3 { margin: 2px 0 12px; font-size: 21px; line-height: 1.25; }
+.oral .o-pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+.oral .o-pasos span { font-size: 13px; font-weight: 700; text-align: center; padding: 6px 4px; border-radius: 10px; background: color-mix(in srgb, var(--amb) 8%, var(--tarjeta)); opacity: .6; }
+.oral .o-pasos span.ahora { opacity: 1; background: var(--amb); color: #fff; }
+.oral .o-pasos span.hecho { opacity: 1; }
+.oral .o-paso { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+.oral .o-ayuda { margin: 0 0 12px; line-height: 1.45; }
+.oral .o-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.oral .o-botones .btn { flex: 1 1 160px; }
+.oral .o-texto { margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--amb) 7%, var(--tarjeta)); line-height: 1.6; font-size: 18px; }
+.oral .o-pregunta { font-size: 20px; font-weight: 700; margin: 6px 0 10px; line-height: 1.35; }
+.oral .o-volver { margin-top: 12px; background: none; border: 0; color: var(--amb); font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
 .amb-revision span { display: inline-block; margin: 6px 6px 0 0; padding: 4px 10px; border-radius: 99px; font-weight: 400; background: var(--tarjeta); border: 1px solid var(--borde); }
 /* Fuera de Conversation, la acción principal es la actividad del bloque; Écouter y Parler quedan pequeños. */
 .btn.actividad { width: 100%; min-height: 64px; margin-bottom: 10px; border-radius: 20px; font-size: 18px; }
@@ -609,6 +624,7 @@ body.en-sesion { --fondo-amb: color-mix(in srgb, var(--amb-body, var(--violeta))
             <button type="button" data-modo="guidee">🎤 Prise de parole guidée</button>
           </div>
         </div>
+        <section class="oral" id="s-oral" hidden lang="fr" aria-label="Texte du jour"></section>
         <div class="chat" id="s-chat" lang="fr"></div>
         <div class="terminada" id="s-terminada" hidden>Session terminée. Les nouveautés sont déjà dans ta banque.</div>
         <div class="pie">
@@ -932,6 +948,7 @@ async function abrirSesion() {
   alFinal();
   cargarPanel(s);
   cargarHebrasSemana(s);
+  if (FASES[estado.faseIdx].id === "oral") cargarTextoDia();
   if (terminada) return;
   if (!msgs?.length) await enviar(arranqueFase(FASES[estado.faseIdx]));
   // Al retomar una sesión de hoy, Lidia vuelve a decir su último mensaje (antes se quedaba callada).
@@ -1024,6 +1041,7 @@ function pintarAmbiente(f) {
   $("b-voz").classList.toggle("sec", f.id !== "conversacion");
   pintarModos();
   pintarActividad();
+  if (f.id === "oral") cargarTextoDia(); else $("s-oral").hidden = true;
   if (f.id === "gramatica") itemsHoy().then((items) => {
     if (!items.length || $("v-sesion").dataset.bloque !== "gramatica") return;
     $("s-amb-revision").innerHTML = `🔁 ${items.length} à réviser aujourd'hui<br>${items.slice(0, 6).map((it) => `<span>${escapar(it.correcto)}</span>`).join("")}`;
@@ -1431,9 +1449,91 @@ $("s-amb-modos").onclick = (e) => {
 };
 function pintarActividad() {
   const a = actividadActual();
-  $("b-actividad").hidden = !a || Boolean(estado.ej) || estado.sesion?.fase_actual === "terminada";
+  $("b-actividad").hidden = !a || Boolean(estado.ej) || estado.sesion?.fase_actual === "terminada" || FASES[estado.faseIdx].id === "oral";
   if (a) $("b-actividad").textContent = a.boton;
   $("v-sesion").classList.toggle("con-ejercicio", Boolean(estado.ej));
+}
+
+// ── Oral: el texto del día (tabla textos_oral) en una tarjeta con 4 pasos ──
+// Así el Oral no es otro chat: la app guía los pasos y lee el texto; Lidia comenta las respuestas.
+// Paso 1: escuchar sin texto · 2: escuchar leyendo · 3: 3 preguntas de comprensión · 4: shadowing y dictado.
+const PASOS_ORAL = ["Écouter", "Lire", "Comprendre", "Répéter"];
+function claveOral() { return `lidia-oral-${estado.sesion?.id}`; }
+function estadoOral() { return { paso: 1, q: 0, ...(leerLocal(claveOral()) || {}) }; }
+function guardarOral(o) { guardarLocal(claveOral(), o); pintarOral(); }
+async function cargarTextoDia() {
+  if (!estado.sesion || estado.textoDia?.sesion === estado.sesion.id) return pintarOral();
+  let n = estado.sesion.texto_n;
+  if (!n) {
+    const { data: ultimo } = await sb.from("sesiones").select("texto_n").neq("id", estado.sesion.id).not("texto_n", "is", null)
+      .order("texto_n", { ascending: false }).limit(1).maybeSingle();
+    n = (ultimo?.texto_n ?? 0) + 1;
+    estado.sesion.texto_n = n;
+    sb.from("sesiones").update({ texto_n: n }).eq("id", estado.sesion.id).then();
+  }
+  const { data: textos } = await sb.from("textos_oral").select("dia, tema, eje, nivel, texto_fr, frases_shadowing, preguntas").order("dia");
+  if (!textos?.length) return;
+  estado.textoDia = { ...textos[(n - 1) % textos.length], vuelta: Math.ceil(n / textos.length), sesion: estado.sesion.id };
+  pintarOral();
+}
+function preguntaOralActual() {
+  if (FASES[estado.faseIdx]?.id !== "oral" || !estado.textoDia) return null;
+  const o = estadoOral(), lista = estado.textoDia.preguntas || [];
+  if (o.paso !== 3 || o.q >= lista.length) return null;
+  return { k: o.q + 1, total: lista.length, texto: lista[o.q] };
+}
+function avanzarPreguntaOral() {
+  const o = estadoOral();
+  o.q++;
+  if (o.q >= (estado.textoDia?.preguntas || []).length) o.paso = 4;
+  guardarOral(o);
+}
+function pintarOral() {
+  const caja = $("s-oral");
+  const t = estado.textoDia;
+  const ver = FASES[estado.faseIdx]?.id === "oral" && t && estado.sesion?.fase_actual !== "terminada";
+  caja.hidden = !ver;
+  if (!ver) return;
+  const o = estadoOral();
+  const pasos = PASOS_ORAL.map((p, i) => `<span class="${i + 1 === o.paso ? "ahora" : i + 1 < o.paso ? "hecho" : ""}">${i + 1 < o.paso ? "✓" : i + 1} ${p}</span>`).join("");
+  let cuerpo = "";
+  if (o.paso === 1) {
+    cuerpo = `<p class="o-paso">1. Écoute sans lire</p><p class="o-ayuda">Ferme les yeux si tu veux. Écoute tout le texte une fois, sans le voir. Ne cherche pas chaque mot : cherche l'idée.</p>
+      <div class="o-botones"><button class="btn" type="button" data-o="oir">▶ Écouter le texte</button><button class="btn sec" type="button" data-o="lento">🐢 Lentement</button></div>
+      <div class="o-botones" style="margin-top:8px"><button class="btn sec" type="button" data-o="a2">J'ai écouté → Étape 2</button></div>`;
+  } else if (o.paso === 2) {
+    cuerpo = `<p class="o-paso">2. Écoute en lisant</p><p class="o-ayuda">Maintenant, écoute encore en suivant le texte. Repère les mots que tu ne connaissais pas.</p>
+      <div class="o-botones"><button class="btn" type="button" data-o="oir">▶ Écouter</button><button class="btn sec" type="button" data-o="lento">🐢 Lentement</button></div>
+      <div class="o-texto">${escapar(t.texto_fr)}</div>
+      <div class="o-botones" style="margin-top:12px"><button class="btn sec" type="button" data-o="a3">J'ai compris → Étape 3</button></div>`;
+  } else if (o.paso === 3) {
+    const lista = t.preguntas || [];
+    cuerpo = `<p class="o-paso">3. Tu as compris ? Question ${o.q + 1}/${lista.length}</p>
+      <p class="o-pregunta">${escapar(lista[o.q] || "")}</p>
+      <p class="o-ayuda">Réponds avec 🎙 Parler ou par écrit, puis ↑. Lidia te dit si tu as compris (ici, l'orthographe ne compte pas).</p>
+      <div class="o-botones"><button class="btn sec" type="button" data-o="oir">▶ Réécouter le texte</button></div>`;
+  } else {
+    cuerpo = `<p class="o-paso">4. Répète (shadowing)</p><p class="o-ayuda">Tu écoutes une phrase du texte et tu la répètes au micro, tout de suite, avec le même rythme. Puis une dictée.</p>
+      <div class="o-botones"><button class="btn" type="button" data-o="sombra">🎧 Commencer le shadowing</button></div>`;
+  }
+  caja.innerHTML = `<div class="o-cab"><small>🎧 Texte du jour · ${estado.textoDia.vuelta > 1 ? `tour ${estado.textoDia.vuelta} · ` : ""}${escapar(t.nivel || "")}</small><h3>${escapar(t.tema)}</h3></div>
+    <div class="o-pasos">${pasos}</div>${cuerpo}
+    ${o.paso > 1 ? `<button class="o-volver" type="button" data-o="atras">← Étape précédente</button>` : ""}`;
+  caja.querySelectorAll("[data-o]").forEach((b) => (b.onclick = () => accionOral(b.dataset.o)));
+}
+function accionOral(a) {
+  abrirVoz();
+  if (!estado.corriendo) continuar();
+  const o = estadoOral(), t = estado.textoDia;
+  if (a === "oir" || a === "lento") return hablarLidia(t.texto_fr, a === "lento");
+  callar();
+  if (a === "a2") return guardarOral({ ...o, paso: 2 });
+  if (a === "a3") return guardarOral({ ...o, paso: 3, q: 0 });
+  if (a === "atras") return guardarOral({ ...o, paso: Math.max(1, o.paso - 1), q: 0 });
+  if (a === "sombra") {
+    if (estado.enviando) return aviso("Attends que Lidia ait fini.");
+    enviar(ACTIVIDADES.oral.pedido);
+  }
 }
 
 // ── Puras: revisión de respuestas (las prueba pruebas/cliente.prueba.js; la función lidia tiene la misma en reglas.js) ──
@@ -1817,9 +1917,11 @@ async function enviarYa(texto, fotoPath, extra = {}) {
   estado.enviando = true;
   $("b-enviar").disabled = true;
   const fase = FASES[estado.faseIdx].id;
+  const entrada = tipoEntrada(texto, fotoPath);
+  // En el Oral, la respuesta a una pregunta de comprensión va con la pregunta delante.
+  if (extra.prefijo) texto = extra.prefijo + texto;
   await pintarMensaje("laura", texto, null, fotoPath);
   const anterior = estado.actual;
-  const entrada = tipoEntrada(texto, fotoPath);
   if (!AVISO.test(texto)) estado.dictado = false;
   pensando(fotoPath ? "Lidia lit ton texte…" : "Lidia t'écoute…");
   try {
@@ -1858,7 +1960,9 @@ $("b-enviar").onclick = async () => {
     if (!t) return;
     $("s-texto").value = "";
     ajustarAlto();
-    enviar(t);
+    const pregunta = preguntaOralActual();
+    if (pregunta) { enviar(t, null, { prefijo: `(Compréhension ${pregunta.k}/${pregunta.total} : ${pregunta.texto})\n` }); avanzarPreguntaOral(); }
+    else enviar(t);
   } finally {
     enviandoClic = false;
   }
