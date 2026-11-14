@@ -884,7 +884,7 @@ function racha(fechas) {
   let seguidos = 0, congelada = false, atras = dias.has(hoy()) ? 0 : 1;
   while (true) {
     if (dias.has(diaMas(-atras))) { seguidos++; atras++; }
-    else if (!congelada && seguidos > 0 && dias.has(diaMas(-atras - 1))) { congelada = true; atras++; }
+    else if (!congelada && (seguidos > 0 || atras === 1) && dias.has(diaMas(-atras - 1))) { congelada = true; atras++; }
     else break;
   }
   return { seguidos, congelada };
@@ -1016,6 +1016,8 @@ async function cargarPanel(s) {
   const guardado = leerLocal("lidia-inicio");
   $("s-racha").textContent = guardado?.racha?.match(/\d+/)?.[0] ?? "0";
   $("s-errores").textContent = guardado?.errores ?? "–";
+  // La racha guardada es de antes de abrir la sesión de hoy: se recalcula con la sesión ya creada.
+  sb.from("sesiones").select("fecha").then(({ data }) => { if (data) $("s-racha").textContent = racha(data.map((x) => x.fecha)).seguidos; });
   const { data: previa } = await sb.from("sesiones").select("id").lt("fecha", s.fecha).order("fecha", { ascending: false }).limit(1).maybeSingle();
   if (!previa) return;
   const { data: msgs } = await sb.from("mensajes").select("contenido").eq("sesion_id", previa.id).eq("rol", "lidia").order("creado", { ascending: false }).limit(4);
@@ -1267,7 +1269,7 @@ document.addEventListener("pointerdown", () => abrirVoz(), { capture: true, once
 // ── Versión: la app instalada se actualiza sola ──
 // Al volver a la app (o cada 10 min), mira si hay una versión publicada más nueva y recarga
 // cuando no se está grabando ni esperando a Lidia (la sesión está guardada en la nube y en el teléfono).
-const VERSION_APP = "2026-11-11-e";
+const VERSION_APP = "2026-11-13-a";
 async function revisarVersion() {
   try {
     const r = await fetch(`index.html?v=${Date.now()}`, { cache: "no-store" });

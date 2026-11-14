@@ -39,6 +39,28 @@ const MODO_BLOQUE: Record<string, string> = {
     "ÉCRITURE (30 min) = OUTPUT ESCRITO (min 0-20) + FLUIDEZ ESCRITA (min 20-30). CON ANDAMIAJE mientras `nivel_laura.escrito` esté por debajo de B1 (diagnóstico del 13-nov: A1): en vez del compte rendu del TECFÉE, correos y mensajes cortos y reales (garderie, SAAQ, clínica, trabajo) de 60-100 palabras. Primero le das 4-6 frases modelo en un `plus` (saludo formal «Madame, Monsieur,», presentarse, «Je souhaiterais savoir si…», «Pourriez-vous m'indiquer…», «Je vous remercie de votre réponse.», «Cordialement,»); ella escribe con el modelo; corriges; después lo reescribe SIN mirar el modelo. Intercala un dictado corto (`dictee`) de esas frases. Min 0-3: un `rediger` con la tarea real. Cuando llegue el texto: corrígelo entero, error por error (lo que escribió → la forma correcta → la regla → la comparación con el español), con la lista completa en `plus`; dile qué hizo bien de verdad; pídele que reescriba solo las frases con errores. Min 20-30: «10 minutes d'écriture»: un `rediger` sobre un tema FAMILIAR, escribir 10 minutos sin parar, sin diccionario y sin corrección durante; al recibirlo, comentas solo cantidad de palabras y fluidez (máximo 1 observación de lengua). El cierre de la sesión va al final.",
 };
 
+// Temas de apertura de Conversation: rotan con cada sesión para que no empiece siempre igual (13-nov-2026:
+// cuatro sesiones abrieron con «qu'est-ce que tu as fait ce matin?»). Salen de su cuaderno y de sus metas.
+const TEMAS_APERTURA = [
+  "la política de Colombia (su tema favorito): una noticia o un cambio reciente y qué opina ella",
+  "su recuperación del pie: cómo va la fisioterapia y qué es lo que más extraña hacer",
+  "la comida: La Saveur colombienne, el ajiaco, y un plato québécois que probó o quiere probar",
+  "sus gatos Mía y Dorito: su carácter y una anécdota",
+  "su futuro: por qué quiere estudiar educación y qué tipo de maestra quiere ser",
+  "Colombia y Quebec: una costumbre de Quebec que la sorprendió al llegar",
+  "el invierno que llega a Saint-Eustache: cómo se prepara y qué piensa de la nieve",
+  "la política de Quebec o de Canadá: una decisión del gobierno que la afecta (salud, transporte, inmigración)",
+  "un recuerdo de Colombia: un lugar, una persona o una fiesta",
+  "la bicicleta y la seguridad vial: qué cambiaría en las calles después de su accidente",
+  "el fin de semana con Ana: qué planean y qué les gusta hacer juntas",
+  "la salud: el sistema de Quebec comparado con el de Colombia",
+];
+function textoApertura(n: number): string {
+  const tema = TEMAS_APERTURA[((n % TEMAS_APERTURA.length) + TEMAS_APERTURA.length) % TEMAS_APERTURA.length];
+  const hora = new Date().toLocaleTimeString("fr-CA", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
+  return `APERTURA DE HOY: empieza la conversación con este tema: ${tema}. Una sola pregunta abierta, concreta, que la haga contar u opinar (no de sí o no). PROHIBIDO preguntar qué hizo esta mañana, hoy o ayer, o por su rutina: ya se lo preguntaste en varias sesiones. Escribe TODO en francés (défi, exemple y pregunta): nada en español, ni la bienvenida ni traducciones. En Quebec son las ${hora}.`;
+}
+
 // Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
 // Los ejercicios van al final, en una sola línea «[[exercices]] [json]».
 function aTexto(bloques: { tipo: string; texto: string }[], ejercicios: unknown[] = []): string {
@@ -177,7 +199,7 @@ function racha(fechas: string[]) {
     if (dias.has(hoyMas(-atras))) {
       dias_seguidos++;
       atras++;
-    } else if (!congelada && dias_seguidos > 0 && dias.has(hoyMas(-atras - 1))) {
+    } else if (!congelada && (dias_seguidos > 0 || atras === 1) && dias.has(hoyMas(-atras - 1))) {
       congelada = true;
       atras++;
     } else break;
@@ -367,7 +389,10 @@ Deno.serve(async (req) => {
     ...racha((fechasR.data ?? []).map((s: { fecha: string }) => s.fecha)),
   };
   // La actividad va justo antes del mensaje de Laura: lo último que lee Lidia.
-  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n<actividad>\n${textoActividad(actividad, tramo)}\n</actividad>\n\n${mensaje}`;
+  // Al abrir Conversation, el tema del día (rota por número de sesión) va con la actividad: lo último que lee Lidia.
+  const abre = fase === "conversacion" && /^\(Nouvelle phase/.test(mensaje);
+  const apertura = abre ? `\n${textoApertura((fechasR.data ?? []).length)}` : "";
+  const textoUsuario = `<contexto>\n${JSON.stringify(contexto)}\n</contexto>\n\n<actividad>\n${textoActividad(actividad, tramo)}${apertura}\n</actividad>\n\n${mensaje}`;
   const historial = armarHistorial((historialR.data ?? []).reverse());
   const ultimo = historial[historial.length - 1];
   const contenidoNuevo: Anthropic.ContentBlockParam[] = imagen
