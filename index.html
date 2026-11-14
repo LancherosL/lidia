@@ -954,7 +954,13 @@ async function cargarInicio() {
 $("b-sesion").onclick = () => ir(estado.hoyTerminada ? "cierre" : "sesion");
 
 // ── Sesión ──
-async function abrirSesion() {
+// Una sola apertura a la vez: si la pantalla se abre dos veces seguidas (13-nov-2026), Lidia no arranca el bloque dos veces.
+let abriendoSesion = null;
+function abrirSesion() {
+  if (!abriendoSesion) abriendoSesion = abrirSesionYa().finally(() => { abriendoSesion = null; });
+  return abriendoSesion;
+}
+async function abrirSesionYa() {
   $("s-chat").innerHTML = "";
   pensando("Un instant…");
   let { data: s } = await sb.from("sesiones").select("*").eq("fecha", hoy()).order("creado", { ascending: false }).limit(1).maybeSingle();
@@ -1269,7 +1275,7 @@ document.addEventListener("pointerdown", () => abrirVoz(), { capture: true, once
 // ── Versión: la app instalada se actualiza sola ──
 // Al volver a la app (o cada 10 min), mira si hay una versión publicada más nueva y recarga
 // cuando no se está grabando ni esperando a Lidia (la sesión está guardada en la nube y en el teléfono).
-const VERSION_APP = "2026-11-13-a";
+const VERSION_APP = "2026-11-13-b";
 async function revisarVersion() {
   try {
     const r = await fetch(`index.html?v=${Date.now()}`, { cache: "no-store" });
