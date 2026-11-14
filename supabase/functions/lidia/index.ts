@@ -55,10 +55,23 @@ const TEMAS_APERTURA = [
   "el fin de semana con Ana: qué planean y qué les gusta hacer juntas",
   "la salud: el sistema de Quebec comparado con el de Colombia",
 ];
+// Qué día y qué hora es en Quebec, para que Lidia pregunte según el día (13-nov-2026).
+function hoyEnQuebec() {
+  const ahora = new Date();
+  const texto = ahora.toLocaleDateString("fr-CA", { timeZone: ZONA, weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const hora = ahora.toLocaleTimeString("fr-CA", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
+  const h = Number(ahora.toLocaleString("en-US", { timeZone: ZONA, hour: "numeric", hour12: false })) % 24;
+  const momento = h < 12 ? "matin" : h < 18 ? "après-midi" : "soir";
+  return { fecha: hoyMas(0), texto, hora, momento };
+}
+function diasEntre(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400000);
+}
+
 function textoApertura(n: number): string {
   const tema = TEMAS_APERTURA[((n % TEMAS_APERTURA.length) + TEMAS_APERTURA.length) % TEMAS_APERTURA.length];
   const hora = new Date().toLocaleTimeString("fr-CA", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
-  return `APERTURA DE HOY: empieza la conversación con este tema: ${tema}. Una sola pregunta abierta, concreta, que la haga contar u opinar (no de sí o no). PROHIBIDO preguntar qué hizo esta mañana, hoy o ayer, o por su rutina: ya se lo preguntaste en varias sesiones. Escribe TODO en francés (défi, exemple y pregunta): nada en español, ni la bienvenida ni traducciones. En Quebec son las ${hora}.`;
+  return `APERTURA DE HOY: empieza la conversación con este tema: ${tema}. Una sola pregunta abierta, concreta, que la haga contar u opinar (no de sí o no). PROHIBIDO preguntar qué hizo esta mañana, hoy o ayer, o por su rutina: ya se lo preguntaste en varias sesiones. Antes del tema, si en el cuaderno (cuaderno_laura) o en los resúmenes hay algo con fecha que ya pasó, que es hoy o mañana, o que toca este día de la semana (mira «hoy» en el contexto), empieza con UNA frase de seguimiento sobre eso, como una tutora que la conoce. Escribe TODO en francés (défi, exemple y pregunta): nada en español, ni la bienvenida ni traducciones. En Quebec son las ${hora}.`;
 }
 
 // Los bloques se guardan como texto «[[tipo]] texto», que es lo que lee la app y lo que Lidia ve en el historial.
@@ -373,7 +386,13 @@ Deno.serve(async (req) => {
         como_ajustar: "Input un poco por encima de `comprension` (i+1); exige producción un poco por encima de `oral` y `escrito`; trabaja sus `prioridades`. No vuelvas a evaluar su nivel a ojo.",
       }
       : null,
-    resumen_ayer: ayerR.data?.[0]?.resumen ?? null,
+    // Qué día es en Quebec y cuánto hace de la sesión anterior: para preguntar según el día y hacer seguimiento.
+    hoy: hoyEnQuebec(),
+    dias_desde_ultima_sesion: (() => {
+      const previa = (fechasR.data ?? []).map((s: { fecha: string }) => s.fecha).find((f: string) => f < hoyMas(0));
+      return previa ? diasEntre(previa, hoyMas(0)) : null;
+    })(),
+    resumen_ayer: ayerR.data?.[0] ? `${ayerR.data[0].fecha}: ${ayerR.data[0].resumen}` : null,
     sesiones_anteriores: (ayerR.data ?? []).slice(1).map((r: { fecha: string; resumen: string }) => `${r.fecha}: ${r.resumen}`),
     resumen_sesion: resumen_sesion ?? null,
     material_oral: material || null,
